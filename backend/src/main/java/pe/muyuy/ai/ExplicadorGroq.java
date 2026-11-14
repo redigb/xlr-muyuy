@@ -37,18 +37,21 @@ public class ExplicadorGroq implements Explicador {
     private final boolean habilitado;
     private final String clave;
     private final String modelo;
+    private final String esfuerzo;
     private final Explicador plantilla = new ExplicadorPlantilla();
 
     public ExplicadorGroq(@RestClient ClienteGroq groq, RepositorioCultivos cultivos, ObjectMapper mapper,
                           @ConfigProperty(name = "groq.enabled", defaultValue = "true") boolean habilitado,
                           @ConfigProperty(name = "groq.clave") Optional<String> clave,
-                          @ConfigProperty(name = "groq.model", defaultValue = "llama-3.3-70b-versatile") String modelo) {
+                          @ConfigProperty(name = "groq.model", defaultValue = "openai/gpt-oss-120b") String modelo,
+                          @ConfigProperty(name = "groq.reasoning-effort") Optional<String> esfuerzo) {
         this.groq = groq;
         this.cultivos = cultivos;
         this.mapper = mapper;
         this.clave = clave.orElse("").trim();
         this.habilitado = habilitado && !this.clave.isEmpty();
         this.modelo = modelo;
+        this.esfuerzo = esfuerzo.map(String::trim).filter(s -> !s.isEmpty()).orElse(null);
     }
 
     @Override
@@ -64,7 +67,7 @@ public class ExplicadorGroq implements Explicador {
         try {
             var peticion = new Peticion(modelo,
                     List.of(new Mensaje("system", sistema(idioma)), new Mensaje("user", datos(rotaciones, zona, cal))),
-                    0.2, 150 * rotaciones.size() + 200, Map.of("type", "json_object"));
+                    0.2, 150 * rotaciones.size() + 200, Map.of("type", "json_object"), esfuerzo);
             String texto = groq.chat("Bearer " + clave, peticion).texto();
             JsonNode json = mapper.readTree(texto).path("explicaciones");
             Map<String, String> out = new LinkedHashMap<>();

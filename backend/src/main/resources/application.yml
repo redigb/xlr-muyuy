@@ -56,4 +56,5 @@ mp:
 groq:
   enabled: true                         # sin clave no se llama a Groq: se usa la plantilla
   clave: ${GROQ_API_KEY:}               # nombre distinto a la env var: así .env no pisa el perfil test
-  model: llama-3.3-70b-versatile
+  model: ${GROQ_MODEL:openai/gpt-oss-120b}   # elegido con scripts/eval_groq.py (llama-3.3-70b fue retirado)
+  reasoning-effort: ${GROQ_REASONING_EFFORT:low}   # medium agota tokens y rompe el JSON en ~25% de llamadas

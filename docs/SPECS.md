@@ -33,7 +33,7 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 | 5 | Paquete: `meta` (versión, hash SHA-256, vigencias) + `nucleo` | ✅ | `PaqueteApiTest`, `SelloTest` · spec `specs/002-paquete-api` |
 | 6 | `GET /api/paquete/{zona}` y `/version` · `/api/zonas` · `/api/salud` | ✅ | `PaqueteApiTest` (flujo HTTP) |
 | 7 | Explicador: Groq (1 llamada por zona) + reutilización + plantilla de respaldo | ✅ falta probar con la clave real | `ExplicadorGroqTest` (Groq falso) · spec `specs/003-explicador-groq` |
-| 8 | Deploy en Oracle (`muyuy-bk.rdev7.net.pe`) | 🟡 falta la VM / secrets | `/q/health/ready` en UP por HTTPS |
+| 8 | Deploy en Oracle (`muyuy-bk.rdev7.net.pe`) | ✅ en producción, deploy automático en cada push a main | `/q/health/ready` en UP por HTTPS |
 
 ### 🟡 P1: después del hito
 | # | Pieza | Estado |
@@ -65,6 +65,9 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | Evaluación de modelos Groq con prompt y paquetes reales (6 configuraciones) → `gpt-oss-120b` + `reasoning_effort: low`; 41 pruebas | `feat(ai): reasoning_effort low y evaluacion de modelos groq` |
+| 14/11 | Groq: llama-3.3-70b retirado (404) → `openai/gpt-oss-120b`, configurable con `GROQ_MODEL`; probado en local 30/30 rotaciones explicadas | `fix(ai): modelo groq gpt-oss-120b configurable con GROQ_MODEL` |
+| 14/11 | Deploy #8 en producción: https://muyuy-bk.rdev7.net.pe (Actions → GHCR → VM, Caddy HTTPS); fixes de YAML en CI y secretos con espacios | `docs: deploy en produccion listo` |
 | 14/11 | Deploy sin compilar en la VM: Actions arma la imagen (arm64+amd64) → GHCR → la VM hace pull | `ci(deploy): imagen armada en github actions y publicada en ghcr` |
 | 14/11 | Jurado en inglés: README + Swagger (cada campo, snake_case = JSON real) + errores API; `groq.clave` para que `.env` no pise el perfil test, 40 pruebas | `docs: README y OpenAPI en ingles para el jurado` |
 | 14/11 | `.claude/` y `.specify/` fuera del repo + `backend/.env` local | `chore: ignorar herramientas locales y entorno local con backend/.env` |

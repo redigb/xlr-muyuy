@@ -17,6 +17,8 @@ The landing page and the Flutter app live in a separate repository: `muyuy-app` 
 
 📘 **Spec v2.1 (ES):** [docs/SPECS_v2.md](docs/SPECS_v2.md) · 📋 **Progress log (ES):** [docs/SPECS.md](docs/SPECS.md) · 🛰️ **NASA API tester:** [docs/ApisNASA.html](docs/ApisNASA.html) (download and open it in a browser)
 
+🌐 **Live API:** https://muyuy-bk.rdev7.net.pe/q/swagger-ui · health: https://muyuy-bk.rdev7.net.pe/q/health/ready
+
 > JSON field names are in Spanish (frozen contract with the app). Every field is documented in English at `/q/swagger-ui`.
 
 ## How it works
@@ -164,8 +166,8 @@ Protect `main`: required PR + green `test` check.
 
 ## AI usage
 
-Rotation explanations are generated with **Groq (Llama 3.3 70B)** from the engine's deterministic output; when unavailable, a fixed template is used.
-AI never chooses or scores rotations.
+Rotation explanations are generated with **Groq (`openai/gpt-oss-120b`)** from the engine's deterministic output; when unavailable, a fixed template is used.
+AI never chooses or scores rotations. Model choice backed by an evaluation on real data: [docs/ai-model-evaluation.md](docs/ai-model-evaluation.md).
 
 ## License
 

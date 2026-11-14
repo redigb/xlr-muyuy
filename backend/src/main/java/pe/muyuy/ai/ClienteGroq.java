@@ -1,5 +1,6 @@
 package pe.muyuy.ai;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
@@ -23,8 +24,10 @@ public interface ClienteGroq {
 
     record Mensaje(String role, String content) {}
 
+    /** reasoning_effort: low = piensa poco y deja tokens para el JSON (ver scripts/eval_groq.py). null = no se envía. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     record Peticion(String model, List<Mensaje> messages, double temperature, int maxTokens,
-                    Map<String, String> responseFormat) {}
+                    Map<String, String> responseFormat, String reasoningEffort) {}
 
     record Respuesta(List<Opcion> choices) {
         public record Opcion(Mensaje message) {}

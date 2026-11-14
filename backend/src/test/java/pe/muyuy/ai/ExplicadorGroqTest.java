@@ -34,12 +34,22 @@ class ExplicadorGroqTest {
     private final List<Peticion> llamadas = new ArrayList<>();
 
     private ExplicadorGroq con(ClienteGroq cliente, boolean habilitado, String clave) {
-        return new ExplicadorGroq(cliente, cultivos, mapper, habilitado, Optional.ofNullable(clave), "modelo-test");
+        return new ExplicadorGroq(cliente, cultivos, mapper, habilitado, Optional.ofNullable(clave), "modelo-test", Optional.of("low"));
     }
 
     private Zona sierra() { return zonas.porId("huanuco-sierra").orElseThrow(); }
     private Calendario cal() { return calendarios.deZona("huanuco-sierra").orElseThrow(); }
     private List<Rotacion> rotaciones() { return motor.recomendar(sierra(), cal(), cultivos.todos()); }
+
+    /** Lo que viaja a Groq: snake_case y reasoning_effort solo si está configurado. */
+    @Test
+    void peticionViajaConReasoningEffortEnSnakeCase() throws Exception {
+        var conEsfuerzo = mapper.writeValueAsString(new Peticion("m", List.of(), 0.2, 100, java.util.Map.of("type", "json_object"), "low"));
+        assertTrue(conEsfuerzo.contains("\"reasoning_effort\":\"low\""), conEsfuerzo);
+        assertTrue(conEsfuerzo.contains("\"max_tokens\":100") && conEsfuerzo.contains("\"response_format\""), conEsfuerzo);
+        var sin = mapper.writeValueAsString(new Peticion("m", List.of(), 0.2, 100, null, null));
+        assertFalse(sin.contains("reasoning_effort"), sin);
+    }
 
     @Test
     void unaSolaLlamadaExplicaTodasLasRotaciones() {
