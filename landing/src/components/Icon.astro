@@ -1,0 +1,14 @@
+---
+const { name, size = 20 } = Astro.props;
+const paths = {
+  sprout: 'M12 22v-8m0 2C12 9 8 5 3 6c-1 5 3 9 9 9m0-2c0-6 3-10 9-10 0 5-3 9-9 10',
+  arrow: 'M4 12h15m-6-6 6 6-6 6',
+  down: 'M12 4v15m-6-6 6 6 6-6',
+  cube: 'M12 3 3.5 7.5v9L12 21l8.5-4.5v-9L12 3Zm0 9 8.5-4.5M12 12 3.5 7.5M12 12v9',
+  drop: 'M12 2.5c2.8 4 6.5 8.1 6.5 12a6.5 6.5 0 1 1-13 0c0-3.9 3.7-8 6.5-12Z',
+  compare: 'M4 20h16M7 16v-4m5 4V8m5 8V4',
+};
+---
+<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d={paths[name as keyof typeof paths]} />
+</svg>

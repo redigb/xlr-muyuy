@@ -1,0 +1,7 @@
+# Seguridad de dependencias (pnpm 10+)
+# - No instala versiones publicadas hace menos de 1 día (frena paquetes comprometidos recién subidos).
+minimumReleaseAge: 1440
+# - Los scripts de instalación (postinstall) están bloqueados por defecto; solo corren los de esta lista.
+onlyBuiltDependencies: []
+# - No resuelve dependencias desde URLs/git sueltas dentro de otros paquetes.
+blockExoticSubdeps: true

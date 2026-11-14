@@ -1,0 +1,294 @@
+---
+import '../styles.css';
+
+const steps = [
+  { icon: '⌁', title: 'Read the seasons', text: 'Use NASA POWER climate records to build a monthly calendar for frost, rainfall and water balance.' },
+  { icon: '⇄', title: 'Compare crop rotations', text: 'See how the current rotation compares with two alternatives, including trade-offs and confidence.' },
+  { icon: '↗', title: 'Take it offline', text: 'Keep regional data on the phone and share it from one device to another where there’s no signal.' },
+];
+const climate = [
+  { color: 'blue', label: 'Frost probability', text: 'Daily minimum temperatures help flag months when frost is more likely.' },
+  { color: 'orange', label: 'Water balance', text: 'Rainfall and evapotranspiration help show when water is likely to be scarce.' },
+  { color: 'green', label: 'Heat and humidity', text: 'Temperature and humidity add context for crop stress through the season.' },
+];
+const challenge = 'https://www.spaceappschallenge.org/2026/challenges/field-shift-adapting-farms-with-nasa-data/';
+const power = 'https://power.larc.nasa.gov/';
+
+const video = import.meta.env.PUBLIC_MUYUY_VIDEO_EMBED_URL;
+const apk = import.meta.env.PUBLIC_MUYUY_APK_URL;
+const checksum = import.meta.env.PUBLIC_MUYUY_APK_SHA256;
+const repository = import.meta.env.PUBLIC_MUYUY_GITHUB_URL;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#142019" />
+    <meta name="description" content="Muyuy is an offline-first crop rotation prototype for smallholder farmers, built around an Andean pilot in Huánuco, Peru." />
+    <title>Muyuy — Plan crop rotations, offline</title>
+    <link rel="icon" type="image/svg+xml" href="/muyuy.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="shell header-inner">
+        <a class="brand" href="#main" aria-label="Muyuy home"><img src="/muyuy.svg" width="40" height="40" alt="" /> Muyuy<span>.</span></a>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav" hidden>Menu <span aria-hidden="true">☰</span></button>
+        <nav id="main-nav" aria-label="Main navigation">
+          <a href="#problem">The problem</a>
+          <a href="#how">How it works</a>
+          <a href="#data">NASA data</a>
+          <a href="#demo">Demo</a>
+        </nav>
+        <a class="button button-header" href="#terrain-demo">Try it now <span aria-hidden="true">↗</span></a>
+        <label class="language-picker">
+          <span aria-hidden="true">◎</span>
+          <select id="language" aria-label="Language">
+            <option value="en" lang="en">English</option>
+            <option value="es" lang="es">Español</option>
+            <option value="qu" lang="qu">Quechua</option>
+            <option value="ay" lang="ay">Aymara</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="story">
+        <figure class="hero-world">
+          <div class="world-grid" aria-hidden="true"></div>
+          <div class="world-orbit" aria-hidden="true"></div>
+          <iframe id="hero-terrain" src="/terreno3d/index.html?hero=1" title="Interactive 3D model of an Andean hillside"></iframe>
+          <figcaption class="world-caption"><span class="location-mark" aria-hidden="true">◎</span><span><strong>Huánuco, Peru</strong><small>Andean hillside · pilot region</small></span></figcaption>
+          <div class="world-controls">
+            <span>Scroll or drag to rotate</span>
+            <button type="button" data-turn="-1" aria-label="Rotate terrain left">↶</button>
+            <button type="button" data-turn="1" aria-label="Rotate terrain right">↷</button>
+          </div>
+          <div class="story-progress" aria-hidden="true"></div>
+        </figure>
+        <div class="story-content">
+      <section class="hero shell" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <a class="kicker" href={challenge}><span class="signal-dot"></span> NASA Space Apps Challenge 2026</a>
+          <h1 id="hero-title">Plan your next<br /> <em>crop rotation.</em></h1>
+          <p class="hero-tagline">NASA data to the last field — even without signal.</p>
+          <p class="hero-summary">Muyuy helps smallholder farmers compare crop rotations, see seasonal climate risks, and carry that information offline.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#terrain-demo">Try it now <span aria-hidden="true">↗</span></a>
+            <a class="button button-quiet" href="#demo"><span class="play" aria-hidden="true">▷</span> Watch the demo</a>
+          </div>
+        </div>
+        <a class="scroll-link" href="#problem"><span aria-hidden="true">↓</span> Discover the project</a>
+      </section>
+
+      <section class="section section-light" id="problem" aria-labelledby="problem-title">
+        <div class="shell split">
+          <div><p class="label">The problem</p><h2 id="problem-title">Planning a season<br /> in a changing climate.</h2></div>
+          <div class="problem-copy"><p>In the highlands of Huánuco, a farmer has to decide what to plant after the last harvest. Frost can damage young crops, erratic rain makes planting harder to time, and repeating crops can wear down the soil.</p><p>With little or no mobile signal in the field, climate information needs to be available on the phone when the farmer makes that choice.</p></div>
+        </div>
+      </section>
+
+      <section class="section section-light how" id="how" aria-labelledby="how-title">
+        <div class="shell">
+          <p class="label">How it works</p>
+          <h2 id="how-title">From climate records to crop choices.</h2>
+          <div class="cards">
+            {steps.map(({ icon, title, text }) => <article><span class="step-icon" aria-hidden="true">{icon}</span><h3>{title}</h3><p>{text}</p></article>)}
+          </div>
+        </div>
+      </section>
+
+      <section class="section data-section" id="data" aria-labelledby="data-title">
+        <div class="shell split data-inner">
+          <div><p class="label">NASA data</p><h2 id="data-title">A climate calendar for the field.</h2><p class="section-summary">Muyuy’s prototype is designed around daily NASA POWER records from 1985–2024. It summarizes those records into monthly indicators for comparing rotations.</p><a class="underline-link" href={power}>Explore NASA POWER <span aria-hidden="true">↗</span></a></div>
+          <dl class="climate-list">
+            {climate.map(({ color, label, text }) => <div><span class:list={['climate-dot', color]}></span><dt>{label}</dt><dd>{text}</dd></div>)}
+          </dl>
+        </div>
+      </section>
+        </div>
+      </div>
+
+      <section class="section section-light" id="demo" aria-labelledby="demo-title">
+        <div class="shell">
+          <p class="label">Demo</p>
+          <h2 id="demo-title">Explore a season in 3D.</h2>
+          <p class="section-summary">Pick a month and switch between frost and water balance to see the hillside change. This preview uses an illustrative calendar.</p>
+          {video && <iframe class="video" src={video} title="Muyuy 30-second demo video" loading="lazy" allowfullscreen></iframe>}
+          <div class="demo-grid" id="terrain-demo">
+            <iframe src="/terreno3d/index.html?demo=1&embed=1" title="Huánuco terrain climate demo" id="demo-terrain" loading="lazy"></iframe>
+            <div class="demo-controls">
+              <h3>Huánuco climate layers</h3>
+              <label for="demo-month">Month <output for="demo-month" id="demo-month-name">June</output></label>
+              <input type="range" id="demo-month" min="1" max="12" value="6" aria-valuetext="June" />
+              <div class="layer-options" role="group" aria-label="Climate layer">
+                <button type="button" data-layer="normal" aria-pressed="true">Terrain</button>
+                <button type="button" data-layer="helada" aria-pressed="false">Frost</button>
+                <button type="button" data-layer="agua" aria-pressed="false">Water balance</button>
+              </div>
+              <p id="demo-reading" aria-live="polite">Terrace view · Select a climate layer.</p>
+              <a class="underline-link" href="/terreno3d/index.html?demo=1">Open the web demo <span aria-hidden="true">↗</span></a>
+            </div>
+          </div>
+          {apk && /^[a-f0-9]{64}$/i.test(checksum ?? '') && <div class="download">
+            <a class="button button-primary" href={apk}>Download APK <span aria-hidden="true">↓</span></a><p>Muyuy is a hackathon prototype distributed outside Google Play, so Android may show a security warning. The APK is signed by our team. Verify the SHA-256 checksum below before installing.</p><code>SHA-256 {checksum}</code>
+          </div>}
+          {!video && <p class="muted-note">The 30-second app video is pending. The interactive terrain is available above.</p>}
+        </div>
+      </section>
+
+      <section class="section field-section" id="field-test" aria-labelledby="field-title">
+        <div class="shell split">
+          <div><p class="label">Field test</p><h2 id="field-title">Starting in Huánuco.</h2></div>
+          <p class="section-summary">The planned Peru pilot will check whether farmers can open the calendar offline, understand the uncertainty, and use the rotation comparison to discuss what to plant next.</p>
+        </div>
+      </section>
+
+      <section class="section section-light" id="impact" aria-labelledby="impact-title">
+        <div class="shell">
+          <p class="label">Why it matters</p>
+          <h2 id="impact-title">Useful where the signal ends.</h2>
+          <div class="cards impact">
+            <article><h3>Offline in the field</h3><p>Regional packages put the calendar within reach when mobile service drops.</p></article>
+            <article><h3>Visible uncertainty</h3><p>Showing confidence helps farmers weigh a rotation alongside what they know about their own land.</p></article>
+            <article><h3>Built to travel</h3><p>The same approach can be adapted to other regions by pairing climate records with local crop information.</p></article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="shell footer-inner">
+        <a class="brand" href="#main" aria-label="Muyuy home"><img src="/muyuy.svg" width="36" height="36" alt="" /> Muyuy<span>.</span></a>
+        <div><p>Huánuco pilot · NASA Space Apps Challenge 2026</p><p>Procedural terrain and original mark. AI assisted code development.</p></div>
+        <nav aria-label="Credits">
+          {repository && <a href={repository}>GitHub</a>}
+          <a href={power}>NASA POWER</a>
+          <a href="/terreno3d/THREE-LICENSE.txt">Three.js license</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      import { setupLanguage } from '../language';
+      const menu = document.querySelector<HTMLButtonElement>('.menu-toggle');
+      const navigation = document.querySelector<HTMLElement>('#main-nav');
+      if (menu && navigation) {
+        menu.hidden = false;
+        const setMenu = (open: boolean) => {
+          menu.setAttribute('aria-expanded', String(open));
+          navigation.classList.toggle('open', open);
+        };
+        menu.addEventListener('click', () => setMenu(menu.getAttribute('aria-expanded') !== 'true'));
+        navigation.addEventListener('click', (event) => {
+          if (event.target instanceof HTMLAnchorElement) setMenu(false);
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && menu.getAttribute('aria-expanded') === 'true') {
+            setMenu(false);
+            menu.focus();
+          }
+        });
+      }
+
+      const story = document.querySelector<HTMLElement>('.story');
+      const chapters = Array.from(document.querySelectorAll<HTMLElement>('.story-content > section'));
+      const heroFrame = document.querySelector<HTMLIFrameElement>('#hero-terrain');
+      const demoFrame = document.querySelector<HTMLIFrameElement>('#demo-terrain');
+      const month = document.querySelector<HTMLInputElement>('#demo-month');
+      const monthName = document.querySelector<HTMLOutputElement>('#demo-month-name');
+      const reading = document.querySelector<HTMLElement>('#demo-reading');
+      const layers = [...document.querySelectorAll<HTMLButtonElement>('[data-layer]')];
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+      const motionHint = document.querySelector('.world-controls span');
+      const send = (frame: HTMLIFrameElement | null, state: object) =>
+        frame?.contentWindow?.postMessage({ type: 'muyuy-terrain', ...state }, location.origin);
+
+      let scrollFrame = 0;
+      let lastProgress = -1;
+      function updateHero() {
+        scrollFrame = 0;
+        if (!story) return;
+        const progress = Math.max(0, Math.min(1, -story.getBoundingClientRect().top / Math.max(1, story.offsetHeight - window.innerHeight)));
+        if (Math.abs(progress - lastProgress) < 0.002) return;
+        lastProgress = progress;
+        story.style.setProperty('--progress', String(progress));
+        const activeChapter = chapters.findLastIndex((chapter) => chapter.getBoundingClientRect().top < innerHeight * .58);
+        send(heroFrame, {
+          scroll: reduced.matches ? 0 : progress,
+          layer: activeChapter === 1 ? 'helada' : activeChapter === 3 ? 'agua' : 'normal',
+        });
+      }
+      function queueHero() {
+        if (!scrollFrame) scrollFrame = requestAnimationFrame(updateHero);
+      }
+      heroFrame?.addEventListener('load', () => { lastProgress = -1; updateHero(); });
+      window.addEventListener('scroll', queueHero, { passive: true });
+      window.addEventListener('resize', queueHero);
+      function updateMotionPreference() {
+        motionHint?.classList.toggle('drag-only', reduced.matches);
+        lastProgress = -1;
+        queueHero();
+      }
+      reduced.addEventListener('change', updateMotionPreference);
+      updateMotionPreference();
+      if ('IntersectionObserver' in window) {
+        const reveals = new IntersectionObserver((entries) => {
+          entries.forEach(({ target, isIntersecting }) => {
+            if (isIntersecting) {
+              target.classList.add('visible');
+              reveals.unobserve(target);
+            }
+          });
+        }, { threshold: .16 });
+        document.documentElement.classList.add('reveal-enabled');
+        document.querySelectorAll('.story-content > section:not(.hero) > div, main > section > .shell').forEach((section) => {
+          section.classList.add('reveal');
+          reveals.observe(section);
+        });
+      }
+      document.querySelectorAll<HTMLButtonElement>('[data-turn]').forEach((button) => {
+        button.addEventListener('click', () => send(heroFrame, { turn: Number(button.dataset.turn) }));
+      });
+
+      let layer = 'normal';
+      let locale = 'en';
+      let demoReading = { month: 6, layer: 'normal', frost: null, water: null };
+      const language = setupLanguage((selected, messages) => {
+        locale = selected;
+        if (monthName && month) monthName.value = messages.months[month.valueAsNumber - 1];
+        if (month) month.setAttribute('aria-valuetext', messages.months[month.valueAsNumber - 1]);
+        if (reading) reading.textContent = messages.reading(demoReading);
+        send(heroFrame, { locale });
+        updateDemo();
+      });
+      function updateDemo() {
+        send(demoFrame, { month: month?.valueAsNumber, layer, locale });
+      }
+      demoFrame?.addEventListener('load', updateDemo);
+      month?.addEventListener('input', updateDemo);
+      layers.forEach((button) => button.addEventListener('click', () => {
+        layer = button.dataset.layer ?? 'normal';
+        layers.forEach((option) => option.setAttribute('aria-pressed', String(option === button)));
+        updateDemo();
+      }));
+      window.addEventListener('message', ({ source, origin, data }) => {
+        if (source !== demoFrame?.contentWindow || origin !== location.origin || data?.type !== 'muyuy-status') return;
+        demoReading = data;
+        const messages = language.current();
+        const monthLabel = messages.months[data.month - 1];
+        if (monthName) monthName.value = monthLabel;
+        month?.setAttribute('aria-valuetext', monthLabel);
+        if (reading) reading.textContent = messages.reading(data);
+      });
+      heroFrame?.addEventListener('load', () => send(heroFrame, { locale }));
+      updateDemo();
+    </script>
+  </body>
+</html>

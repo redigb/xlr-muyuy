@@ -1,0 +1,200 @@
+---
+import LandingUI from '../components/LandingUI.jsx';
+
+// Update these values when the approved release assets are available.
+// PUBLIC_* environment variables can also supply them at build time.
+const release = {
+  videoUrl: import.meta.env.PUBLIC_MUYUY_VIDEO_EMBED_URL ?? '',
+  fieldVideoUrl: import.meta.env.PUBLIC_MUYUY_FIELD_VIDEO_EMBED_URL ?? '',
+  apkUrl: import.meta.env.PUBLIC_MUYUY_APK_URL ?? '',
+  apkSha256: import.meta.env.PUBLIC_MUYUY_APK_SHA256 ?? 'PENDING_BUILD_HASH_2026...',
+  githubUrl: import.meta.env.PUBLIC_MUYUY_GITHUB_URL ?? '',
+};
+
+// Accept a YouTube watch/share link or an existing HTTPS embed URL.
+function videoEmbedUrl(value: string): string | undefined {
+  if (!value.trim()) return undefined;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') return undefined;
+    const host = url.hostname.toLowerCase();
+    let videoId: string | null = null;
+
+    if (host === 'youtu.be') {
+      videoId = url.pathname.split('/')[1];
+    } else if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'www.youtube-nocookie.com'].includes(host)) {
+      const segments = url.pathname.split('/');
+      videoId = ['embed', 'shorts', 'live'].includes(segments[1])
+        ? segments[2]
+        : url.searchParams.get('v');
+    } else {
+      return url.href;
+    }
+
+    return videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)
+      ? 'https://www.youtube-nocookie.com/embed/' + videoId
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const title = 'Muyuy — Offline Agro-Climatic Intelligence powered by NASA Earth Data';
+const description = 'Muyuy is an offline-first agro-climatic prototype for smallholder farmers. Explore seasonal climate risks and crop rotations using NASA Earth data, starting in Huánuco, Peru.';
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
+const assetBase = import.meta.env.BASE_URL;
+---
+
+<!doctype html>
+<html lang="en" class="dark bg-[#09090B]">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#09090B" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Muyuy" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content="en_US" />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <link rel="icon" type="image/png" href={assetBase + 'muyuy-icon.png'} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="min-h-screen bg-[#09090B] font-sans text-zinc-100 antialiased">
+    <LandingUI
+      client:only="react"
+      elevation={3200}
+      videoEmbedUrl={videoEmbedUrl(release.videoUrl)}
+      fieldVideoEmbedUrl={videoEmbedUrl(release.fieldVideoUrl)}
+      apkUrl={release.apkUrl}
+      apkSha256={release.apkSha256}
+      githubUrl={release.githubUrl}
+    >
+      <div slot="fallback" class="loading-shell" role="status" aria-live="polite">
+        <img class="loading-brand" src={assetBase + 'muyuy-logo.png'} alt="Muyuy" width="1370" height="436" />
+        <p>Preparing your view of the Andes…</p>
+      </div>
+    </LandingUI>
+
+    <noscript>
+      <section class="noscript-message">
+        <h1>Muyuy</h1>
+        <p>NASA data to the last field — even without signal.</p>
+        <p>Enable JavaScript to explore the interactive terrain, climate calendar and prototype installation guide.</p>
+      </section>
+    </noscript>
+  </body>
+</html>
+
+<style is:global>
+  @import "tailwindcss";
+
+  @theme {
+    --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  :root {
+    color-scheme: dark;
+    background-color: #09090b;
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  html {
+    min-height: 100%;
+    background-color: #09090b;
+    scroll-behavior: smooth;
+    scroll-padding-top: 100px;
+  }
+
+  body {
+    min-height: 100svh;
+    margin: 0;
+    background-color: #09090b;
+    color: #f4f4f5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: #cadca6;
+    color: #151b11;
+  }
+
+  html body .muyuy-landing,
+  html body .muyuy-drawer {
+    font-family: var(--font-sans);
+  }
+
+  html body .muyuy-landing h2 {
+    font-family: "Instrument Serif", Georgia, serif;
+  }
+
+  html body .muyuy-landing .font-mono,
+  html body .muyuy-drawer code {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .loading-shell {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 32px;
+    text-align: center;
+    background: #09090b;
+  }
+
+  .loading-brand {
+    width: clamp(160px, 28vw, 300px);
+    height: auto;
+  }
+
+  .loading-shell p {
+    margin: 0;
+    font-size: 13px;
+    color: #a1a1aa;
+  }
+
+  .noscript-message {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    color: #d4d4d8;
+  }
+
+  .noscript-message h1 {
+    margin-bottom: 18px;
+    font-size: 48px;
+    letter-spacing: -.06em;
+  }
+
+  .noscript-message p + p {
+    margin-top: 14px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+</style>
