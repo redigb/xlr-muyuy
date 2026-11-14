@@ -28,7 +28,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validar JSON de data/
-        run: for f in data/*.json; do jq empty "$f" || { echo "JSON inválido: $f"; exit 1; }; done
+        run: |
+          for f in data/*.json; do
+            jq empty "$f" || { echo "JSON invalido -> $f"; exit 1; }
+          done
 
       - uses: actions/setup-java@v4
         with:
