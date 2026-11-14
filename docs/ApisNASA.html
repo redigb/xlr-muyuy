@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probador documentado de APIs NASA — Muyuy</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#17231d;--mut:#5b6b62;--line:#d3dcd6;--acc:#1f6b4a;--accink:#fff;--err:#b3261e;--warn:#a36100;--ok:#1f6b4a;--code:#eaf0ec;--badge-red:#fde7e5;--badge-yel:#fff3d6;--badge-grn:#dff3e7;--badge-ink:#17231d}
+@media (prefers-color-scheme:dark){:root{--bg:#101814;--card:#18231d;--ink:#e6efe9;--mut:#9bb0a4;--line:#2c3b33;--acc:#6fcf9f;--accink:#0b1a12;--err:#ff8a80;--warn:#f5c26b;--ok:#6fcf9f;--code:#0f1a14;--badge-red:#3a1714;--badge-yel:#3a2a0d;--badge-grn:#13301f;--badge-ink:#e6efe9}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,sans-serif}
+main{max-width:900px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:1.7rem;margin:0 0 6px}
+p.lead{margin:0 0 20px;color:var(--mut);max-width:75ch}
+.params{display:flex;flex-wrap:wrap;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:18px}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--mut);gap:4px}
+input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:150px}
+input.wide{width:260px}
+select{font:inherit;padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+section header{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
+section h2{font-size:1.05rem;margin:0}
+section .tag{font-size:.85rem;color:var(--mut);margin:0 0 10px}
+.badge{font-size:.72rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-weight:600;white-space:nowrap}
+.badge.red{background:var(--badge-red);color:var(--err)}
+.badge.yel{background:var(--badge-yel);color:var(--warn)}
+.badge.grn{background:var(--badge-grn);color:var(--ok)}
+details.doc{margin:6px 0 10px;border:1px dashed var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}
+details.doc summary{cursor:pointer;font-weight:600;color:var(--acc);font-size:.9rem}
+details.doc ul{margin:8px 0 0;padding-left:20px;font-size:.88rem;color:var(--ink)}
+details.doc li{margin:2px 0}
+details.doc code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.8rem}
+code.url{display:block;background:var(--code);padding:8px 10px;border-radius:6px;font:.75rem/1.4 ui-monospace,Consolas,monospace;word-break:break-all;margin:6px 0}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0}
+button{font:inherit;background:var(--acc);color:var(--accink);border:0;border-radius:6px;padding:7px 14px;cursor:pointer;font-weight:600}
+button.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button:disabled{opacity:.5;cursor:wait}
+.status{font-size:.85rem;color:var(--mut)}
+.status.ok{color:var(--ok);font-weight:600}
+.status.err{color:var(--err);font-weight:600}
+.out{margin-top:10px;font-size:.9rem}
+.out.ok::before{content:"✔ Respuesta correcta";color:var(--ok);font-weight:600;display:block;margin-bottom:4px}
+.out.err{color:var(--err)}
+table{border-collapse:collapse;width:100%;font-size:.8rem;display:block;overflow-x:auto}
+th,td{padding:4px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+ul{margin:4px 0;padding-left:18px}
+img{max-width:100%;border-radius:6px;border:1px solid var(--line);margin-top:6px}
+pre{background:var(--code);padding:10px;border-radius:6px;overflow-x:auto;font-size:.75rem;max-height:300px;margin:6px 0 0}
+details.raw{margin-top:8px}
+details.raw summary{cursor:pointer;font-size:.8rem;color:var(--mut)}
+.summary{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:.9rem}
+.summary h3{margin:0 0 8px;font-size:.95rem}
+.summary ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:4px 14px}
+.summary li{display:flex;align-items:center;gap:6px;font-size:.85rem}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--line);flex-shrink:0}
+.dot.ok{background:var(--ok)}
+.dot.err{background:var(--err)}
+.dot.warn{background:var(--warn)}
+.dot.pend{background:var(--mut);opacity:.5}
+.note{font-size:.82rem;color:var(--mut);margin-top:6px;font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<h1>Probador documentado de APIs NASA — Muyuy</h1>
+<p class="lead">
+  Doble clic a este archivo y pulsa <b>Probar</b> en cada tarjeta. Cada API incluye su documentación
+  (qué hace, parámetros, respuesta esperada) y un badge de <b>CORS</b> que te anticipa si el
+  navegador va a poder llamarla. Las que están en <span class="badge red">CORS bloqueado</span>
+  fallarán aquí a propósito: usa el botón <b>Copiar URL</b> y pruébalas con <code>curl</code> o
+  con el script <code>test_apis.py</code>.
+</p>
+
+<div class="summary" id="summary">
+  <h3>Estado de las APIs (se actualiza al probar)</h3>
+  <ul id="summary-list"></ul>
+  <p class="note" id="summary-note">Aún no has probado ninguna.</p>
+</div>
+
+<div class="params">
+  <label>Latitud<input id="lat" value="-9.93"></label>
+  <label>Longitud<input id="lon" value="-76.24"></label>
+  <label>Inicio (AAAAMMDD)<input id="ini"></label>
+  <label>Fin (AAAAMMDD)<input id="fin"></label>
+  <label>api_key NASA<input id="nkey" value="DEMO_KEY"></label>
+  <label>MAP_KEY FIRMS<input id="fkey" class="wide" placeholder="pídela gratis en firms.modaps.eosdis.nasa.gov"></label>
+</div>
+
+<!-- ==================== 1. POWER ==================== -->
+<section data-api="power">
+  <header>
+    <h2>1. NASA POWER — clima diario</h2>
+    <span class="badge red">CORS: bloqueado en navegador</span>
+  </header>
+  <p class="tag">Base del calendario agroclimático. Sin clave.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>power.larc.nasa.gov/api/temporal/daily/point</code></li>
+      <li><b>Parámetros:</b> <code>T2M</code> (T media), <code>T2M_MAX</code>, <code>T2M_MIN</code>, <code>PRECTOTCORR</code> (lluvia), <code>community=AG</code>, lat/lon, <code>start</code>/<code>end</code> en AAAAMMDD, <code>format=JSON</code>.</li>
+      <li><b>Respuesta:</b> <code>properties.parameter.&lt;VAR&gt;</code> indexado por fecha. Faltantes = <code>-999</code>.</li>
+      <li><b>Elevación de la celda:</b> <code>geometry.coordinates[2]</code> (formato <code>[lon, lat, elev_m]</code>). Es la que se usa para la corrección por altitud del pipeline.</li>
+      <li><b>CORS:</b> POWER no envía cabeceras CORS → <code>fetch</code> desde el navegador <b>falla</b> aunque el servidor responda. Usa <code>curl</code> o el script Python.</li>
+    </ul>
+  </details>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 2. CMR colecciones ==================== -->
+<section data-api="cmr1">
+  <header>
+    <h2>2. CMR — buscar colecciones</h2>
+    <span class="badge yel">CORS: variable</span>
+  </header>
+  <p class="tag">Catálogo de productos Earthdata por palabra clave.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>cmr.earthdata.nasa.gov/search/collections.json</code></li>
+      <li><b>Parámetros:</b> <code>keyword</code> (URL-encoded), <code>page_size</code>.</li>
+      <li><b>Respuesta:</b> <code>feed.entry[]</code>, cada uno con <code>short_name</code> (ej. <code>SPL3SMP_E</code>) y <code>title</code>.</li>
+      <li><b>CORS:</b> CMR a veces acepta <code>fetch</code> del navegador y a veces lo rechaza por preflight. Si falla aquí, prueba con <code>curl</code>.</li>
+    </ul>
+  </details>
+  <label>Palabra clave<input id="kw" value="soil moisture"></label>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 3. CMR gránulos SMAP ==================== -->
+<section data-api="cmr2">
+  <header>
+    <h2>3. CMR — gránulos SMAP</h2>
+    <span class="badge yel">CORS: variable</span>
+  </header>
+  <p class="tag">Archivos SPL3SMP_E (humedad del suelo) que cubren tu caja.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>cmr.earthdata.nasa.gov/search/granules.json</code></li>
+      <li><b>Parámetros:</b> <code>short_name=SPL3SMP_E</code>, <code>bounding_box=oeste,sur,este,norte</code>, <code>sort_key=-start_date</code>, <code>page_size=5</code>.</li>
+      <li><b>Respuesta:</b> <code>feed.entry[]</code> con <code>title</code> y <code>time_start</code>. Si no hay datos en la zona, <code>entry=[]</code>.</li>
+      <li><b>Nota:</b> la caja se calcula con ±0.75° alrededor de tu lat/lon (≈150 km).</li>
+    </ul>
+  </details>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 4. CMR-STAC ==================== -->
+<section data-api="stac">
+  <header>
+    <h2>4. CMR-STAC</h2>
+    <span class="badge grn">CORS: normalmente sí</span>
+  </header>
+  <p class="tag">Catálogo raíz STAC de NASA (Landsat, HLS, etc.). Sin clave.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>cmr.earthdata.nasa.gov/stac/</code></li>
+      <li><b>Parámetros:</b> ninguno (solo la raíz).</li>
+      <li><b>Respuesta:</b> objeto STAC con <code>title</code>/<code>id</code> y un array <code>links</code>. Los <code>rel=="child"</code> son proveedores STAC (LPCLOUD, POCLOUD, etc.).</li>
+    </ul>
+  </details>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 5. GIBS ==================== -->
+<section data-api="gibs">
+  <header>
+    <h2>5. GIBS (WMS) — imagen satelital</h2>
+    <span class="badge grn">CORS: sí (es imagen)</span>
+  </header>
+  <p class="tag">Devuelve un PNG de una capa y una fecha. Sin clave.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi</code></li>
+      <li><b>Parámetros:</b> <code>SERVICE=WMS</code>, <code>REQUEST=GetMap</code>, <code>VERSION=1.3.0</code>, <code>LAYERS</code>, <code>CRS=EPSG:4326</code>, <code>BBOX</code>, <code>WIDTH</code>, <code>HEIGHT</code>, <code>TIME</code>.</li>
+      <li><b>⚠️ Orden del BBOX en WMS 1.3.0/EPSG:4326:</b> <code>sur,oeste,norte,este</code> (lat,lon) — no lon,lat.</li>
+      <li><b>Respuesta:</b> imagen <code>image/png</code>. Se puede cargar con <code>&lt;img&gt;</code> sin problema de CORS.</li>
+      <li><b>Nota:</b> MODIS tiene ~2-3 días de latencia; por eso el probador pide una fecha reciente pero no la de hoy.</li>
+    </ul>
+  </details>
+  <label>Capa
+    <select id="layer">
+      <option>MODIS_Terra_CorrectedReflectance_TrueColor</option>
+      <option>MODIS_Terra_NDVI_8Day</option>
+      <option>MODIS_Terra_Land_Surface_Temp_Day</option>
+      <option>IMERG_Precipitation_Rate</option>
+    </select>
+  </label>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 6. WVS ==================== -->
+<section data-api="wvs">
+  <header>
+    <h2>6. Worldview Snapshots — foto de la zona</h2>
+    <span class="badge grn">CORS: sí (es imagen)</span>
+  </header>
+  <p class="tag">Foto JPEG de una fecha y zona. Sin clave.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>wvs.earthdata.nasa.gov/api/v1/snapshot</code></li>
+      <li><b>Parámetros:</b> <code>REQUEST=GetSnapshot</code>, <code>LAYERS</code>, <code>CRS=EPSG:4326</code>, <code>TIME</code>, <code>BBOX</code>, <code>FORMAT=image/jpeg</code>, <code>WIDTH</code>, <code>HEIGHT</code>.</li>
+      <li><b>⚠️ BBOX:</b> igual que WMS 1.3.0 → <code>sur,oeste,norte,este</code> (lat,lon).</li>
+      <li><b>Respuesta:</b> imagen <code>image/jpeg</code>. Se inserta con <code>&lt;img&gt;</code>.</li>
+      <li><b>Diferencia con GIBS:</b> WVS es más simple y suele responder más rápido; GIBS permite más capas y parámetros WMS.</li>
+    </ul>
+  </details>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 7. EPIC ==================== -->
+<section data-api="nasa">
+  <header>
+    <h2>7. api.nasa.gov — EPIC</h2>
+    <span class="badge grn">CORS: normalmente sí</span>
+  </header>
+  <p class="tag">Última imagen de la Tierra vista desde el punto L1. Clave gratuita o DEMO_KEY.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>api.nasa.gov/EPIC/api/natural</code></li>
+      <li><b>Parámetros:</b> <code>api_key=...</code> (DEMO_KEY sirve para probar, pero tiene límite por hora).</li>
+      <li><b>Respuesta:</b> array de objetos; el primero trae <code>image</code> (nombre del archivo) y <code>date</code> (ISO).</li>
+      <li><b>URL de la imagen:</b> <code>api.nasa.gov/EPIC/archive/natural/AAAA/MM/DD/png/&lt;image&gt;.png?api_key=...</code></li>
+    </ul>
+  </details>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 8. AppEEARS ==================== -->
+<section data-api="appeears">
+  <header>
+    <h2>8. AppEEARS — catálogo de productos</h2>
+    <span class="badge yel">CORS: normalmente sí (solo catálogo)</span>
+  </header>
+  <p class="tag">Lista pública de productos (MODIS, VIIRS, Landsat). Pedir datos reales requiere login Earthdata.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint del catálogo:</b> <code>appeears.earthdatacloud.nasa.gov/api/product</code> (público, sin token).</li>
+      <li><b>Respuesta:</b> array de objetos con <code>ProductAndVersion</code> y <code>Description</code>.</li>
+      <li><b>Pedir datos reales:</b> requiere login Earthdata en dos pasos (<code>/api/login</code> devuelve un token Bearer que luego se manda en <code>Authorization</code>). Eso <b>no se puede hacer solo con <code>fetch</code></b> en un HTML estático.</li>
+      <li><b>En el pipeline:</b> se usa desde Python con <code>earthaccess</code> (ver tarjeta 10).</li>
+    </ul>
+  </details>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 9. FIRMS ==================== -->
+<section data-api="firms">
+  <header>
+    <h2>9. FIRMS — incendios activos</h2>
+    <span class="badge yel">CORS: variable · requiere MAP_KEY</span>
+  </header>
+  <p class="tag">Detecciones de incendios en los últimos días. Requiere MAP_KEY gratuita.</p>
+  <details class="doc"><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>Endpoint:</b> <code>firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/VIIRS_SNPP_NRT/{Area}/{DayRange}</code></li>
+      <li><b>MAP_KEY:</b> se pide gratis con tu correo en <code>firms.modaps.eosdis.nasa.gov/api/map_key/</code>.</li>
+      <li><b>Area:</b> <code>oeste,sur,este,norte</code> · <b>DayRange:</b> días hacia atrás (1–10).</li>
+      <li><b>Respuesta:</b> CSV. Si la clave es inválida, HTTP 400 con texto <code>Invalid MAP_KEY.</code></li>
+      <li><b>Límite:</b> pocas transacciones cada 10 minutos.</li>
+    </ul>
+  </details>
+  <code class="url"></code>
+  <div class="actions">
+    <button>Probar</button>
+    <button class="ghost" data-copy>Copiar URL</button>
+    <span class="status">sin probar</span>
+  </div>
+  <div class="out"></div>
+</section>
+
+<!-- ==================== 10. Nota ==================== -->
+<section>
+  <header><h2>10. Harmony, OPeNDAP y earthaccess</h2>
+  <span class="badge yel">Requieren login Earthdata</span></header>
+  <p class="tag">No se llaman desde el navegador: van desde Python.</p>
+  <details class="doc" open><summary>📖 Cómo funciona</summary>
+    <ul>
+      <li><b>earthaccess:</b> login con Earthdata, búsqueda por <code>short_name</code>, <code>bounding_box</code> y <code>temporal</code>, y descarga de gránulos a disco.</li>
+      <li><b>Harmony:</b> servicio OGC para pedir subsetting/reprojection de productos (requiere token Bearer).</li>
+      <li><b>OPeNDAP:</b> acceso a variables puntuales dentro de un NetCDF/HDF sin descargar todo el archivo.</li>
+    </ul>
+  </details>
+<pre>pip install earthaccess
+
+import earthaccess
+earthaccess.login()   # usuario y contraseña Earthdata
+res = earthaccess.search_data(
+    short_name="SPL3SMP_E",
+    bounding_box=(-77, -10.5, -75.5, -9),
+    temporal=("2026-10-01", "2026-10-31"))
+print(len(res), "archivos")
+earthaccess.download(res[:1], "./datos")</pre>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = d => d.toISOString().slice(0, 10).replace(/-/g, "");
+const hoy = new Date();
+const fin = new Date(hoy - 5 * 864e5);       // POWER/CMR tienen latencia
+const ini = new Date(fin - 14 * 864e5);
+$("ini").value = fmt(ini);
+$("fin").value = fmt(fin);
+const iso = s => s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6, 8);
+
+// Caja alrededor del punto: ±0.75° ≈ 150 km
+function bbox() {
+  const la = +$("lat").value, lo = +$("lon").value, d = 0.75;
+  return { w: lo - d, s: la - d, e: lo + d, n: la + d };
+}
+
+// Fecha para imágenes: hace 3 días para que MODIS ya tenga datos
+function fechaImagen() {
+  const d = new Date(hoy - 3 * 864e5);
+  return d.toISOString().slice(0, 10);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+// --- Definición de cada API (mismos endpoints y parámetros que el HTML original)
+const apis = {
+  power: {
+    cors: "red",
+    nombre: "1. NASA POWER",
+    url: () => `https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M,T2M_MAX,T2M_MIN,PRECTOTCORR&community=AG&longitude=${$("lon").value}&latitude=${$("lat").value}&start=${$("ini").value}&end=${$("fin").value}&format=JSON`,
+    show: (j, o) => {
+      const p = j.properties.parameter;
+      const fechas = Object.keys(p.T2M);
+      const elev = j?.geometry?.coordinates?.[2] ?? "?";
+      let h = `<p><b>${fechas.length}</b> días · elevación de celda: <b>${elev} m</b></p>`;
+      h += "<table><tr><th>Fecha</th><th>T media °C</th><th>T máx</th><th>T mín</th><th>Lluvia mm</th></tr>";
+      fechas.forEach(f => {
+        h += `<tr><td>${iso(f)}</td><td>${p.T2M[f]}</td><td>${p.T2M_MAX[f]}</td><td>${p.T2M_MIN[f]}</td><td>${p.PRECTOTCORR[f]}</td></tr>`;
+      });
+      o.innerHTML = h + "</table>";
+    }
+  },
+  cmr1: {
+    cors: "yel",
+    nombre: "2. CMR colecciones",
+    url: () => `https://cmr.earthdata.nasa.gov/search/collections.json?page_size=8&keyword=${encodeURIComponent($("kw").value)}`,
+    show: (j, o) => {
+      const e = j.feed.entry;
+      o.innerHTML = `<p><b>${e.length}</b> colecciones</p>` +
+        "<ul>" + e.map(x => `<li><b>${x.short_name}</b>: ${x.title}</li>`).join("") + "</ul>";
+    }
+  },
+  cmr2: {
+    cors: "yel",
+    nombre: "3. CMR gránulos SMAP",
+    url: () => {
+      const b = bbox();
+      return `https://cmr.earthdata.nasa.gov/search/granules.json?short_name=SPL3SMP_E&page_size=5&sort_key=-start_date&bounding_box=${b.w},${b.s},${b.e},${b.n}`;
+    },
+    show: (j, o) => {
+      const e = j.feed.entry;
+      o.innerHTML = e.length
+        ? `<p><b>${e.length}</b> gránulos</p><ul>` + e.map(g =>
+            `<li>${g.title} (${g.time_start.slice(0, 10)})</li>`).join("") + "</ul>"
+        : "<p>Sin gránulos para esa zona (normal si estás fuera de las coberturas SMAP).</p>";
+    }
+  },
+  stac: {
+    cors: "grn",
+    nombre: "4. CMR-STAC",
+    url: () => "https://cmr.earthdata.nasa.gov/stac/",
+    show: (j, o) => {
+      const hijos = j.links.filter(l => l.rel === "child").slice(0, 15);
+      o.innerHTML = `<p>Catálogo: <b>${j.title || j.id}</b> · ${hijos.length} proveedores</p>` +
+        "<ul>" + hijos.map(l => `<li>${l.title || l.href}</li>`).join("") + "</ul>";
+    }
+  },
+  gibs: {
+    cors: "grn",
+    img: true,
+    nombre: "5. GIBS WMS",
+    url: () => {
+      const b = bbox();
+      // OJO: WMS 1.3.0 + EPSG:4326 → BBOX = sur,oeste,norte,este
+      return `https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=${$("layer").value}&CRS=EPSG:4326&BBOX=${b.s},${b.w},${b.n},${b.e}&WIDTH=600&HEIGHT=600&FORMAT=image/png&TRANSPARENT=true&TIME=${fechaImagen()}`;
+    }
+  },
+  wvs: {
+    cors: "grn",
+    img: true,
+    nombre: "6. Worldview Snapshots",
+    url: () => {
+      const b = bbox();
+      return `https://wvs.earthdata.nasa.gov/api/v1/snapshot?REQUEST=GetSnapshot&LAYERS=MODIS_Terra_CorrectedReflectance_TrueColor&CRS=EPSG:4326&TIME=${fechaImagen()}&BBOX=${b.s},${b.w},${b.n},${b.e}&FORMAT=image/jpeg&WIDTH=600&HEIGHT=600`;
+    }
+  },
+  nasa: {
+    cors: "grn",
+    nombre: "7. api.nasa.gov EPIC",
+    url: () => `https://api.nasa.gov/EPIC/api/natural?api_key=${encodeURIComponent($("nkey").value)}`,
+    show: (j, o) => {
+      if (!Array.isArray(j) || !j.length) {
+        o.innerHTML = "<p>Respuesta vacía (posible DEMO_KEY agotada).</p>";
+        return;
+      }
+      const x = j[0];
+      const d = x.date.slice(0, 10).replace(/-/g, "/");
+      o.innerHTML = `<p>Última imagen: <b>${x.date}</b> · total ${j.length}</p>` +
+        `<img alt="Tierra vista por EPIC" src="https://api.nasa.gov/EPIC/archive/natural/${d}/png/${x.image}.png?api_key=${encodeURIComponent($("nkey").value)}" width="300">`;
+    }
+  },
+  appeears: {
+    cors: "yel",
+    nombre: "8. AppEEARS catálogo",
+    url: () => "https://appeears.earthdatacloud.nasa.gov/api/product",
+    show: (j, o) => {
+      const veg = j.filter(p =>
+        /NDVI|EVI|LST|ET/i.test(p.ProductAndVersion) ||
+        /vegetation|evapo/i.test(p.Description || "")
+      ).slice(0, 10);
+      o.innerHTML = `<p><b>${j.length}</b> productos totales. Algunos relevantes para agricultura:</p>` +
+        "<ul>" + veg.map(p => `<li><b>${p.ProductAndVersion}</b>: ${p.Description}</li>`).join("") + "</ul>";
+    }
+  },
+  firms: {
+    cors: "yel",
+    nombre: "9. FIRMS incendios",
+    url: () => {
+      const b = bbox();
+      return `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${encodeURIComponent($("fkey").value || "TU_MAP_KEY")}/VIIRS_SNPP_NRT/${b.w},${b.s},${b.e},${b.n}/3`;
+    },
+    show: (txt, o) => {
+      const t = String(txt).trim().split("\n");
+      if (!t[0] || !t[0].toLowerCase().includes("latitude")) {
+        throw new Error(t[0] || "respuesta vacía");
+      }
+      o.innerHTML = `<p><b>${t.length - 1}</b> detecciones en los últimos 3 días.</p>` +
+        (t.length > 1 ? `<pre>${escapeHtml(t.slice(0, 6).join("\n"))}</pre>` : "");
+    }
+  }
+};
+
+// --- Estado inicial del resumen
+const estado = {};
+function pintarResumen() {
+  const ul = $("summary-list");
+  ul.innerHTML = Object.entries(apis).map(([k, a]) => {
+    const s = estado[k] || "pend";
+    return `<li><span class="dot ${s}"></span><span>${a.nombre}</span></li>`;
+  }).join("");
+  const total = Object.keys(apis).length;
+  const ok = Object.values(estado).filter(v => v === "ok").length;
+  const err = Object.values(estado).filter(v => v === "err").length;
+  $("summary-note").textContent =
+    ok + err === 0 ? "Aún no has probado ninguna."
+    : `Probadas ${ok + err}/${total} · ${ok} ok · ${err} con fallo.`;
+}
+
+// --- Cableado de cada sección
+document.querySelectorAll("section[data-api]").forEach(sec => {
+  const key = sec.dataset.api;
+  const a = apis[key];
+  const u = sec.querySelector(".url");
+  const bProbar = sec.querySelector("button:not(.ghost)");
+  const bCopiar = sec.querySelector("button[data-copy]");
+  const o = sec.querySelector(".out");
+  const st = sec.querySelector(".status");
+
+  const refresh = () => { u.textContent = a.url(); };
+  document.querySelectorAll("input,select").forEach(i => i.addEventListener("input", refresh));
+  refresh();
+  pintarResumen();
+
+  bCopiar.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(a.url());
+      st.textContent = "URL copiada ✓";
+      st.className = "status ok";
+      setTimeout(() => { st.textContent = "sin probar"; st.className = "status"; }, 1500);
+    } catch {
+      st.textContent = "No se pudo copiar (selecciona manualmente)";
+      st.className = "status err";
+    }
+  });
+
+  bProbar.addEventListener("click", async () => {
+    refresh();
+    o.className = "out";
+    o.innerHTML = "Consultando…";
+    st.textContent = "consultando…";
+    st.className = "status";
+    bProbar.disabled = true;
+    const t0 = performance.now();
+
+    try {
+      // 1) APIs que devuelven imagen
+      if (a.img) {
+        const src = a.url();
+        o.innerHTML = `<img alt="Imagen satelital" src="${src}">`;
+        const im = o.querySelector("img");
+        await new Promise((res, rej) => { im.onload = res; im.onerror = rej; });
+        const ms = Math.round(performance.now() - t0);
+        o.classList.add("ok");
+        st.textContent = `${ms} ms`;
+        st.className = "status ok";
+        estado[key] = "ok";
+        pintarResumen();
+        return;
+      }
+
+      // 2) APIs que devuelven JSON/CSV
+      const r = await fetch(a.url());
+      if (!r.ok) throw new Error("HTTP " + r.status + " " + r.statusText);
+      const text = await r.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = text; }
+
+      await a.show(data, o);
+
+      // Previsualización de la respuesta cruda
+      o.insertAdjacentHTML("beforeend",
+        `<details class="raw"><summary>Ver respuesta cruda (primeros 2 KB)</summary>` +
+        `<pre>${escapeHtml(text.slice(0, 2000))}</pre></details>`);
+
+      o.classList.add("ok");
+      const ms = Math.round(performance.now() - t0);
+      st.textContent = `${ms} ms`;
+      st.className = "status ok";
+      estado[key] = "ok";
+      pintarResumen();
+    } catch (e) {
+      const ms = Math.round(performance.now() - t0);
+      let msg = e.message || String(e);
+      let extra = "";
+      if (msg === "Failed to fetch" || /network|load failed/i.test(msg)) {
+        if (a.cors === "red") {
+          extra = " — esta API no envía cabeceras CORS: el navegador la bloquea aunque responda. Usa “Copiar URL” + curl o el script Python.";
+        } else if (a.cors === "yel") {
+          extra = " — CORS variable: puede ser bloqueo del navegador o falta de conexión. Prueba con “Copiar URL” + curl.";
+        } else {
+          extra = " — fallo de red inesperado. Revisa tu conexión.";
+        }
+      }
+      o.className = "out err";
+      o.textContent = "Error: " + msg + extra;
+      st.textContent = `${ms} ms · fallo`;
+      st.className = "status err";
+      estado[key] = "err";
+      pintarResumen();
+    } finally {
+      bProbar.disabled = false;
+    }
+  });
+});
+</script>
+</body>
+</html>

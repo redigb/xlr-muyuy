@@ -14,7 +14,7 @@ a partir del calendario climático de **NASA POWER**, una tabla de cultivos andi
 
 La landing y la app Flutter viven en otro repositorio: `muyuy-app` (enlace aquí).
 
-📋 **Avance y specs:** [docs/SPECS.md](docs/SPECS.md)
+📋 **Avance y specs:** [docs/SPECS.md](docs/SPECS.md) · 🛰️ **Probador de APIs NASA:** [docs/ApisNASA.html](docs/ApisNASA.html) (descárgalo y ábrelo con doble clic)
 
 ## ¿Cómo funciona?
 
