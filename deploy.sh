@@ -5,6 +5,7 @@ set -euo pipefail
 cd "${MUYUY_DIR:-/opt/muyuy}"
 git fetch --quiet origin main
 git reset --hard origin/main          # compose, Caddyfile y data/; .env no está versionado: se conserva
+export IMAGE="${IMAGE:-ghcr.io/redigb/xlr-muyuy}"   # Actions la manda = ghcr.io/<repo>; sobrevive a renombres
 export IMAGE_TAG="${IMAGE_TAG:-latest}"
 docker compose pull backend
 docker compose up -d --no-build --remove-orphans
