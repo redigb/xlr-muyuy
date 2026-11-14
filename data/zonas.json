@@ -1,0 +1,6 @@
+[
+  {"id": "huanuco-sierra", "nombre": "Sierra de Huanuco, Peru", "region": "sierra", "lat": -9.90, "lon": -75.99, "elevacion_m": 3200, "cultivo_actual": "papa"},
+  {"id": "huanuco-valle", "nombre": "Valle del Huallaga, Huanuco, Peru", "region": "valle", "lat": -9.93, "lon": -76.24, "elevacion_m": 1900, "cultivo_actual": "papa"},
+  {"id": "huanuco-selva", "nombre": "Selva de Huanuco (Tingo Maria), Peru", "region": "selva", "lat": -9.30, "lon": -76.00, "elevacion_m": 650, "cultivo_actual": "maiz_duro"},
+  {"id": "global-demo", "nombre": "Zona demo global", "region": "global", "lat": -9.90, "lon": -75.99, "elevacion_m": 3200, "cultivo_actual": "papa"}
+]

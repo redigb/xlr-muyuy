@@ -1,0 +1,5 @@
+# HTTPS automático. API_DOMAIN viene de .env, ej: api.150-1-2-3.sslip.io
+{$API_DOMAIN} {
+	encode gzip
+	reverse_proxy backend:8080
+}

@@ -1,0 +1,18 @@
+{
+  "campanias": 3,
+  "mes_siembra": 10,
+  "tolerancia_temp_c": 3,
+  "umbral_prob_helada": 0.5,
+  "meses_secos_max": 3,
+  "balance_mes_seco_mm": 0,
+  "anios_clima_alta": 30,
+  "reglas": [
+    {"id": "misma_familia_seguida", "tipo": "prohibida", "descripcion": "Misma familia dos campanias seguidas", "porque": "Plagas y enfermedades (gorgojo de los Andes, nematodos en papa)"},
+    {"id": "papa_papa", "tipo": "prohibida", "descripcion": "Papa despues de papa", "porque": "Es la practica que queremos mejorar"},
+    {"id": "leguminosa_tras_exigente", "tipo": "bonus", "descripcion": "Leguminosa (Fabaceae) despues de papa o maiz", "porque": "Repone nitrogeno"},
+    {"id": "cereal_al_final", "tipo": "bonus", "descripcion": "Cereal o forraje (Poaceae) al final", "porque": "Cubre el suelo, raices fibrosas, alimenta al ganado"},
+    {"id": "tres_familias", "tipo": "bonus", "descripcion": "Al menos 3 familias distintas", "porque": "Corta los ciclos de plagas"},
+    {"id": "helada", "tipo": "penalizacion", "descripcion": "Cultivo poco tolerante a helada con meses de prob_helada > umbral en su ciclo", "porque": "Riesgo de perder la cosecha"},
+    {"id": "sequia", "tipo": "penalizacion", "descripcion": "Cultivo de agua alta en secano con mas de meses_secos_max meses secos en su ciclo", "porque": "Riesgo hidrico"}
+  ]
+}

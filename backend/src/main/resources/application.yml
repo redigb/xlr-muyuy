@@ -1,0 +1,35 @@
+# ⚠️ Solo el líder edita la configuración. Pide los cambios por PR / chat.
+# Base común + perfil DEV (mvnw quarkus:dev).
+# Perfiles: application-test.yml (mvnw test) · application-prod.yml (jar / Docker)
+
+muyuy:
+  data-dir: ../data                   # JSON de data/ (relativo a backend/)
+
+quarkus:
+  jackson:
+    property-naming-strategy: SNAKE_CASE   # contrato JSON: prob_helada, t_min...
+  http:
+    port: 8080
+    cors:
+      enabled: true
+      origins: ${CORS_ORIGINS:/.*/}       # dev: todo permitido
+  swagger-ui:
+    always-include: true                  # /q/swagger-ui también en prod
+  rest-client:
+    groq:
+      url: https://api.groq.com/openai
+  log:
+    category:
+      "pe.muyuy":
+        level: DEBUG
+
+mp:
+  openapi:
+    extensions:
+      smallrye:
+        info:
+          title: Muyuy API
+          version: 0.1.0
+
+groq:
+  api-key: ${GROQ_API_KEY:}

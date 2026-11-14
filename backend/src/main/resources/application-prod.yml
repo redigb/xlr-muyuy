@@ -1,0 +1,13 @@
+# Perfil PROD (java -jar / Docker en Oracle). Valores sensibles vienen de .env.
+muyuy:
+  data-dir: ${MUYUY_DATA_DIR:/app/data}   # volumen montado en docker-compose
+
+quarkus:
+  http:
+    cors:
+      origins: ${CORS_ORIGINS:/.*/}       # fija los orígenes reales en .env
+  log:
+    level: INFO
+    category:
+      "pe.muyuy":
+        level: INFO

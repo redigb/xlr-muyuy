@@ -1,0 +1,14 @@
+# Perfil TEST (mvnw test / mvnw verify). Usa los JSON reales de data/ para validarlos.
+muyuy:
+  data-dir: ../data
+
+quarkus:
+  http:
+    test-port: 0                          # puerto libre aleatorio: no choca con quarkus:dev
+  log:
+    category:
+      "pe.muyuy":
+        level: INFO
+
+groq:
+  api-key: test-sin-clave                 # nunca llama a Groq real en pruebas

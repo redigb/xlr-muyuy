@@ -1,0 +1,133 @@
+{
+  "zona": {
+    "id": "huanuco-valle",
+    "nombre": "Valle del Huallaga, Huanuco, Peru",
+    "lat": -9.93,
+    "lon": -76.24,
+    "elevacion_m": 1900
+  },
+  "fuente": "INVENTADO para desarrollo - reemplazar por NASA POWER 1985-2024",
+  "anios": 0,
+  "calendario": [
+    {
+      "mes": 1,
+      "prob_helada": 0.0,
+      "lluvia_mm": 68,
+      "et_mm": 111,
+      "balance_hidrico_mm": -43,
+      "estres_calor": 0.0,
+      "t_min": 14.1,
+      "t_max": 26.3
+    },
+    {
+      "mes": 2,
+      "prob_helada": 0.0,
+      "lluvia_mm": 68,
+      "et_mm": 111,
+      "balance_hidrico_mm": -43,
+      "estres_calor": 0.0,
+      "t_min": 14.3,
+      "t_max": 26.5
+    },
+    {
+      "mes": 3,
+      "prob_helada": 0.0,
+      "lluvia_mm": 63,
+      "et_mm": 112,
+      "balance_hidrico_mm": -49,
+      "estres_calor": 0.0,
+      "t_min": 13.9,
+      "t_max": 26.3
+    },
+    {
+      "mes": 4,
+      "prob_helada": 0.0,
+      "lluvia_mm": 36,
+      "et_mm": 118,
+      "balance_hidrico_mm": -82,
+      "estres_calor": 0.0,
+      "t_min": 12.2,
+      "t_max": 25.8
+    },
+    {
+      "mes": 5,
+      "prob_helada": 0.0,
+      "lluvia_mm": 14,
+      "et_mm": 123,
+      "balance_hidrico_mm": -109,
+      "estres_calor": 0.0,
+      "t_min": 10.6,
+      "t_max": 25.0
+    },
+    {
+      "mes": 6,
+      "prob_helada": 0.0,
+      "lluvia_mm": 4,
+      "et_mm": 125,
+      "balance_hidrico_mm": -121,
+      "estres_calor": 0.0,
+      "t_min": 9.4,
+      "t_max": 24.2
+    },
+    {
+      "mes": 7,
+      "prob_helada": 0.0,
+      "lluvia_mm": 4,
+      "et_mm": 125,
+      "balance_hidrico_mm": -121,
+      "estres_calor": 0.0,
+      "t_min": 8.9,
+      "t_max": 23.7
+    },
+    {
+      "mes": 8,
+      "prob_helada": 0.0,
+      "lluvia_mm": 9,
+      "et_mm": 124,
+      "balance_hidrico_mm": -115,
+      "estres_calor": 0.0,
+      "t_min": 8.9,
+      "t_max": 23.5
+    },
+    {
+      "mes": 9,
+      "prob_helada": 0.0,
+      "lluvia_mm": 18,
+      "et_mm": 122,
+      "balance_hidrico_mm": -104,
+      "estres_calor": 0.0,
+      "t_min": 9.5,
+      "t_max": 23.7
+    },
+    {
+      "mes": 10,
+      "prob_helada": 0.0,
+      "lluvia_mm": 36,
+      "et_mm": 118,
+      "balance_hidrico_mm": -82,
+      "estres_calor": 0.0,
+      "t_min": 10.8,
+      "t_max": 24.2
+    },
+    {
+      "mes": 11,
+      "prob_helada": 0.0,
+      "lluvia_mm": 58,
+      "et_mm": 113,
+      "balance_hidrico_mm": -55,
+      "estres_calor": 0.0,
+      "t_min": 12.4,
+      "t_max": 25.0
+    },
+    {
+      "mes": 12,
+      "prob_helada": 0.0,
+      "lluvia_mm": 72,
+      "et_mm": 110,
+      "balance_hidrico_mm": -38,
+      "estres_calor": 0.0,
+      "t_min": 13.8,
+      "t_max": 25.8
+    }
+  ]
+}

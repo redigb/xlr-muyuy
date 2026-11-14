@@ -1,0 +1,43 @@
+name: Deploy Oracle
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-oracle
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: produccion
+    env:
+      HOST: ${{ secrets.ORACLE_HOST }}
+      USER: ${{ secrets.ORACLE_USER }}
+      API_DOMAIN: ${{ vars.API_DOMAIN }}
+    steps:
+      - name: Configurar SSH
+        env:
+          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
+
+      - name: Desplegar en la VM
+        run: ssh -i ~/.ssh/id_deploy "$USER@$HOST" 'bash /opt/muyuy/deploy.sh'
+
+      - name: Verificar salud (HTTPS)
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS "https://$API_DOMAIN/q/health/ready"; then echo; echo "✅ Arriba"; exit 0; fi
+            echo "Esperando ($i/30)..."; sleep 10
+          done
+          echo "❌ No respondió https://$API_DOMAIN/q/health/ready"; exit 1

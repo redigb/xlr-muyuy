@@ -1,0 +1,133 @@
+{
+  "zona": {
+    "id": "global-demo",
+    "nombre": "Zona demo global",
+    "lat": -9.9,
+    "lon": -75.99,
+    "elevacion_m": 3200
+  },
+  "fuente": "INVENTADO para desarrollo - reemplazar por NASA POWER 1985-2024",
+  "anios": 0,
+  "calendario": [
+    {
+      "mes": 1,
+      "prob_helada": 0.02,
+      "lluvia_mm": 135,
+      "et_mm": 86,
+      "balance_hidrico_mm": 49,
+      "estres_calor": 0.0,
+      "t_min": 5.6,
+      "t_max": 18.8
+    },
+    {
+      "mes": 2,
+      "prob_helada": 0.02,
+      "lluvia_mm": 135,
+      "et_mm": 86,
+      "balance_hidrico_mm": 49,
+      "estres_calor": 0.0,
+      "t_min": 5.8,
+      "t_max": 19.0
+    },
+    {
+      "mes": 3,
+      "prob_helada": 0.02,
+      "lluvia_mm": 126,
+      "et_mm": 87,
+      "balance_hidrico_mm": 39,
+      "estres_calor": 0.0,
+      "t_min": 5.4,
+      "t_max": 18.8
+    },
+    {
+      "mes": 4,
+      "prob_helada": 0.02,
+      "lluvia_mm": 72,
+      "et_mm": 91,
+      "balance_hidrico_mm": -19,
+      "estres_calor": 0.0,
+      "t_min": 3.8,
+      "t_max": 18.2
+    },
+    {
+      "mes": 5,
+      "prob_helada": 0.02,
+      "lluvia_mm": 27,
+      "et_mm": 95,
+      "balance_hidrico_mm": -68,
+      "estres_calor": 0.0,
+      "t_min": 2.1,
+      "t_max": 17.5
+    },
+    {
+      "mes": 6,
+      "prob_helada": 0.35,
+      "lluvia_mm": 9,
+      "et_mm": 97,
+      "balance_hidrico_mm": -88,
+      "estres_calor": 0.0,
+      "t_min": 0.9,
+      "t_max": 16.8
+    },
+    {
+      "mes": 7,
+      "prob_helada": 0.5,
+      "lluvia_mm": 9,
+      "et_mm": 97,
+      "balance_hidrico_mm": -88,
+      "estres_calor": 0.0,
+      "t_min": 0.4,
+      "t_max": 16.2
+    },
+    {
+      "mes": 8,
+      "prob_helada": 0.5,
+      "lluvia_mm": 18,
+      "et_mm": 96,
+      "balance_hidrico_mm": -78,
+      "estres_calor": 0.0,
+      "t_min": 0.4,
+      "t_max": 16.0
+    },
+    {
+      "mes": 9,
+      "prob_helada": 0.32,
+      "lluvia_mm": 36,
+      "et_mm": 95,
+      "balance_hidrico_mm": -59,
+      "estres_calor": 0.0,
+      "t_min": 1.0,
+      "t_max": 16.2
+    },
+    {
+      "mes": 10,
+      "prob_helada": 0.02,
+      "lluvia_mm": 72,
+      "et_mm": 91,
+      "balance_hidrico_mm": -19,
+      "estres_calor": 0.0,
+      "t_min": 2.2,
+      "t_max": 16.8
+    },
+    {
+      "mes": 11,
+      "prob_helada": 0.02,
+      "lluvia_mm": 117,
+      "et_mm": 87,
+      "balance_hidrico_mm": 30,
+      "estres_calor": 0.0,
+      "t_min": 3.9,
+      "t_max": 17.5
+    },
+    {
+      "mes": 12,
+      "prob_helada": 0.02,
+      "lluvia_mm": 144,
+      "et_mm": 85,
+      "balance_hidrico_mm": 59,
+      "estres_calor": 0.0,
+      "t_min": 5.2,
+      "t_max": 18.2
+    }
+  ]
+}

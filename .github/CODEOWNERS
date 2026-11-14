@@ -1,0 +1,9 @@
+# Archivos que solo el líder edita. Reemplaza TU_USUARIO por tu usuario de GitHub
+# y activa "Require review from Code Owners" en la protección de main.
+# *                         @TU_USUARIO
+# /backend/pom.xml          @TU_USUARIO
+# /backend/src/main/resources/application.properties @TU_USUARIO
+# /docker-compose.yml       @TU_USUARIO
+# /Caddyfile                @TU_USUARIO
+# /deploy.sh                @TU_USUARIO
+# /.github/                 @TU_USUARIO

@@ -1,0 +1,103 @@
+# 🌱 Muyuy — Backend + Núcleo
+
+> NASA Space Apps Challenge 2026 · *Field Shift: Adapting Farms with NASA Data* · Piloto: Huánuco, Perú
+
+Recomienda **rotaciones de cultivo** (actual + 2 alternativas) con puntajes y nivel de confianza,
+a partir del calendario climático de **NASA POWER**, una tabla de cultivos andinos y reglas agronómicas.
+
+La landing y la app Flutter viven en otro repositorio: `muyuy-app` (enlace aquí).
+
+📋 **Avance y specs:** [docs/SPECS.md](docs/SPECS.md)
+
+## Arquitectura
+
+```
+App Flutter / Landing ──HTTPS──► Caddy (TLS automático, sslip.io) ──► Quarkus :8080
+                                                                    ├─ api/   endpoints REST
+                                                                    ├─ ai/    explicaciones (Groq)
+                                                                    └─ core/  motor + datos ◄── data/*.json (NASA POWER)
+```
+
+| Carpeta | Dueño | Qué hay |
+|---|---|---|
+| `backend/src/main/java/pe/muyuy/core/` | Líder | modelos, repositorios, `MotorRotaciones` (Falso → Real), `Explicador` |
+| `backend/src/main/java/pe/muyuy/api/` | Compañero API/Flutter | endpoints REST |
+| `backend/src/main/java/pe/muyuy/ai/` | Compañero API/Flutter | `Explicador` con Groq |
+| `data/` | Datos + líder | `calendario_*.json` (NASA), `cultivos.json`, `reglas.json`, `zonas.json` |
+| `scripts/` | Datos | script NASA POWER · `datos_falsos.py` (calendarios inventados) |
+| raíz | Líder | `docker-compose.yml`, `Caddyfile`, `deploy.sh`, `.github/` |
+
+**Versiones:** Java **25** en todo (pom `release 25`, CI y Docker con Temurin 25). Requiere JDK 25 en local. Quarkus 3.40.
+
+## Correr en local
+
+Configuración en `backend/src/main/resources/`: `application.yml` (base + dev) · `application-test.yml` · `application-prod.yml`.
+
+| Perfil | Comando (desde `backend/`; en Windows `mvnw.cmd`) |
+|---|---|
+| **dev** (recarga en caliente) | `./mvnw quarkus:dev` |
+| **test** (todas las pruebas) | `./mvnw verify` |
+| **prod** en tu PC | `./mvnw package -DskipTests` y luego `MUYUY_DATA_DIR=../data java -jar target/quarkus-app/quarkus-run.jar` |
+| **prod** en Docker (como Oracle) | desde la raíz: `cp .env.example .env` y `docker compose up -d --build` |
+
+En PowerShell, para prod: `$env:MUYUY_DATA_DIR="../data"; java -jar target/quarkus-app/quarkus-run.jar`
+- http://localhost:8080/ → hola
+- http://localhost:8080/q/health/ready → valida que carguen los JSON de `data/`
+- http://localhost:8080/q/swagger-ui → **contrato de la API** (para el equipo de la app)
+
+Pruebas: `./mvnw verify`
+
+## Flujo de trabajo
+
+- Ramas `feat/<tema>` → **PR a `main`** (el líder aprueba). La CI corre pruebas y valida los JSON.
+- **Solo el líder** edita `pom.xml`, `application.properties`, `docker-compose.yml`, `Caddyfile`, `.github/`.
+- Contrato JSON congelado desde el **sábado 9:00**: solo se **agregan** campos.
+- Secretos solo en `.env` (ver `.env.example`). Nunca en GitHub.
+
+## Despliegue (GitHub Actions → Oracle)
+
+Cada push a `main` ejecuta `.github/workflows/deploy.yml`: pruebas → SSH a la VM → `deploy.sh` (`git reset` a `main` + `docker compose up -d --build`) → verifica `https://$API_DOMAIN/q/health/ready`.
+
+### Preparar la VM una sola vez (Ubuntu 24.04 ARM, Oracle A1)
+```bash
+sudo apt update && sudo apt install -y docker.io docker-compose-v2 git
+sudo usermod -aG docker $USER            # salir y volver a entrar
+# Puertos 80/443: Security List en la consola Y iptables (ver ROL_BACKEND_LIDER.md §3.2)
+
+# Llave para que la VM lea el repo (mientras sea privado): GitHub → Settings → Deploy keys (solo lectura)
+ssh-keygen -t ed25519 -f ~/.ssh/github_muyuy -N "" && cat ~/.ssh/github_muyuy.pub
+printf 'Host github.com\n  IdentityFile ~/.ssh/github_muyuy\n' >> ~/.ssh/config
+
+sudo mkdir -p /opt/muyuy && sudo chown $USER /opt/muyuy
+git clone git@github.com:<org>/muyuy.git /opt/muyuy
+cp /opt/muyuy/.env.example /opt/muyuy/.env && nano /opt/muyuy/.env   # API_DOMAIN, GROQ_API_KEY, CORS_ORIGINS
+bash /opt/muyuy/deploy.sh                                            # primer despliegue manual
+```
+
+### Llave para que GitHub Actions entre a la VM
+```bash
+# En tu PC:
+ssh-keygen -t ed25519 -f muyuy_actions -N "" -C "github-actions"
+# Agrega muyuy_actions.pub a ~/.ssh/authorized_keys de la VM
+```
+
+### Configuración en GitHub (Settings)
+| Tipo | Nombre | Valor |
+|---|---|---|
+| Environment | `produccion` | (opcional: exigir aprobación) |
+| Secret | `ORACLE_HOST` | IP pública de la VM |
+| Secret | `ORACLE_USER` | `ubuntu` |
+| Secret | `ORACLE_SSH_KEY` | contenido de `muyuy_actions` (privada) |
+| Variable | `API_DOMAIN` | `api.150-1-2-3.sslip.io` |
+
+Protección de `main`: PR obligatorio + check `test` en verde. Opcional: activa `.github/CODEOWNERS`.
+
+## Datos NASA
+
+`data/calendario_<zona>.json` resume 1985–2024 de NASA POWER por mes: probabilidad de helada, lluvia, ET,
+balance hídrico, estrés por calor y temperaturas. **Los archivos actuales son inventados** (`"anios": 0`)
+y se reemplazan por los reales con la misma forma.
+
+## Licencia
+
+MIT
