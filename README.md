@@ -1,6 +1,13 @@
-# 🌱 Muyuy — Backend + Núcleo
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/muyuy-logo-blanco.png">
+    <img src="docs/img/muyuy-logo.png" alt="Muyuy" width="420">
+  </picture>
+</p>
 
-> NASA Space Apps Challenge 2026 · *Field Shift: Adapting Farms with NASA Data* · Piloto: Huánuco, Perú
+<p align="center">
+  <b>Backend + Núcleo</b> · NASA Space Apps Challenge 2026 · <i>Field Shift: Adapting Farms with NASA Data</i> · Piloto: Huánuco, Perú
+</p>
 
 Recomienda **rotaciones de cultivo** (actual + 2 alternativas) con puntajes y nivel de confianza,
 a partir del calendario climático de **NASA POWER**, una tabla de cultivos andinos y reglas agronómicas.
@@ -9,7 +16,43 @@ La landing y la app Flutter viven en otro repositorio: `muyuy-app` (enlace aquí
 
 📋 **Avance y specs:** [docs/SPECS.md](docs/SPECS.md)
 
-## Arquitectura
+## ¿Cómo funciona?
+
+### 1. Una consulta (de la app al motor)
+
+```mermaid
+flowchart LR
+    A[📱 App Flutter / Landing] -- HTTPS --> C[Caddy<br/>certificado automático]
+    C --> API[api/<br/>GET /api/paquete/zona]
+    API --> M[core/engine<br/>MotorRotaciones]
+    M --> D[(data/*.json<br/>zonas · cultivos · reglas<br/>calendarios NASA)]
+    API --> E[ai/ Explicador<br/>Groq · o plantilla si falla]
+    M -- 3 rotaciones --> API
+    E -- texto --> API
+    API -- JSON --> A
+```
+
+1. El agricultor elige su zona en la app.
+2. La API busca la **zona** y su **calendario NASA** en `data/`.
+3. El **motor** devuelve 3 rotaciones: la actual + 2 mejores, con puntajes y confianza.
+4. El **Explicador** las cuenta en lenguaje sencillo (Groq; si falla, usa una plantilla).
+5. La app recibe un solo JSON con todo.
+
+> Hoy el motor activo es `MotorFalso` (respuestas fijas). Cuando `MotorReal` esté listo, lo reemplaza sin tocar la API.
+
+### 2. Un cambio de código (de tu PC a Oracle)
+
+```mermaid
+flowchart LR
+    P[💻 Tu PC<br/>rama feat/...] -- push --> G[GitHub<br/>Pull Request]
+    G -- CI: JSON válidos + pruebas --> R{¿Verde?}
+    R -- no --> P
+    R -- sí, merge a main --> DP[Deploy Oracle<br/>GitHub Actions]
+    DP -- SSH --> VM[VM Oracle<br/>deploy.sh]
+    VM -- docker compose up --build --> OK[✅ API arriba<br/>verifica /q/health/ready]
+```
+
+### Piezas
 
 ```
 App Flutter / Landing ──HTTPS──► Caddy (TLS automático, sslip.io) ──► Quarkus :8080

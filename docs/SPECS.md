@@ -38,6 +38,7 @@ El contrato vivo está en `/q/swagger-ui`.
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | Logo + flujo en README | `docs: logo y diagramas de flujo en el README` |
 | 14/11 | Specs del backend | `docs: specs y tablero de avance del backend` |
 | 14/11 | Java 25 en todo | `chore(build): usar Java 25 (release 25) en todo el proyecto` |
 | 14/11 | Config YAML dev/test/prod + 9 pruebas | `chore(config): application.yml con perfiles test y prod` |
