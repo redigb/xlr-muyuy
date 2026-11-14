@@ -1,0 +1,32 @@
+name: App CI
+
+# Solo corre si cambia la app Flutter. No toca la VM.
+on:
+  pull_request:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/app-ci.yml"]
+  push:
+    branches: [main, "feat/**"]
+    paths: ["app/**", ".github/workflows/app-ci.yml"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable          # Dart >= 3.14 (pubspec)
+          cache: true
+
+      - name: Dependencias (lockfile)
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analizar y probar
+        run: |
+          flutter analyze
+          flutter test
