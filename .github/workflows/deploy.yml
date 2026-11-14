@@ -4,6 +4,14 @@ name: Deploy Oracle
 on:
   push:
     branches: [main]
+    paths:                       # monorepo: solo despliega si cambia el backend o su infra
+      - "backend/**"
+      - "data/**"
+      - "docker-compose.yml"
+      - "Caddyfile"
+      - "deploy.sh"
+      - ".github/workflows/deploy.yml"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 concurrency:

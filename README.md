@@ -97,7 +97,11 @@ Flutter app / Landing ──HTTPS──► Caddy (automatic TLS, Let's Encrypt) 
 | `data/` | `calendario_*.json` (NASA), `cultivos.json`, `reglas.json`, `zonas.json` |
 | `scripts/` | data scripts (NASA POWER, placeholder calendars) |
 | `specs/` | feature specs (spec-kit, Spanish) |
+| `landing/` | public landing page (Astro + React + Three.js 3D terrain) |
 | root | `docker-compose.yml`, `Caddyfile`, `deploy.sh`, `.github/` |
+
+**Monorepo CI:** each part only builds when its folder changes. `backend/**` and `data/**` → tests + deploy to Oracle;
+`landing/**` → `landing-ci.yml` (build check only).
 
 **Stack:** Java **25** everywhere (pom `release 25`, CI and Docker on Temurin 25), Quarkus 3.40, PostgreSQL + Flyway, Docker + Caddy.
 
@@ -120,6 +124,10 @@ PowerShell, prod: `$env:MUYUY_DATA_DIR="../data"; java -jar target/quarkus-app/q
 - http://localhost:8080/ → hello
 - http://localhost:8080/q/health/ready → checks data files and database
 - http://localhost:8080/q/swagger-ui → **API contract**
+
+**Landing** (Node 22+ and pnpm 10, from `landing/`): `pnpm install` then `pnpm dev` → http://localhost:4321 · `pnpm build` → `landing/dist/`.
+Supply-chain hardening in `landing/pnpm-workspace.yaml`: install scripts blocked, packages younger than 24 h refused,
+no exotic sub-dependencies; CI uses `--frozen-lockfile` + `pnpm audit`.
 
 ## Workflow
 

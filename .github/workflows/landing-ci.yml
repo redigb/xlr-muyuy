@@ -1,0 +1,37 @@
+name: Landing CI
+
+# Solo corre si cambia la landing (Astro). No toca la VM.
+on:
+  pull_request:
+    branches: [main]
+    paths: ["landing/**", ".github/workflows/landing-ci.yml"]
+  push:
+    branches: [main, "feat/**"]
+    paths: ["landing/**", ".github/workflows/landing-ci.yml"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4          # versión tomada de "packageManager" en package.json
+        with:
+          package_json_file: landing/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+          cache-dependency-path: landing/pnpm-lock.yaml
+
+      - name: Instalar (lockfile congelado) y auditar
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level high
+
+      - name: Compilar
+        run: pnpm build
