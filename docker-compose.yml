@@ -1,9 +1,25 @@
 # ⚠️ Solo el líder edita este archivo.
 services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: muyuy
+      POSTGRES_USER: muyuy
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data      # sin puerto público
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U muyuy -d muyuy"]
+      interval: 5s
+      retries: 10
+
   backend:
     build: ./backend
     env_file: .env
     restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
     volumes:
       - ./data:/app/data:ro        # calendarios, cultivos y reglas (JSON)
 
@@ -20,5 +36,6 @@ services:
       - caddy_config:/config
 
 volumes:
+  pgdata:
   caddy_data:
   caddy_config:

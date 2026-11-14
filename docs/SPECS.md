@@ -1,43 +1,74 @@
 # 📋 Specs y avance del backend
 
-Regla: una spec se marca ✅ solo cuando sus pruebas pasan con `mvnw verify`.
-⬜ pendiente · 🟡 en curso · ✅ listo
+📘 **Especificación completa: [SPECS_v2.md](SPECS_v2.md) (v2.1).** Este archivo es solo el **tablero** y la **bitácora**.
 
-## Tablero
+Regla: una pieza se marca ✅ solo cuando sus pruebas pasan con `mvnw verify`.
+⬜ pendiente · 🟡 en curso · ✅ listo · ⏭️ fuera del fin de semana
 
-| # | Pieza | Estado | Cómo sabemos que está lista |
-|---|---|---|---|
-| 1 | Esqueleto (Quarkus, Java 25, YAML dev/test/prod) | ✅ | `ApiBasicaTest`, `PerfilTestTest`, `PerfilProdTest` |
-| 2 | Datos (`data/*.json`) | 🟡 calendarios inventados | `DatosYMotorFalsoTest` · faltan los de NASA |
-| 3 | MotorFalso | ✅ | `DatosYMotorFalsoTest` |
-| 4 | MotorReal | ⬜ | `MotorRealTest` (ver abajo) |
-| 5 | API + Groq (compañero) | ⬜ | `GET /api/paquete/{zona}` → 3 rotaciones |
-| 6 | Deploy Oracle (CI/CD) | 🟡 falta la VM | `https://api.<ip>.sslip.io/q/health/ready` en UP |
+## Cómo trabajamos cada pieza (spec-kit liviano)
 
-## Contrato (se confirma el sáb 9:00 · después solo se agregan campos)
+Reglas en [`.specify/memory/constitution.md`](../.specify/memory/constitution.md). Por cada pieza del tablero:
 
-El motor devuelve siempre 3 rotaciones: `[0]` es la actual y luego 2 recomendadas. Todo en snake_case.
-```json
-{ "id": "opcion-1", "nombre": "Opcion 1", "actual": false,
-  "campanias": [{"numero": 1, "cultivo_id": "papa", "cultivo_nombre": "Papa", "familia": "Solanaceae", "mes_siembra": 10}],
-  "puntajes": {"agua": 0.8, "suelo": 0.9, "ingresos": 0.65, "riesgo": 0.8, "total": 0.79},
-  "confianza": {"clima": "alta", "agua": "media", "suelo": "media", "mercado": "sin_datos"},
-  "validar_con_experto": "Confirma si hay semilla y compradores en tu zona." }
 ```
-El contrato vivo está en `/q/swagger-ui`.
+/speckit-specify <qué y para qué>   → specs/NNN-nombre/spec.md
+/speckit-plan                       → plan.md (cómo, en simple)
+/speckit-tasks                      → tasks.md (incluye la prueba del flujo de uso)
+/speckit-implement                  → código + pruebas en verde
+```
+Opcionales: `/speckit-clarify` (solo si hay dudas reales) y `/speckit-converge` (si quedó trabajo suelto).
+La validación es **la prueba del flujo de uso en verde**, no checklists.
 
-## MotorReal: pruebas que deben pasar
-- [ ] Papa → papa nunca se recomienda
-- [ ] Con helada fuerte en sierra, el maíz no entra al top 2
-- [ ] Siempre salen 3 rotaciones
-- [ ] Mismo input = mismo output
-- [ ] No se repite familia seguida
-- [ ] Puntajes entre 0 y 1
+## Flujo v2.1 en una línea
+El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → la app los **descarga o los recibe de otro celular** → se **usan 100 % offline** → las observaciones **vuelven** cuando hay señal.
+
+## Tablero del backend
+
+### 🔴 P0: imprescindible (hito: sábado 21:00)
+| # | Pieza | Estado | Prueba / criterio |
+|---|---|---|---|
+| 1 | Esqueleto (Quarkus 3.40, Java 25, YAML dev/test/prod, CI/CD) | ✅ | `ApiBasicaTest`, `PerfilTestTest`, `PerfilProdTest` |
+| 2 | Calendarios NASA corregidos por altitud (4 zonas) | 🟡 inventados | llegan de Datos ~14:00 · `anios >= 30` |
+| 3 | `cultivos_andinos.json` (ECOCROP, con `ktmp` y `fuente`) + `reglas.json` | 🟡 borrador v1 | cargan y son válidos |
+| 4 | Motor v2: **todas las candidatas** + `esApto` | ✅ | `MotorFlujoTest`, `MotorReglasTest` · spec `specs/001-motor-candidatas` |
+| 5 | Paquete: `meta` (versión, hash SHA-256, vigencias) + `nucleo` | ⬜ | mismo contenido = mismo hash · `version++` solo si cambia el hash |
+| 6 | `GET /api/paquete/{zona}` y `/version` · `/api/zonas` · `/api/salud` | ⬜ | `@QuarkusTest` |
+| 7 | Explicador: Groq con caché por hash + plantilla de respaldo | 🟡 plantilla lista | nunca 500 si Groq falla |
+| 8 | Deploy en Oracle (`api.147-224-236-134.sslip.io`) | 🟡 falta la VM / secrets | `/q/health/ready` en UP por HTTPS |
+
+### 🟡 P1: después del hito
+| # | Pieza | Estado |
+|---|---|---|
+| 9 | PostgreSQL + `/api/dispositivos` + `/api/sync` (idempotente) + puntaje automático | 🟡 esquema V1 + Flyway listos (`BaseDatosTest`) |
+| 10 | `pipeline-api` (FastAPI) + `/api/paquete/coordenada` + catálogo global + inicio de siembra calculado | ⬜ |
+| 11 | Evaluación de aptitud contra MIDAGRI (métrica 2) | ⬜ |
+
+### 🟢 P2: si sobra tiempo
+`/api/red/publica` · precalcular ubicaciones de los jueces · backtesting · explicaciones en inglés
+
+## Pruebas del motor (v2)
+- [x] Nunca recomienda papa → papa (salvo `es_practica_comun`)
+- [x] No repite familia en campañas seguidas
+- [x] `esApto`: rechaza un cultivo con helada letal (`ktmp`) en su ciclo (maíz en sierra con helada en junio)
+- [x] Entre 6 y 10 candidatas por cultivo inicial, diversas (2.ª campaña distinta)
+- [x] Puntajes entre 0 y 1
+- [x] Mismo input = mismo output (determinista) → mismo hash
+
+## Cambios de contrato v1 → v2 (a confirmar a las 9:00)
+| v1 (código actual) | v2.1 |
+|---|---|
+| `recomendar(zona, calendario)` devuelve 3 | `recomendar(zona, calendario, catalogo)` devuelve **todas las candidatas** · `esApto(...)` |
+| `Rotacion.campanias[]`, `actual` | `cultivo_inicial`, `secuencia[]`, `explicacion`, `es_practica_comun` |
+| `explicar(rotacion, zona, calendario)` | `+ idioma` |
+| Se responde una rotación | Se responde el **paquete** (`meta` + `nucleo` + `extras`) |
 
 ## Bitácora (la más reciente arriba)
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | PostgreSQL + Flyway (esquema V1 §12), CI con Postgres, 17 pruebas | `feat(db): postgresql con flyway y esquema inicial` |
+| 14/11 | Motor v2 (MotorReal): candidatas + esApto, 15 pruebas en verde | `feat(core): motor v2 con rotaciones candidatas y esApto` |
+| 14/11 | spec-kit 1.2.0 liviano (Claude) + constitución del proyecto | `chore(specs): spec-kit liviano y constitucion del proyecto` |
+| 14/11 | Specs v2.1: flujo offline con paquetes (reemplaza el flujo "consulta en cada uso") | `docs: specs v2.1 (flujo offline con paquetes) y tablero actualizado` |
 | 14/11 | Probador de APIs NASA en docs/ | `docs: probador de APIs NASA (ApisNASA.html)` |
 | 14/11 | Logo + flujo en README | `docs: logo y diagramas de flujo en el README` |
 | 14/11 | Specs del backend | `docs: specs y tablero de avance del backend` |

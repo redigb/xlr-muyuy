@@ -6,6 +6,16 @@ muyuy:
   data-dir: ../data                   # JSON de data/ (relativo a backend/)
 
 quarkus:
+  datasource:                         # PostgreSQL (dev: Laragon local)
+    db-kind: postgresql
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:}
+    jdbc:
+      url: ${DB_URL:jdbc:postgresql://localhost:5432/muyuy}
+    devservices:
+      enabled: false                    # usamos la base local, no Docker
+  flyway:
+    migrate-at-start: true              # crea/actualiza tablas al arrancar (db/migration)
   jackson:
     property-naming-strategy: SNAKE_CASE   # contrato JSON: prob_helada, t_min...
   http:

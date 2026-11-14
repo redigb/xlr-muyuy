@@ -22,8 +22,8 @@ class ApiBasicaTest {
         given().when().get("/q/health/ready").then().statusCode(200)
                .body("status", equalTo("UP"))
                .body("checks.name", hasItem("datos"))
-               .body("checks[0].data.zonas", equalTo(4))
-               .body("checks[0].data.sin_calendario", equalTo("[]"));
+               .body("checks.find { it.name == 'datos' }.data.zonas", equalTo(4))
+               .body("checks.find { it.name == 'datos' }.data.sin_calendario", equalTo("[]"));
     }
 
     @Test

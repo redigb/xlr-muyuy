@@ -4,7 +4,7 @@ import pe.muyuy.core.model.Calendario;
 import pe.muyuy.core.model.Rotacion;
 import pe.muyuy.core.model.Zona;
 
-/** La implementa el companiero en ai/ (Groq). Si no hay implementacion, se usa ExplicadorPlantilla. */
+/** La implementa el compañero en ai/ (Groq). Sin implementación, se usa ExplicadorPlantilla. idioma = es | en. */
 public interface Explicador {
-    String explicar(Rotacion rotacion, Zona zona, Calendario calendario);
+    String explicar(Rotacion rotacion, Zona zona, Calendario calendario, String idioma);
 }

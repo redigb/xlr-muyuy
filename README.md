@@ -14,7 +14,7 @@ a partir del calendario climático de **NASA POWER**, una tabla de cultivos andi
 
 La landing y la app Flutter viven en otro repositorio: `muyuy-app` (enlace aquí).
 
-📋 **Avance y specs:** [docs/SPECS.md](docs/SPECS.md) · 🛰️ **Probador de APIs NASA:** [docs/ApisNASA.html](docs/ApisNASA.html) (descárgalo y ábrelo con doble clic)
+📘 **Especificación v2.1:** [docs/SPECS_v2.md](docs/SPECS_v2.md) · 📋 **Avance:** [docs/SPECS.md](docs/SPECS.md) · 🛰️ **Probador de APIs NASA:** [docs/ApisNASA.html](docs/ApisNASA.html) (descárgalo y ábrelo con doble clic)
 
 ## ¿Cómo funciona?
 
@@ -75,6 +75,8 @@ App Flutter / Landing ──HTTPS──► Caddy (TLS automático, sslip.io) ─
 ## Correr en local
 
 Configuración en `backend/src/main/resources/`: `application.yml` (base + dev) · `application-test.yml` · `application-prod.yml`.
+
+**Requisito:** PostgreSQL local (p. ej. Laragon) con las bases `muyuy` (dev) y `muyuy_test` (pruebas), usuario `postgres`. Flyway crea las tablas al arrancar. Otra conexión: `DB_URL`, `DB_USER`, `DB_PASSWORD` / `TEST_DB_URL`, `TEST_DB_USER`.
 
 | Perfil | Comando (desde `backend/`; en Windows `mvnw.cmd`) |
 |---|---|

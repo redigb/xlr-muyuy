@@ -22,7 +22,9 @@ class PerfilProdTest {
 
     public static class Prod implements QuarkusTestProfile {
         @Override public String getConfigProfile() { return "prod"; }
-        @Override public Map<String, String> getConfigOverrides() { return Map.of("MUYUY_DATA_DIR", "../data"); }
+        @Override public Map<String, String> getConfigOverrides() { return Map.of("MUYUY_DATA_DIR", "../data",
+                    "DB_URL", "${TEST_DB_URL:jdbc:postgresql://localhost:5432/muyuy_test}",
+                    "DB_USER", "${TEST_DB_USER:postgres}"); }
     }
 
     @Test

@@ -3,6 +3,12 @@ muyuy:
   data-dir: ../data
 
 quarkus:
+  datasource:
+    jdbc:
+      url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/muyuy_test}
+  flyway:
+    clean-at-start: true                # base de pruebas limpia en cada corrida
+    clean-disabled: false
   http:
     test-port: 0                          # puerto libre aleatorio: no choca con quarkus:dev
   log:

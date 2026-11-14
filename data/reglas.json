@@ -6,6 +6,8 @@
   "meses_secos_max": 3,
   "balance_mes_seco_mm": 0,
   "anios_clima_alta": 30,
+  "factor_lluvia_min": 0.6,
+  "max_candidatas": 10,
   "reglas": [
     {"id": "misma_familia_seguida", "tipo": "prohibida", "descripcion": "Misma familia dos campanias seguidas", "porque": "Plagas y enfermedades (gorgojo de los Andes, nematodos en papa)"},
     {"id": "papa_papa", "tipo": "prohibida", "descripcion": "Papa despues de papa", "porque": "Es la practica que queremos mejorar"},
