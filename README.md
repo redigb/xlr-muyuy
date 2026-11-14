@@ -6,143 +6,167 @@
 </p>
 
 <p align="center">
-  <b>Backend + Núcleo</b> · NASA Space Apps Challenge 2026 · <i>Field Shift: Adapting Farms with NASA Data</i> · Piloto: Huánuco, Perú
+  <b>Backend + Core</b> · NASA Space Apps Challenge 2026 · <i>Field Shift: Adapting Farms with NASA Data</i> · Pilot: Huánuco, Peru
 </p>
 
-Recomienda **rotaciones de cultivo** (actual + 2 alternativas) con puntajes y nivel de confianza,
-a partir del calendario climático de **NASA POWER**, una tabla de cultivos andinos y reglas agronómicas.
+**Muyuy** (Quechua for *"to turn, to rotate"*) helps smallholder farmers choose **crop rotations** adapted to a changing climate.
+The backend turns **NASA POWER** climate data, an Andean crop table and agronomic rules into a sealed **regional package**
+with all candidate rotations, scored and explained. The app downloads it once and works **100% offline**.
 
-La landing y la app Flutter viven en otro repositorio: `muyuy-app` (enlace aquí).
+The landing page and the Flutter app live in a separate repository: `muyuy-app` (link here).
 
-📘 **Especificación v2.1:** [docs/SPECS_v2.md](docs/SPECS_v2.md) · 📋 **Avance:** [docs/SPECS.md](docs/SPECS.md) · 🛰️ **Probador de APIs NASA:** [docs/ApisNASA.html](docs/ApisNASA.html) (descárgalo y ábrelo con doble clic)
+📘 **Spec v2.1 (ES):** [docs/SPECS_v2.md](docs/SPECS_v2.md) · 📋 **Progress log (ES):** [docs/SPECS.md](docs/SPECS.md) · 🛰️ **NASA API tester:** [docs/ApisNASA.html](docs/ApisNASA.html) (download and open it in a browser)
 
-## ¿Cómo funciona?
+> JSON field names are in Spanish (frozen contract with the app). Every field is documented in English at `/q/swagger-ui`.
 
-### 1. Una consulta (de la app al motor)
+## How it works
 
-```mermaid
-flowchart LR
-    A[📱 App Flutter / Landing] -- HTTPS --> C[Caddy<br/>certificado automático]
-    C --> API[api/<br/>GET /api/paquete/zona]
-    API --> M[core/engine<br/>MotorRotaciones]
-    M --> D[(data/*.json<br/>zonas · cultivos · reglas<br/>calendarios NASA)]
-    API --> E[ai/ Explicador<br/>Groq · o plantilla si falla]
-    M -- 3 rotaciones --> API
-    E -- texto --> API
-    API -- JSON --> A
-```
-
-1. El agricultor elige su zona en la app.
-2. La API busca la **zona** y su **calendario NASA** en `data/`.
-3. El **motor** devuelve 3 rotaciones: la actual + 2 mejores, con puntajes y confianza.
-4. El **Explicador** las cuenta en lenguaje sencillo (Groq; si falla, usa una plantilla).
-5. La app recibe un solo JSON con todo.
-
-> Hoy el motor activo es `MotorFalso` (respuestas fijas). Cuando `MotorReal` esté listo, lo reemplaza sin tocar la API.
-
-### 2. Un cambio de código (de tu PC a Oracle)
+### 1. From NASA data to the field (offline-first)
 
 ```mermaid
 flowchart LR
-    P[💻 Tu PC<br/>rama feat/...] -- push --> G[GitHub<br/>Pull Request]
-    G -- CI: JSON válidos + pruebas --> R{¿Verde?}
-    R -- no --> P
-    R -- sí, merge a main --> DP[Deploy Oracle<br/>GitHub Actions]
-    DP -- SSH --> VM[VM Oracle<br/>deploy.sh]
-    VM -- docker compose up --build --> OK[✅ API arriba<br/>verifica /q/health/ready]
+    D[(data/*.json<br/>NASA climate calendars<br/>crops · rules)] --> M[Rotation engine<br/>candidates + suitability]
+    M --> E[Explainer<br/>Groq · or template]
+    E --> S[Seal<br/>SHA-256 hash + version]
+    S --> DB[(PostgreSQL<br/>packages)]
+    S -- GET /api/paquete/zone --> A[📱 App with signal]
+    A -- file, no signal --> B[📱 Neighbor]
+    A --> U[100% offline use<br/>filter and rank]
+    A -- POST /api/sync when back online --> C[Community observations<br/>NASA + consensus score]
+    C --> S
 ```
 
-### Piezas
+1. The server **builds each zone's package**: NASA climate calendar + crops + **all** candidate rotations, already scored and explained.
+2. It **seals** it: SHA-256 `hash` of the content and a `version` that increases only when the content changes.
+3. The app calls `GET /api/paquete/{zone}/version` and downloads the package only if there is a newer version (~2 KB gzipped).
+4. The app **verifies the hash**, filters by the farmer's current crop and ranks by their priorities, **offline**.
+5. The package can be shared phone to phone; the receiver verifies the hash again.
+6. Field observations (frost, drought…) recorded offline are synced later, auto-scored against NASA climate and neighbor consensus; validated ones become alerts in the next package.
 
-```
-App Flutter / Landing ──HTTPS──► Caddy (TLS automático, sslip.io) ──► Quarkus :8080
-                                                                    ├─ api/   endpoints REST
-                                                                    ├─ ai/    explicaciones (Groq)
-                                                                    └─ core/  motor + datos ◄── data/*.json (NASA POWER)
-```
+**Design principles:** the engine is deterministic (same data → same rotations); AI only *explains*, it never decides; every score carries a confidence level based on data quality.
 
-| Carpeta | Dueño | Qué hay |
-|---|---|---|
-| `backend/src/main/java/pe/muyuy/core/` | Líder | modelos, repositorios, `MotorRotaciones` (Falso → Real), `Explicador` |
-| `backend/src/main/java/pe/muyuy/api/` | Compañero API/Flutter | endpoints REST |
-| `backend/src/main/java/pe/muyuy/ai/` | Compañero API/Flutter | `Explicador` con Groq |
-| `data/` | Datos + líder | `calendario_*.json` (NASA), `cultivos.json`, `reglas.json`, `zonas.json` |
-| `scripts/` | Datos | script NASA POWER · `datos_falsos.py` (calendarios inventados) |
-| raíz | Líder | `docker-compose.yml`, `Caddyfile`, `deploy.sh`, `.github/` |
-
-**Versiones:** Java **25** en todo (pom `release 25`, CI y Docker con Temurin 25). Requiere JDK 25 en local. Quarkus 3.40.
-
-## Correr en local
-
-Configuración en `backend/src/main/resources/`: `application.yml` (base + dev) · `application-test.yml` · `application-prod.yml`.
-
-**Requisito:** PostgreSQL local (p. ej. Laragon) con las bases `muyuy` (dev) y `muyuy_test` (pruebas), usuario `postgres`. Flyway crea las tablas al arrancar. Otra conexión: `DB_URL`, `DB_USER`, `DB_PASSWORD` / `TEST_DB_URL`, `TEST_DB_USER`.
-
-| Perfil | Comando (desde `backend/`; en Windows `mvnw.cmd`) |
+| Endpoint | Purpose |
 |---|---|
-| **dev** (recarga en caliente) | `./mvnw quarkus:dev` |
-| **test** (todas las pruebas) | `./mvnw verify` |
-| **prod** en tu PC | `./mvnw package -DskipTests` y luego `MUYUY_DATA_DIR=../data java -jar target/quarkus-app/quarkus-run.jar` |
-| **prod** en Docker (como Oracle) | desde la raíz: `cp .env.example .env` y `docker compose up -d --build` |
+| `GET /api/salud` | Is the server reachable? |
+| `GET /api/zonas` | Official zones |
+| `GET /api/paquete/{zone}/version` | Is there a newer package? |
+| `GET /api/paquete/{zone}` | Full sealed package |
+| `POST /api/dispositivos` | Anonymous device registration → token |
+| `POST /api/sync` | Observations and connections saved offline (auto-validation: NASA + consensus) |
 
-En PowerShell, para prod: `$env:MUYUY_DATA_DIR="../data"; java -jar target/quarkus-app/quarkus-run.jar`
-- http://localhost:8080/ → hola
-- http://localhost:8080/q/health/ready → valida que carguen los JSON de `data/`
-- http://localhost:8080/q/swagger-ui → **contrato de la API** (para el equipo de la app)
+Full, documented contract: `/q/swagger-ui`.
 
-Pruebas: `./mvnw verify`
+### 2. NASA data used
 
-## Flujo de trabajo
+| Source | Use |
+|---|---|
+| **NASA POWER** (1985–2024, monthly) | Frost probability, rainfall, evapotranspiration, water balance, heat stress, min/max temperature per zone |
+| GIBS / SMAP / others | Explored for future layers (see `docs/ApisNASA.html`) |
 
-- Ramas `feat/<tema>` → **PR a `main`** (el líder aprueba). La CI corre pruebas y valida los JSON.
-- **Solo el líder** edita `pom.xml`, `application.properties`, `docker-compose.yml`, `Caddyfile`, `.github/`.
-- Contrato JSON congelado desde el **sábado 9:00**: solo se **agregan** campos.
-- Secretos solo en `.env` (ver `.env.example`). Nunca en GitHub.
+`data/calendario_<zone>.json` summarizes NASA POWER by month. **Current files are placeholders** (`"anios": 0`) and are
+replaced by real data with the same shape. Crop parameters follow FAO ECOCROP / FAO-56.
 
-## Despliegue (GitHub Actions → Oracle)
+### 3. Code change to production (PC → Oracle Cloud)
 
-Cada push a `main` ejecuta `.github/workflows/deploy.yml`: pruebas → SSH a la VM → `deploy.sh` (`git reset` a `main` + `docker compose up -d --build`) → verifica `https://$API_DOMAIN/q/health/ready`.
+```mermaid
+flowchart LR
+    P[💻 PC<br/>branch feat/...] -- push --> G[GitHub<br/>Pull Request]
+    G -- CI: valid JSON + tests --> R{Green?}
+    R -- no --> P
+    R -- yes, merge to main --> DP[Deploy<br/>GitHub Actions]
+    DP -- SSH --> VM[Oracle VM<br/>deploy.sh]
+    VM -- docker compose up --build --> OK[✅ API up<br/>checks /q/health/ready]
+```
 
-### Preparar la VM una sola vez (Ubuntu 24.04 ARM, Oracle A1)
+### Architecture
+
+```
+Flutter app / Landing ──HTTPS──► Caddy (automatic TLS, sslip.io) ──► Quarkus :8080 ──► PostgreSQL
+                                                                    ├─ api/   REST endpoints
+                                                                    ├─ ai/    explanations (Groq)
+                                                                    └─ core/  engine, packages, community ◄── data/*.json (NASA POWER)
+```
+
+| Folder | Contents |
+|---|---|
+| `backend/src/main/java/pe/muyuy/core/` | models, data repositories, rotation engine, package sealing, community scoring |
+| `backend/src/main/java/pe/muyuy/api/` | REST endpoints |
+| `backend/src/main/java/pe/muyuy/ai/` | Groq explainer (template fallback) |
+| `data/` | `calendario_*.json` (NASA), `cultivos.json`, `reglas.json`, `zonas.json` |
+| `scripts/` | data scripts (NASA POWER, placeholder calendars) |
+| `specs/` | feature specs (spec-kit, Spanish) |
+| root | `docker-compose.yml`, `Caddyfile`, `deploy.sh`, `.github/` |
+
+**Stack:** Java **25** everywhere (pom `release 25`, CI and Docker on Temurin 25), Quarkus 3.40, PostgreSQL + Flyway, Docker + Caddy.
+
+## Run locally
+
+Config in `backend/src/main/resources/`: `application.yml` (base + dev) · `application-test.yml` · `application-prod.yml`.
+
+**Requires:** JDK 25 and a local PostgreSQL with databases `muyuy` (dev) and `muyuy_test` (tests), user `postgres`. Flyway creates the tables at startup.
+Local variables: copy `backend/.env.example` to `backend/.env` (Quarkus reads it automatically; never committed).
+
+| Profile | Command (from `backend/`; on Windows `mvnw.cmd`) |
+|---|---|
+| **dev** (live reload) | `./mvnw quarkus:dev` |
+| **test** (all tests) | `./mvnw verify` |
+| **prod** on your PC | `./mvnw package -DskipTests` then `MUYUY_DATA_DIR=../data java -jar target/quarkus-app/quarkus-run.jar` |
+| **prod** in Docker (like Oracle) | from the root: `cp .env.example .env` then `docker compose up -d --build` |
+
+PowerShell, prod: `$env:MUYUY_DATA_DIR="../data"; java -jar target/quarkus-app/quarkus-run.jar`
+
+- http://localhost:8080/ → hello
+- http://localhost:8080/q/health/ready → checks data files and database
+- http://localhost:8080/q/swagger-ui → **API contract**
+
+## Workflow
+
+- Branches `feat/<topic>` → **PR to `main`**. CI runs the tests and validates the JSON files.
+- The JSON contract is frozen: fields can only be **added**.
+- Secrets only in `.env` (see `.env.example`), never in GitHub.
+
+## Deployment (GitHub Actions → Oracle Cloud)
+
+Every push to `main` runs `.github/workflows/deploy.yml`: tests → SSH to the VM → `deploy.sh` (`git reset` to `main` + `docker compose up -d --build`) → checks `https://$API_DOMAIN/q/health/ready`.
+
+### One-time VM setup (Ubuntu 24.04 ARM, Oracle A1)
 ```bash
 sudo apt update && sudo apt install -y docker.io docker-compose-v2 git
-sudo usermod -aG docker $USER            # salir y volver a entrar
-# Puertos 80/443: Security List en la consola Y iptables (ver ROL_BACKEND_LIDER.md §3.2)
+sudo usermod -aG docker $USER            # log out and back in
+# Ports 80/443: open them in the Security List AND in iptables
 
-# Llave para que la VM lea el repo (mientras sea privado): GitHub → Settings → Deploy keys (solo lectura)
+# Read-only deploy key while the repo is private: GitHub → Settings → Deploy keys
 ssh-keygen -t ed25519 -f ~/.ssh/github_muyuy -N "" && cat ~/.ssh/github_muyuy.pub
 printf 'Host github.com\n  IdentityFile ~/.ssh/github_muyuy\n' >> ~/.ssh/config
 
 sudo mkdir -p /opt/muyuy && sudo chown $USER /opt/muyuy
 git clone git@github.com:<org>/muyuy.git /opt/muyuy
-cp /opt/muyuy/.env.example /opt/muyuy/.env && nano /opt/muyuy/.env   # API_DOMAIN, GROQ_API_KEY, CORS_ORIGINS
-bash /opt/muyuy/deploy.sh                                            # primer despliegue manual
+cp /opt/muyuy/.env.example /opt/muyuy/.env && nano /opt/muyuy/.env   # API_DOMAIN, DB_PASSWORD, GROQ_API_KEY, CORS_ORIGINS
+bash /opt/muyuy/deploy.sh                                            # first manual deploy
 ```
 
-### Llave para que GitHub Actions entre a la VM
+### SSH key for GitHub Actions
 ```bash
-# En tu PC:
 ssh-keygen -t ed25519 -f muyuy_actions -N "" -C "github-actions"
-# Agrega muyuy_actions.pub a ~/.ssh/authorized_keys de la VM
+# Add muyuy_actions.pub to ~/.ssh/authorized_keys on the VM
 ```
 
-### Configuración en GitHub (Settings)
-| Tipo | Nombre | Valor |
+### GitHub settings
+| Type | Name | Value |
 |---|---|---|
-| Environment | `produccion` | (opcional: exigir aprobación) |
-| Secret | `ORACLE_HOST` | IP pública de la VM |
+| Environment | `produccion` | (optional: require approval) |
+| Secret | `ORACLE_HOST` | VM public IP |
 | Secret | `ORACLE_USER` | `ubuntu` |
-| Secret | `ORACLE_SSH_KEY` | contenido de `muyuy_actions` (privada) |
-| Variable | `API_DOMAIN` | `api.150-1-2-3.sslip.io` |
+| Secret | `ORACLE_SSH_KEY` | contents of `muyuy_actions` (private key) |
+| Variable | `API_DOMAIN` | `api.147-224-236-134.sslip.io` |
 
-Protección de `main`: PR obligatorio + check `test` en verde. Opcional: activa `.github/CODEOWNERS`.
+Protect `main`: required PR + green `test` check.
 
-## Datos NASA
+## AI usage
 
-`data/calendario_<zona>.json` resume 1985–2024 de NASA POWER por mes: probabilidad de helada, lluvia, ET,
-balance hídrico, estrés por calor y temperaturas. **Los archivos actuales son inventados** (`"anios": 0`)
-y se reemplazan por los reales con la misma forma.
+Rotation explanations are generated with **Groq (Llama 3.3 70B)** from the engine's deterministic output; when unavailable, a fixed template is used.
+AI never chooses or scores rotations.
 
-## Licencia
+## License
 
 MIT

@@ -10,6 +10,6 @@ FROM eclipse-temurin:25-jre
 WORKDIR /app
 COPY --from=build /src/target/quarkus-app/ ./
 # Perfil prod por defecto (application-prod.yml): data en /app/data
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseCompactObjectHeaders"
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseCompactObjectHeaders --enable-native-access=ALL-UNNAMED"
 EXPOSE 8080
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar quarkus-run.jar"]

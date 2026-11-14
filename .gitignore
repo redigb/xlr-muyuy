@@ -1,4 +1,11 @@
-.env
+# Secretos y entorno local (solo se versionan los .example)
+.env*
+!.env.example
+
+# Herramientas locales de IA / spec-kit (no van al repo)
+.claude/
+.specify/
+
 *.log
 .idea/
 .vscode/

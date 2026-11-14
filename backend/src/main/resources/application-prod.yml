@@ -8,6 +8,8 @@ quarkus:
     jdbc:
       url: ${DB_URL:jdbc:postgresql://db:5432/muyuy}   # servicio "db" de docker-compose
   http:
+    proxy:
+      proxy-address-forwarding: true      # IP real del cliente detrás de Caddy (límite por IP)
     cors:
       origins: ${CORS_ORIGINS:/.*/}       # fija los orígenes reales en .env
   log:

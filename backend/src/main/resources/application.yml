@@ -4,6 +4,9 @@
 
 muyuy:
   data-dir: ../data                   # JSON de data/ (relativo a backend/)
+  limites:
+    dispositivos-por-hora: 30         # registros por IP (anti-bots)
+    observaciones-por-dia: 50         # por dispositivo
 
 quarkus:
   datasource:                         # PostgreSQL (dev: Laragon local)
@@ -20,6 +23,7 @@ quarkus:
     property-naming-strategy: SNAKE_CASE   # contrato JSON: prob_helada, t_min...
   http:
     port: 8080
+    enable-compression: true            # gzip: el paquete baja ~5 KB
     cors:
       enabled: true
       origins: ${CORS_ORIGINS:/.*/}       # dev: todo permitido
@@ -28,6 +32,8 @@ quarkus:
   rest-client:
     groq:
       url: https://api.groq.com/openai
+      connect-timeout: 5000
+      read-timeout: 30000
   log:
     category:
       "pe.muyuy":
@@ -37,9 +43,17 @@ mp:
   openapi:
     extensions:
       smallrye:
+        property-naming-strategy: com.fasterxml.jackson.databind.PropertyNamingStrategies$SnakeCaseStrategy   # docs = JSON real
         info:
           title: Muyuy API
           version: 0.1.0
+          description: >-
+            Backend of Muyuy (NASA Space Apps 2026, "Field Shift"). Turns NASA climate data into sealed,
+            offline-first regional packages with crop-rotation options for smallholder farmers in Huánuco, Peru,
+            and collects field observations back when there is signal. Field names are Spanish (frozen contract);
+            every field is documented in English.
 
 groq:
-  api-key: ${GROQ_API_KEY:}
+  enabled: true                         # sin clave no se llama a Groq: se usa la plantilla
+  clave: ${GROQ_API_KEY:}               # nombre distinto a la env var: así .env no pisa el perfil test
+  model: llama-3.3-70b-versatile

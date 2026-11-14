@@ -51,7 +51,8 @@ CREATE TABLE paquetes (
     version       INT         NOT NULL,
     hash          TEXT        NOT NULL,
     generado      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    ruta_archivo  TEXT
+    ruta_archivo  TEXT,
+    contenido     TEXT                                   -- paquete sellado (JSON) tal como se sirve
 );
 
 CREATE TABLE descargas (

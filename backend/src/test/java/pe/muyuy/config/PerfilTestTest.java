@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PerfilTestTest {
 
     @ConfigProperty(name = "muyuy.data-dir") String dataDir;
-    @ConfigProperty(name = "groq.api-key") String groqKey;
+    @ConfigProperty(name = "groq.clave") String groqKey;
     @ConfigProperty(name = "quarkus.jackson.property-naming-strategy") String naming;
 
     @Test

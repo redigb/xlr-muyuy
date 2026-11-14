@@ -7,7 +7,7 @@ Regla: una pieza se marca ✅ solo cuando sus pruebas pasan con `mvnw verify`.
 
 ## Cómo trabajamos cada pieza (spec-kit liviano)
 
-Reglas en [`.specify/memory/constitution.md`](../.specify/memory/constitution.md). Por cada pieza del tablero:
+Reglas en `.specify/memory/constitution.md` (herramienta local, no va al repo). Por cada pieza del tablero:
 
 ```
 /speckit-specify <qué y para qué>   → specs/NNN-nombre/spec.md
@@ -30,15 +30,15 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 | 2 | Calendarios NASA corregidos por altitud (4 zonas) | 🟡 inventados | llegan de Datos ~14:00 · `anios >= 30` |
 | 3 | `cultivos_andinos.json` (ECOCROP, con `ktmp` y `fuente`) + `reglas.json` | 🟡 borrador v1 | cargan y son válidos |
 | 4 | Motor v2: **todas las candidatas** + `esApto` | ✅ | `MotorFlujoTest`, `MotorReglasTest` · spec `specs/001-motor-candidatas` |
-| 5 | Paquete: `meta` (versión, hash SHA-256, vigencias) + `nucleo` | ⬜ | mismo contenido = mismo hash · `version++` solo si cambia el hash |
-| 6 | `GET /api/paquete/{zona}` y `/version` · `/api/zonas` · `/api/salud` | ⬜ | `@QuarkusTest` |
-| 7 | Explicador: Groq con caché por hash + plantilla de respaldo | 🟡 plantilla lista | nunca 500 si Groq falla |
+| 5 | Paquete: `meta` (versión, hash SHA-256, vigencias) + `nucleo` | ✅ | `PaqueteApiTest`, `SelloTest` · spec `specs/002-paquete-api` |
+| 6 | `GET /api/paquete/{zona}` y `/version` · `/api/zonas` · `/api/salud` | ✅ | `PaqueteApiTest` (flujo HTTP) |
+| 7 | Explicador: Groq (1 llamada por zona) + reutilización + plantilla de respaldo | ✅ falta probar con la clave real | `ExplicadorGroqTest` (Groq falso) · spec `specs/003-explicador-groq` |
 | 8 | Deploy en Oracle (`api.147-224-236-134.sslip.io`) | 🟡 falta la VM / secrets | `/q/health/ready` en UP por HTTPS |
 
 ### 🟡 P1: después del hito
 | # | Pieza | Estado |
 |---|---|---|
-| 9 | PostgreSQL + `/api/dispositivos` + `/api/sync` (idempotente) + puntaje automático | 🟡 esquema V1 + Flyway listos (`BaseDatosTest`) |
+| 9 | PostgreSQL + `/api/dispositivos` + `/api/sync` (idempotente) + puntaje automático + alertas en el paquete | ✅ `SyncApiTest`, `PuntajeYLimiteTest` · spec `specs/004-comunidad-sync` |
 | 10 | `pipeline-api` (FastAPI) + `/api/paquete/coordenada` + catálogo global + inicio de siembra calculado | ⬜ |
 | 11 | Evaluación de aptitud contra MIDAGRI (métrica 2) | ⬜ |
 
@@ -65,6 +65,11 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | Jurado en inglés: README + Swagger (cada campo, snake_case = JSON real) + errores API; `groq.clave` para que `.env` no pise el perfil test, 40 pruebas | `docs: README y OpenAPI en ingles para el jurado` |
+| 14/11 | `.claude/` y `.specify/` fuera del repo + `backend/.env` local | `chore: ignorar herramientas locales y entorno local con backend/.env` |
+| 14/11 | Dispositivos anónimos + `/api/sync` + puntaje NASA y consenso + alertas en el paquete, 38 pruebas | `feat(api): dispositivos, sync y validacion automatica de observaciones (spec 004)` |
+| 14/11 | Explicador Groq en lote con respaldo de plantilla | `feat(ai): explicador groq en lote con plantilla de respaldo (spec 003)` |
+| 14/11 | Paquete sellado (hash + versión en PostgreSQL) + API de paquetes, 25 pruebas | `feat(api): paquete sellado con hash y version + endpoints de paquetes (spec 002)` |
 | 14/11 | PostgreSQL + Flyway (esquema V1 §12), CI con Postgres, 17 pruebas | `feat(db): postgresql con flyway y esquema inicial` |
 | 14/11 | Motor v2 (MotorReal): candidatas + esApto, 15 pruebas en verde | `feat(core): motor v2 con rotaciones candidatas y esApto` |
 | 14/11 | spec-kit 1.2.0 liviano (Claude) + constitución del proyecto | `chore(specs): spec-kit liviano y constitucion del proyecto` |

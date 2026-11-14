@@ -1,6 +1,8 @@
 # Perfil TEST (mvnw test / mvnw verify). Usa los JSON reales de data/ para validarlos.
 muyuy:
   data-dir: ../data
+  limites:
+    dispositivos-por-hora: 100000     # las pruebas registran muchos dispositivos desde la misma IP
 
 quarkus:
   datasource:
@@ -17,4 +19,5 @@ quarkus:
         level: INFO
 
 groq:
-  api-key: test-sin-clave                 # nunca llama a Groq real en pruebas
+  enabled: false                        # las pruebas nunca llaman a Groq real
+  clave: test-sin-clave                   # nunca llama a Groq real en pruebas
