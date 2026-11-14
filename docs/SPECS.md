@@ -33,7 +33,7 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 | 5 | Paquete: `meta` (versión, hash SHA-256, vigencias) + `nucleo` | ✅ | `PaqueteApiTest`, `SelloTest` · spec `specs/002-paquete-api` |
 | 6 | `GET /api/paquete/{zona}` y `/version` · `/api/zonas` · `/api/salud` | ✅ | `PaqueteApiTest` (flujo HTTP) |
 | 7 | Explicador: Groq (1 llamada por zona) + reutilización + plantilla de respaldo | ✅ falta probar con la clave real | `ExplicadorGroqTest` (Groq falso) · spec `specs/003-explicador-groq` |
-| 8 | Deploy en Oracle (`api.147-224-236-134.sslip.io`) | 🟡 falta la VM / secrets | `/q/health/ready` en UP por HTTPS |
+| 8 | Deploy en Oracle (`muyuy-bk.rdev7.net.pe`) | 🟡 falta la VM / secrets | `/q/health/ready` en UP por HTTPS |
 
 ### 🟡 P1: después del hito
 | # | Pieza | Estado |
@@ -65,6 +65,7 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | Deploy sin compilar en la VM: Actions arma la imagen (arm64+amd64) → GHCR → la VM hace pull | `ci(deploy): imagen armada en github actions y publicada en ghcr` |
 | 14/11 | Jurado en inglés: README + Swagger (cada campo, snake_case = JSON real) + errores API; `groq.clave` para que `.env` no pise el perfil test, 40 pruebas | `docs: README y OpenAPI en ingles para el jurado` |
 | 14/11 | `.claude/` y `.specify/` fuera del repo + `backend/.env` local | `chore: ignorar herramientas locales y entorno local con backend/.env` |
 | 14/11 | Dispositivos anónimos + `/api/sync` + puntaje NASA y consenso + alertas en el paquete, 38 pruebas | `feat(api): dispositivos, sync y validacion automatica de observaciones (spec 004)` |

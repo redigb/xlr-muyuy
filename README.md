@@ -73,15 +73,15 @@ flowchart LR
     P[💻 PC<br/>branch feat/...] -- push --> G[GitHub<br/>Pull Request]
     G -- CI: valid JSON + tests --> R{Green?}
     R -- no --> P
-    R -- yes, merge to main --> DP[Deploy<br/>GitHub Actions]
+    R -- yes, merge to main --> DP[GitHub Actions<br/>build image → GHCR]
     DP -- SSH --> VM[Oracle VM<br/>deploy.sh]
-    VM -- docker compose up --build --> OK[✅ API up<br/>checks /q/health/ready]
+    VM -- docker compose pull + up --> OK[✅ API up<br/>checks /q/health/ready]
 ```
 
 ### Architecture
 
 ```
-Flutter app / Landing ──HTTPS──► Caddy (automatic TLS, sslip.io) ──► Quarkus :8080 ──► PostgreSQL
+Flutter app / Landing ──HTTPS──► Caddy (automatic TLS, Let's Encrypt) ──► Quarkus :8080 ──► PostgreSQL
                                                                     ├─ api/   REST endpoints
                                                                     ├─ ai/    explanations (Groq)
                                                                     └─ core/  engine, packages, community ◄── data/*.json (NASA POWER)
@@ -127,11 +127,11 @@ PowerShell, prod: `$env:MUYUY_DATA_DIR="../data"; java -jar target/quarkus-app/q
 
 ## Deployment (GitHub Actions → Oracle Cloud)
 
-Every push to `main` runs `.github/workflows/deploy.yml`: tests → SSH to the VM → `deploy.sh` (`git reset` to `main` + `docker compose up -d --build`) → checks `https://$API_DOMAIN/q/health/ready`.
+Every push to `main` runs `.github/workflows/deploy.yml`: tests → GitHub builds the image (`backend/Dockerfile.ci`, arm64 + amd64) and pushes it to GHCR → SSH to the VM → `deploy.sh` (`git reset` to `main` + `docker compose pull` + `up --no-build`) → checks `https://$API_DOMAIN/q/health/ready`. The VM never compiles.
 
 ### One-time VM setup (Ubuntu 24.04 ARM, Oracle A1)
 ```bash
-sudo apt update && sudo apt install -y docker.io docker-compose-v2 git
+sudo apt update && sudo apt install -y docker.io docker-compose-v2 docker-buildx git
 sudo usermod -aG docker $USER            # log out and back in
 # Ports 80/443: open them in the Security List AND in iptables
 
@@ -158,7 +158,7 @@ ssh-keygen -t ed25519 -f muyuy_actions -N "" -C "github-actions"
 | Secret | `ORACLE_HOST` | VM public IP |
 | Secret | `ORACLE_USER` | `ubuntu` |
 | Secret | `ORACLE_SSH_KEY` | contents of `muyuy_actions` (private key) |
-| Variable | `API_DOMAIN` | `api.147-224-236-134.sslip.io` |
+| Variable | `API_DOMAIN` | `muyuy-bk.rdev7.net.pe` |
 
 Protect `main`: required PR + green `test` check.
 

@@ -15,7 +15,8 @@ services:
       retries: 10
 
   backend:
-    build: ./backend
+    image: ghcr.io/redigb/xlr-muyuy-backend:${IMAGE_TAG:-latest}   # la arma GitHub Actions
+    build: ./backend                                               # solo en local: docker compose up --build
     env_file: .env
     restart: unless-stopped
     depends_on:

@@ -1,0 +1,9 @@
+# Imagen que arma GitHub Actions: el jar ya viene compilado (target/quarkus-app),
+# aquí solo se copia. Sin pasos RUN -> se arma para arm64 y amd64 sin emulación.
+# Para compilar dentro de Docker en local, usa el Dockerfile normal.
+FROM eclipse-temurin:25-jre
+WORKDIR /app
+COPY target/quarkus-app/ ./
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseCompactObjectHeaders --enable-native-access=ALL-UNNAMED"
+EXPOSE 8080
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar quarkus-run.jar"]
