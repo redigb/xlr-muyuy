@@ -97,11 +97,12 @@ Flutter app / Landing ──HTTPS──► Caddy (automatic TLS, Let's Encrypt) 
 | `data/` | `calendario_*.json` (NASA), `cultivos.json`, `reglas.json`, `zonas.json` |
 | `scripts/` | data scripts (NASA POWER, placeholder calendars) |
 | `specs/` | feature specs (spec-kit, Spanish) |
+| `app/` | Flutter app (Android/web): downloads sealed packages, works offline, on-device soil photo hint (TFLite) |
 | `landing/` | public landing page (Astro + React + Three.js 3D terrain) |
 | root | `docker-compose.yml`, `Caddyfile`, `deploy.sh`, `.github/` |
 
 **Monorepo CI:** each part only builds when its folder changes. `backend/**` and `data/**` → tests + deploy to Oracle;
-`landing/**` → `landing-ci.yml` (build check only).
+`landing/**` → `landing-ci.yml` (build check only); `app/**` → `app-ci.yml` (`flutter analyze` + `flutter test`).
 
 **Stack:** Java **25** everywhere (pom `release 25`, CI and Docker on Temurin 25), Quarkus 3.40, PostgreSQL + Flyway, Docker + Caddy.
 
@@ -124,6 +125,9 @@ PowerShell, prod: `$env:MUYUY_DATA_DIR="../data"; java -jar target/quarkus-app/q
 - http://localhost:8080/ → hello
 - http://localhost:8080/q/health/ready → checks data files and database
 - http://localhost:8080/q/swagger-ui → **API contract**
+
+**App** (Flutter stable, Dart 3.14+, from `app/`): `flutter pub get` then `flutter run` (uses the live API by default;
+local backend: `flutter run --dart-define=MUYUY_API_URL=http://10.0.2.2:8080` on the Android emulator) · `flutter test`.
 
 **Landing** (Node 22+ and pnpm 10, from `landing/`): `pnpm install` then `pnpm dev` → http://localhost:4321 · `pnpm build` → `landing/dist/`.
 Supply-chain hardening in `landing/pnpm-workspace.yaml`: install scripts blocked, packages younger than 24 h refused,

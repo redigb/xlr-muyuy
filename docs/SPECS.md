@@ -65,6 +65,7 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | Monorepo: app Flutter en `app/` (sin builds ni `local.properties`; modelo TFLite solo en `assets/`) + `app-ci.yml` (analyze + test) | `feat(app): app flutter offline` |
 | 14/11 | Monorepo: landing (Astro, pnpm con scripts bloqueados + minimumReleaseAge) en `landing/`; workflows con filtro por carpeta (`landing-ci.yml` aparte, el deploy a Oracle solo si cambia backend/data/infra) | `chore: monorepo con landing y ci por carpeta` |
 | 14/11 | Evaluación de modelos Groq con prompt y paquetes reales (6 configuraciones) → `gpt-oss-120b` + `reasoning_effort: low`; 41 pruebas | `feat(ai): reasoning_effort low y evaluacion de modelos groq` |
 | 14/11 | Groq: llama-3.3-70b retirado (404) → `openai/gpt-oss-120b`, configurable con `GROQ_MODEL`; probado en local 30/30 rotaciones explicadas | `fix(ai): modelo groq gpt-oss-120b configurable con GROQ_MODEL` |
