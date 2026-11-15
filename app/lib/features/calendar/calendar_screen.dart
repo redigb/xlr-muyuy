@@ -10,6 +10,7 @@ import '../../widgets/gradient_button.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/soft_card.dart';
 import '../../widgets/status_widgets.dart';
+import 'calendar_landscape.dart';
 
 IconData _estadoIcon(MesEstado estado) {
   switch (estado) {
@@ -63,6 +64,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final paquete = state.paquete;
     final calendario = paquete?.calendario ?? const <CalendarioMes>[];
     final available = calendario.map((m) => m.mes).toSet();
+    final months = available.toList()..sort();
     final month = available.contains(_month)
         ? _month
         : (calendario.isEmpty ? 1 : calendario.first.mes);
@@ -92,7 +94,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (climate != null) ...[
+                  _CalendarScene(
+                    climate: climate,
+                    months: months,
+                    onSelected: (value) => setState(() => _month = value),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
                 const _Legend(),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  context.tr('cal.scene.year'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  context.tr('cal.scene.gridHint'),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: AppSpacing.md),
                 _MonthGrid(
                   calendario: calendario,
@@ -175,6 +195,178 @@ class _Legend extends StatelessWidget {
   }
 }
 
+class _CalendarScene extends StatelessWidget {
+  const _CalendarScene({
+    required this.climate,
+    required this.months,
+    required this.onSelected,
+  });
+
+  final CalendarioMes climate;
+  final List<int> months;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final month = monthName(context, climate.mes);
+    final state = context.tr('cal.state.${_estadoKey(climate.estado)}');
+    final color = _estadoInk(climate.estado);
+    final frost = '${(climate.probHelada * 100).round()}%';
+    final balance = climate.balanceHidricoMm.round();
+    final balanceValue = '${balance > 0 ? '+' : ''}$balance mm';
+    final theme = Theme.of(context).textTheme;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          border: Border.all(color: AppColors.line),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) => SizedBox(
+                height: (constraints.maxWidth * 0.68).clamp(245.0, 310.0),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CalendarLandscape(climate: climate),
+                    Positioned(
+                      top: 14,
+                      left: 12,
+                      right: 12,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          Pill(
+                            label: '$month · $state',
+                            icon: _estadoIcon(climate.estado),
+                            color: color,
+                            background: AppColors.white,
+                            compact: true,
+                          ),
+                          Tooltip(
+                            message: context.tr('cal.stat.frost'),
+                            child: Pill(
+                              label: frost,
+                              icon: Icons.ac_unit_rounded,
+                              color: color,
+                              background: AppColors.white,
+                              compact: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      left: 12,
+                      right: 12,
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _SceneMetric(
+                            icon: Icons.water_drop_outlined,
+                            label: context.tr('cal.stat.rain'),
+                            value: '${climate.lluviaMm.round()} mm',
+                          ),
+                          _SceneMetric(
+                            icon: Icons.thermostat_rounded,
+                            label: context.tr('cal.stat.et'),
+                            value: '${climate.etMm.round()} mm',
+                          ),
+                          _SceneMetric(
+                            icon: Icons.water_outlined,
+                            label: context.tr('cal.stat.balance'),
+                            value: balanceValue,
+                            dark: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (months.length > 1)
+              Slider(
+                value: months.indexOf(climate.mes).toDouble(),
+                max: (months.length - 1).toDouble(),
+                divisions: months.length - 1,
+                activeColor: AppColors.verdePrincipal,
+                inactiveColor: AppColors.buenoSoft,
+                label: month,
+                semanticFormatterCallback: (value) =>
+                    monthName(context, months[value.round()]),
+                onChanged: (value) => onSelected(months[value.round()]),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              child: Row(
+                children: [
+                  if (months.length > 1)
+                    Text(
+                      monthShortName(context, months.first),
+                      style: theme.labelSmall,
+                    ),
+                  Expanded(
+                    child: Text(
+                      context.tr(
+                        months.length > 1
+                            ? 'cal.scene.slider'
+                            : 'cal.scene.illustration',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: theme.labelSmall,
+                    ),
+                  ),
+                  if (months.length > 1)
+                    Text(
+                      monthShortName(context, months.last),
+                      style: theme.labelSmall,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SceneMetric extends StatelessWidget {
+  const _SceneMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.dark = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: label,
+    child: Pill(
+      label: value,
+      icon: icon,
+      color: dark ? AppColors.white : AppColors.ink,
+      background: dark ? AppColors.verdePrincipal : const Color(0xF5F4FAEE),
+      compact: true,
+    ),
+  );
+}
+
 class _MonthGrid extends StatelessWidget {
   const _MonthGrid({
     required this.calendario,
@@ -248,17 +440,25 @@ class _MonthCell extends StatelessWidget {
             constraints: const BoxConstraints(minHeight: 72),
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: selected ? 0.3 : 0.16),
+              color: selected
+                  ? AppColors.verdePrincipal
+                  : AppColors.estadoSoft(mes.estado),
               borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(
-                color: selected ? AppColors.ink : color.withValues(alpha: 0.5),
-                width: selected ? 2.5 : 1,
+                color: selected
+                    ? AppColors.verdePrincipal
+                    : color.withValues(alpha: 0.22),
+                width: 1,
               ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(_estadoIcon(mes.estado), size: 20, color: ink),
+                Icon(
+                  _estadoIcon(mes.estado),
+                  size: 18,
+                  color: selected ? AppColors.white : ink,
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   monthShortName(context, mes.mes),
@@ -267,7 +467,7 @@ class _MonthCell extends StatelessWidget {
                     fontFamily: AppFonts.display,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: AppColors.ink,
+                    color: selected ? AppColors.white : AppColors.ink,
                   ),
                 ),
                 Text(
@@ -276,7 +476,7 @@ class _MonthCell extends StatelessWidget {
                     fontFamily: AppFonts.body,
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
-                    color: ink,
+                    color: selected ? const Color(0xFFDBEFDF) : ink,
                   ),
                 ),
               ],

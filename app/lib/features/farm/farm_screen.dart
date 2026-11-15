@@ -14,6 +14,7 @@ import '../../widgets/page_layout.dart';
 import '../../widgets/soft_card.dart';
 import '../../widgets/status_widgets.dart';
 import '../soil/soil_vision_screen.dart';
+import 'farm_parcel_view.dart';
 
 const _priorityFactors = ['riesgo', 'ingresos', 'suelo', 'agua'];
 
@@ -37,6 +38,8 @@ class FarmScreen extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.base),
         const ZoneWarning(),
+        const FarmParcelView(),
+        const SizedBox(height: AppSpacing.base),
         if (paquete == null || zona == null)
           EmptyCard(
             icon: Icons.agriculture_rounded,

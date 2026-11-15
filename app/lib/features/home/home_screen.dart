@@ -12,6 +12,7 @@ import '../../widgets/gradient_button.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/soft_card.dart';
 import '../../widgets/status_widgets.dart';
+import '../agrovision/agrovision_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onNavigate});
@@ -59,6 +60,14 @@ class HomeScreen extends StatelessWidget {
           state: state,
           onNavigate: onNavigate,
           onChooseZone: () => _openZoneSheet(context),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        GradientButton(
+          label: context.tr('home.agrovision'),
+          icon: Icons.eco_outlined,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const AgroVisionScreen()),
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         _LocationButton(state: state),
@@ -166,7 +175,6 @@ class _Message extends StatelessWidget {
   }
 }
 
-/// Tarjeta dominante: zona activa, "listo sin señal" y un solo botón.
 class _HeroPanel extends StatelessWidget {
   const _HeroPanel({
     required this.state,
@@ -182,56 +190,162 @@ class _HeroPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final zona = state.zona;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: AppColors.gradientHero,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.soft,
-      ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ZoneSelector(zona: zona, onTap: onChooseZone),
-          if (state.hasPackage) ...[
-            const SizedBox(height: AppSpacing.base),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: AppShadows.lifted,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            child: Stack(
               children: [
-                const Icon(
-                  Icons.offline_bolt_rounded,
-                  size: 20,
-                  color: AppColors.acentoNatural,
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(gradient: AppColors.gradientHero),
+                    child: CustomPaint(painter: _HeroContours()),
+                  ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    context.tr('home.pkg.saved'),
-                    style: TextStyle(
-                      fontFamily: AppFonts.body,
-                      fontSize: 15,
-                      height: 1.4,
-                      color: AppColors.white.withValues(alpha: 0.92),
+                const Positioned(
+                  right: -30,
+                  bottom: -26,
+                  child: ExcludeSemantics(
+                    child: Opacity(
+                      opacity: 0.12,
+                      child: BrandLogo(
+                        height: 200,
+                        white: true,
+                        markOnly: true,
+                      ),
                     ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const BrandLogo(height: 24, white: true),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0x24FFFFFF),
+                              borderRadius: BorderRadius.circular(99),
+                              border: Border.all(
+                                color: const Color(0x22FFFFFF),
+                              ),
+                            ),
+                            child: const Text(
+                              'NASA POWER',
+                              style: TextStyle(
+                                fontFamily: AppFonts.body,
+                                color: AppColors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.65,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 22),
+                      Text(
+                        context.tr('home.heroTitle'),
+                        style: const TextStyle(
+                          fontFamily: AppFonts.display,
+                          color: AppColors.white,
+                          fontSize: 34,
+                          height: 1.08,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.9,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        context.tr('home.heroBody'),
+                        style: const TextStyle(
+                          fontFamily: AppFonts.body,
+                          color: Color(0xFFD5E6DA),
+                          fontSize: 14,
+                          height: 1.43,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _ZoneSelector(zona: zona, onTap: onChooseZone),
+                      const SizedBox(height: 14),
+                      GradientButton(
+                        label: context.tr(
+                          zona == null ? 'home.chooseZone' : 'home.seeFarm',
+                        ),
+                        icon: zona == null
+                            ? Icons.travel_explore_rounded
+                            : Icons.arrow_forward_rounded,
+                        onPressed: zona == null
+                            ? onChooseZone
+                            : () => onNavigate(1),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ],
-          const SizedBox(height: AppSpacing.lg),
-          GradientButton(
-            label: context.tr(
-              zona == null ? 'home.chooseZone' : 'home.seeFarm',
-            ),
-            icon: zona == null
-                ? Icons.travel_explore_rounded
-                : Icons.arrow_forward_rounded,
-            onPressed: zona == null ? onChooseZone : () => onNavigate(1),
+          ),
+        ),
+        if (state.hasPackage) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            context.tr('home.pkg.saved'),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
-      ),
+      ],
     );
   }
+}
+
+class _HeroContours extends CustomPainter {
+  const _HeroContours();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x16D9F4D9)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    final width = size.width;
+    final height = size.height;
+    for (final fraction in [0.19, 0.30, 0.43, 0.61, 0.74]) {
+      final y = height * fraction;
+      final line = Path()
+        ..moveTo(0, y + 13)
+        ..cubicTo(
+          width * 0.33,
+          y + 25,
+          width * 0.44,
+          y - 42,
+          width * 0.81,
+          y - 8,
+        )
+        ..quadraticBezierTo(width * 0.94, y + 8, width, y + 7);
+      canvas.drawPath(line, paint);
+    }
+    final center = Offset(width * 0.9, height * 0.17);
+    canvas.drawCircle(center, width * 0.26, paint);
+    canvas.drawCircle(center, width * 0.34, paint);
+  }
+
+  @override
+  bool shouldRepaint(_HeroContours oldDelegate) => false;
 }
 
 class _ZoneSelector extends StatelessWidget {
@@ -248,7 +362,7 @@ class _ZoneSelector extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 56),
+          constraints: const BoxConstraints(minHeight: 62),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: AppColors.white.withValues(alpha: 0.12),
@@ -257,10 +371,18 @@ class _ZoneSelector extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.location_on_rounded,
-                size: 22,
-                color: AppColors.white,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0x26FFFFFF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  size: 18,
+                  color: AppColors.white,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -274,7 +396,8 @@ class _ZoneSelector extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: AppFonts.body,
                         fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                        fontSize: 10,
+                        letterSpacing: 0.55,
                         color: AppColors.white.withValues(alpha: 0.8),
                       ),
                     ),
@@ -286,8 +409,8 @@ class _ZoneSelector extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: AppFonts.display,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
                         color: AppColors.white,
                       ),
                     ),

@@ -48,6 +48,19 @@ String tr(AppLang lang, String key, [Map<String, Object?> args = const {}]) {
 
 /// Claves usadas por la lógica (AppState / servicios). La UI agrega las suyas.
 const Map<String, String> _es = {
+  'cal.scene.play': 'Activar movimiento',
+  'cal.scene.pause': 'Pausar movimiento',
+  'cal.scene.year': 'Tu año en un vistazo',
+  'cal.scene.gridHint': 'Toca un mes para ver helada, lluvia y balance hídrico.',
+  'cal.scene.slider': 'Desliza para recorrer el año',
+  'cal.scene.illustration': 'Paisaje ilustrativo',
+  'farm.parcel.title': 'Parcela 3D',
+  'farm.parcel.hint': 'Vista ilustrativa. Arrastra para girar y elige un sector para resaltarlo.',
+  'farm.parcel.sector': 'Sector {n}',
+  'farm.parcel.zoomIn': 'Acercar',
+  'farm.parcel.zoomOut': 'Alejar',
+  'farm.parcel.reset': 'Restablecer vista',
+  'home.agrovision': 'AgroVision · Analizar hoja',
   // Origen del paquete
   'origin.api': 'Actualizado desde la API',
   'origin.cache': 'Guardado en el celular',
@@ -190,7 +203,7 @@ const Map<String, String> _es = {
 
   // ---- Inicio
   'home.heroTitle': 'Del dato satelital\na tu chacra.',
-  'home.heroBody': 'Calendario, rotaciones y consejos simples. Funciona aunque no haya señal.',
+  'home.heroBody': 'Calendario, rotaciones y explicaciones simples para decidir mejor. Diseñado para funcionar aunque no haya señal.',
   'home.zoneActive': 'Zona activa',
   'home.zoneNone': 'Mi zona',
   'home.chooseZone': 'Elegir mi zona',
@@ -446,6 +459,19 @@ const Map<String, String> _es = {
 };
 
 const Map<String, String> _en = {
+  'cal.scene.play': 'Play animation',
+  'cal.scene.pause': 'Pause animation',
+  'cal.scene.year': 'Your year at a glance',
+  'cal.scene.gridHint': 'Tap a month to see frost risk, rainfall and water balance.',
+  'cal.scene.slider': 'Slide to explore the year',
+  'cal.scene.illustration': 'Illustrative landscape',
+  'farm.parcel.title': '3D plot',
+  'farm.parcel.hint': 'Illustrative view. Drag to rotate and choose a sector to highlight it.',
+  'farm.parcel.sector': 'Sector {n}',
+  'farm.parcel.zoomIn': 'Zoom in',
+  'farm.parcel.zoomOut': 'Zoom out',
+  'farm.parcel.reset': 'Reset view',
+  'home.agrovision': 'AgroVision · Scan a leaf',
   'origin.api': 'Updated from the API',
   'origin.cache': 'Saved on this phone',
   'origin.asset': 'Bundled package',

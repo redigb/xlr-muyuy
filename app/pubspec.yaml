@@ -79,6 +79,7 @@ flutter:
     - assets/images/
     - assets/data/
     - assets/models/
+    - model/agrovision_rgb.tflite
     - assets/fonts/OFL-Poppins.txt
     - assets/fonts/OFL-Inter.txt
 
