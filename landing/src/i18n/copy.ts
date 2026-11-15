@@ -318,6 +318,7 @@ const COPY: Record<string, Row> = {
   "Yellow mottling on the branch": ["Moteado amarillo en la rama", "", ""],
   "Soil photo for SoilVision": ["Foto de suelo para SoilVision", "", ""],
   "Leaf photo for AgroVision": ["Foto de hoja para AgroVision", "", ""],
+  "Direct download": ["Descarga directa", "", ""],
   "Team lead": ["Líder", "", ""],
   "Co-lead": ["Colíder", "", ""],
   "Crops in the global catalog": ["Cultivos en el catálogo global", "", ""],

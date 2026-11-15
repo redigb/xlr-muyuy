@@ -1145,7 +1145,7 @@ function PhotoCard({ x, z, src, label, caption, hidden = true }) {
       <Html position={[0, .42, 0]} center distanceFactor={3.2} zIndexRange={[18, 0]}
         style={{ pointerEvents: 'none', opacity: hidden ? 0 : 1, transform: hidden ? 'translateY(14px) scale(.94)' : 'none', transition: 'opacity .45s, transform .6s cubic-bezier(.32,.72,0,1)' }}>
         <figure style={{ margin: 0, width: 150, padding: 6, background: '#09090be6', border: '1px solid #ffffff26', borderRadius: 12, boxShadow: '0 14px 34px #000a', backdropFilter: 'blur(10px)' }}>
-          <img src={src} alt="" width="138" height="184" loading="lazy" decoding="async"
+          <img src={src} alt="" width="138" height="184" decoding="async"
             style={{ display: 'block', width: 138, height: 184, objectFit: 'cover', borderRadius: 8 }} />
           <figcaption style={{ padding: '7px 3px 2px', font: '10px/1.35 ui-monospace, monospace', color: '#f1f6e9' }}>
             <span style={{ display: 'block', color: '#a9e08c', fontSize: 8.5, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 2 }}>{label}</span>

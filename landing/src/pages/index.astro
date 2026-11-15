@@ -9,8 +9,11 @@ import paquetes from '../data/paquetes.json';
 const release = {
   videoUrl: import.meta.env.PUBLIC_MUYUY_VIDEO_EMBED_URL ?? '',
   fieldVideoUrl: import.meta.env.PUBLIC_MUYUY_FIELD_VIDEO_EMBED_URL ?? '',
-  apkUrl: import.meta.env.PUBLIC_MUYUY_APK_URL ?? '',
-  apkSha256: import.meta.env.PUBLIC_MUYUY_APK_SHA256 ?? 'PENDING_BUILD_HASH_2026...',
+  // ?v= evita la copia vieja en la caché de Cloudflare: el hash debe ser el del
+  // archivo que se descarga. Al subir otro APK, cambia v y el SHA-256.
+  apkUrl: import.meta.env.PUBLIC_MUYUY_APK_URL || 'https://muyuy-apk.rdev7.net.pe/muyuy.apk?v=2026-11-15',
+  apkSha256: import.meta.env.PUBLIC_MUYUY_APK_SHA256 || 'd504ba1546cd9bac8f0976a51d68e8220a61fad6b446534d8e7a419a77421410',
+  apkSize: '45 MB',
   githubUrl: import.meta.env.PUBLIC_MUYUY_GITHUB_URL || 'https://github.com/redigb/xlr-muyuy',
 };
 
@@ -137,6 +140,7 @@ const base = import.meta.env.BASE_URL;
     fieldVideoEmbedUrl={videoEmbedUrl(release.fieldVideoUrl)}
     apkUrl={release.apkUrl}
     apkSha256={release.apkSha256}
+    apkSize={release.apkSize}
     githubUrl={release.githubUrl}
   >
   </LandingUI>

@@ -189,6 +189,7 @@ export default function LandingUI({
   elevation: fallbackElevation = 3200,
   apkUrl,
   apkSha256 = PENDING_HASH,
+  apkSize,
   videoEmbedUrl,
   fieldVideoEmbedUrl,
   githubUrl,
@@ -773,7 +774,8 @@ export default function LandingUI({
           <Reveal className={glass + ' muyuy-download'}>
             <div><p className="muyuy-eyebrow">{t('Download the mobile app')}</p><h2 id="download-title" className="tracking-tighter">{t('The next season.')}<br /><em>{t('In your pocket.')}</em></h2><p>{t('Take the Muyuy prototype into the field.')}</p></div>
             <div className="muyuy-download-actions">
-              {downloadReady ? <a className="muyuy-button primary active:scale-[0.98]" href={apk} download><Download size={18} aria-hidden="true" /> {t('Download Muyuy APK (v1.0)')}</a>
+              {downloadReady ? <><a className="muyuy-button primary active:scale-[0.98]" href={apk} download><Download size={18} aria-hidden="true" /> {t('Download Muyuy APK (v1.0)')}</a>
+                <p className="muyuy-small muyuy-apk-meta">Android · muyuy.apk{apkSize ? ' · ' + apkSize : ''} · {t('Direct download')}</p></>
                 : <><button type="button" disabled className="muyuy-button primary"><Download size={18} aria-hidden="true" /> {t('Download Muyuy APK (v1.0)')}</button><p className="muyuy-small">{t('The signed APK and verified checksum are pending.')}</p></>}
               <div className="muyuy-checksum"><span className="muyuy-eyebrow">{t('SHA-256 CHECKSUM')}</span><code className={mono}>{checksum || PENDING_HASH}</code>
                 <button type="button" className="muyuy-button active:scale-[0.98]" onClick={() => copyText(checksum || PENDING_HASH, 'SHA-256 checksum copied to clipboard')}><Copy size={14} aria-hidden="true" /> {t('Copy checksum')}</button>
@@ -791,7 +793,7 @@ export default function LandingUI({
                       <h3>{t('Install on Android')}</h3>
                       <ol>
                         <li>{t("Download the signed APK from this project's release link when it becomes available.")}</li>
-                        <li>{t("Calculate the downloaded file's SHA-256 and compare all 64 characters with the published checksum. On Windows, use")} <code>Get-FileHash .\Muyuy.apk -Algorithm SHA256</code>. {t('On macOS, use')} <code>shasum -a 256 Muyuy.apk</code>.</li>
+                        <li>{t("Calculate the downloaded file's SHA-256 and compare all 64 characters with the published checksum. On Windows, use")} <code>Get-FileHash .\muyuy.apk -Algorithm SHA256</code>. {t('On macOS, use')} <code>shasum -a 256 muyuy.apk</code>.</li>
                         <li>{t('On Android, open the APK. If prompted, allow “Install unknown apps” for the browser or file manager used to open it.')}</li>
                         <li>{t('Complete installation, then turn that permission off again. Open Muyuy and obtain a regional package before testing offline access.')}</li>
                       </ol>
@@ -1080,6 +1082,7 @@ const STYLES = `
   .muyuy-field-content blockquote { margin: 0; } .muyuy-field-content cite { display: block; margin-top: 16px; font-size: 12px; color: #b3b8aa; }
   .muyuy-download { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 45px; align-items: start; }
   .muyuy-download-actions { min-width: 0; } .muyuy-download-actions > .muyuy-button { width: 100%; }
+  .muyuy-apk-meta { margin-top: 10px !important; }
   .muyuy-checksum { margin-top: 25px; padding: 17px; border: 1px solid #ffffff1a; border-radius: 10px; }
   .muyuy-checksum code { display: block; overflow-wrap: anywhere; user-select: all; font-size: 12px; margin: 9px 0 16px; }
   .muyuy-checksum .muyuy-small { margin-top: 10px; }

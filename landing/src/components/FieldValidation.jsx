@@ -171,6 +171,7 @@ const css = `
   .muyuy-media-grid a:hover img, .muyuy-media-grid a:focus-visible img { transform: scale(1.04); }
   .muyuy-media-grid a:focus-visible { outline: 2px solid #d9facb; outline-offset: 2px; }
   .muyuy-media-note { margin-top: 10px !important; }
+  .muyuy-media-note + .muyuy-testimonial-title { margin-top: 26px !important; }
   @media (prefers-reduced-motion: reduce) { .muyuy-media-grid img { transition: none; } }
   .muyuy-media-grid figcaption { margin-top: 6px; font-size: 10.5px; color: #868d80; }
   .muyuy-testimonials { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; }
