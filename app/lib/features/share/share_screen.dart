@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -10,13 +9,13 @@ import '../../models/models.dart';
 import '../../services/share_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
-import '../../theme/app_typography.dart';
+import '../../theme/app_spacing.dart';
 import '../../utils/formatters.dart';
 import '../../utils/package_hash.dart';
-import '../../widgets/brand_logo.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/soft_card.dart';
+import '../../widgets/status_widgets.dart';
 
 class ShareScreen extends StatefulWidget {
   const ShareScreen({super.key, required this.onNavigate});
@@ -39,68 +38,85 @@ class _ShareScreenState extends State<ShareScreen> {
     return PageBody(
       children: [
         PageTopBar(
-          title: 'Compartir',
-          subtitle: 'Lleva el paquete a otro celular',
-          trailing: Pill(
-            label: state.origin?.shortLabel ?? 'Local',
-            icon: Icons.offline_pin_rounded,
-            color: AppColors.verdePrincipal,
-            background: AppColors.buenoSoft,
-            compact: true,
-          ),
+          title: context.tr('share.title'),
+          subtitle: context.tr('share.subtitle'),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: AppSpacing.base),
         if (paquete == null)
-          _ShareEmpty(onNavigate: widget.onNavigate)
+          EmptyCard(
+            icon: Icons.share_rounded,
+            color: const Color(0xFF075985),
+            titleKey: 'share.empty.t',
+            bodyKey: 'share.empty.s',
+            onAction: () => widget.onNavigate(0),
+          )
         else ...[
-          _PackageSummary(
-            state: state,
-            size: _packageSize(paquete.toJson()),
-          ).animate().fadeIn(duration: 380.ms).slideY(begin: 0.04),
-          const SizedBox(height: 16),
-          _QrCard(
-            data: state.sharing.qrPayload(paquete),
-            zona: prettyZoneName(paquete.zona.nombre),
-            version:
-                '${paquete.versionLabel} · ${formatVersion(paquete.version)}',
-          ).animate().fadeIn(duration: 420.ms, delay: 60.ms).slideY(begin: 0.04),
-          const SizedBox(height: 16),
           _FileActions(
+            zona: prettyZoneName(paquete.zona.nombre),
+            detail:
+                '${packageVersionLabel(context, paquete)} · '
+                '${formatVersion(paquete.version)} · '
+                '${formatKb(utf8.encode(jsonEncode(paquete.toJson())).length / 1024)}',
             sharing: _sharing,
             importing: _importing,
             onShare: () => _share(context, state),
             onImport: () => _import(context, state),
           ),
-          const SizedBox(height: 16),
-          const _OfflineNote(),
-          const SizedBox(height: 16),
-          _StorageCard(state: state, onRefresh: () => _refresh(context, state)),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.base),
+          SoftCard(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.base,
+              vertical: AppSpacing.xs,
+            ),
+            child: DetailsSection(
+              title: context.tr('share.qr.t'),
+              subtitle: context.tr('share.qr.s'),
+              children: [
+                _QrBlock(
+                  data: state.qrPayload(),
+                  zona: prettyZoneName(paquete.zona.nombre),
+                  version:
+                      '${packageVersionLabel(context, paquete)} · '
+                      '${formatVersion(paquete.version)}',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SoftCard(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.base,
+              vertical: AppSpacing.xs,
+            ),
+            child: DetailsSection(
+              children: [
+                _StorageDetails(
+                  state: state,
+                  onRefresh: () => _refresh(context, state),
+                ),
+              ],
+            ),
+          ),
         ],
       ],
     );
   }
 
-  int _packageSize(Map<String, dynamic> json) {
-    return utf8.encode(jsonEncode(json)).length;
-  }
-
   Future<void> _share(BuildContext context, AppState state) async {
-    final paquete = state.paquete;
-    if (paquete == null || _sharing) return;
+    if (state.paquete == null || _sharing) return;
     setState(() => _sharing = true);
     try {
-      final outcome = await state.sharing.sharePackage(paquete);
+      final outcome = await state.sharePackage();
       if (!context.mounted) return;
       _showSnack(
         context,
-        outcome == ShareOutcome.shared
-            ? 'Paquete listo para enviar por Quick Share o Bluetooth.'
-            : 'Paquete copiado. Pégalo en un mensaje o archivo.',
+        context.tr(
+          outcome == ShareOutcome.shared ? 'share.shared' : 'share.copied',
+        ),
       );
     } catch (_) {
       if (!context.mounted) return;
-      _showSnack(context, 'No se pudo compartir el paquete. Intenta de nuevo.');
+      _showSnack(context, context.tr('share.shareFail'));
     } finally {
       if (mounted) setState(() => _sharing = false);
     }
@@ -113,7 +129,7 @@ class _ShareScreenState extends State<ShareScreen> {
       final file = await openFile(
         acceptedTypeGroups: [
           XTypeGroup(
-            label: 'Paquetes MUYUY',
+            label: context.tr('share.import.type'),
             extensions: const ['json'],
             mimeTypes: const ['application/json'],
           ),
@@ -123,23 +139,25 @@ class _ShareScreenState extends State<ShareScreen> {
 
       if ((await file.length()) > 512 * 1024) {
         if (!context.mounted) return;
-        _showSnack(context, 'El archivo es demasiado grande para un paquete.');
+        _showSnack(context, context.tr('common.fileTooBig'));
         return;
       }
 
-      final bytes = await file.readAsBytes();
-      final raw = utf8.decode(bytes);
+      final raw = utf8.decode(await file.readAsBytes());
       final ok = await state.importPackage(raw);
       if (!context.mounted) return;
+      // El estado ya deja el mensaje traducido (ok, versión más nueva, error).
       _showSnack(
         context,
         ok
-            ? 'Paquete importado. Ya está disponible sin señal.'
-            : (state.lastError ?? 'No se pudo leer el archivo.'),
+            ? (state.notice ?? context.tr('share.importOk'))
+            : (state.lastError ??
+                  state.notice ??
+                  context.tr('share.importFail')),
       );
     } catch (_) {
       if (!context.mounted) return;
-      _showSnack(context, 'No se pudo leer el archivo seleccionado.');
+      _showSnack(context, context.tr('share.readFail'));
     } finally {
       if (mounted) setState(() => _importing = false);
     }
@@ -151,8 +169,8 @@ class _ShareScreenState extends State<ShareScreen> {
     _showSnack(
       context,
       ok
-          ? 'Paquete actualizado. Ya funciona sin señal.'
-          : (state.lastError ?? 'No se pudo actualizar el paquete.'),
+          ? (state.notice ?? context.tr('share.refreshOk'))
+          : (state.lastError ?? context.tr('share.refreshFail')),
     );
   }
 
@@ -163,60 +181,8 @@ class _ShareScreenState extends State<ShareScreen> {
   }
 }
 
-class _PackageSummary extends StatelessWidget {
-  const _PackageSummary({required this.state, required this.size});
-
-  final AppState state;
-  final int size;
-
-  @override
-  Widget build(BuildContext context) {
-    final paquete = state.paquete!;
-
-    return SoftCard(
-      padding: const EdgeInsets.all(16),
-      gradient: AppColors.gradientSoft,
-      child: Row(
-        children: [
-          const BrandLogo(markOnly: true, height: 44),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  prettyZoneName(paquete.zona.nombre),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${paquete.versionLabel} · '
-                  '${formatVersion(paquete.version)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatKb(size / 1024),
-                style: AppTypography.dataValue.copyWith(fontSize: 16),
-              ),
-              Text('peso', style: AppTypography.dataLabel),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QrCard extends StatelessWidget {
-  const _QrCard({
+class _QrBlock extends StatelessWidget {
+  const _QrBlock({
     required this.data,
     required this.zona,
     required this.version,
@@ -228,192 +194,79 @@ class _QrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SoftCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.fondoSuave,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.line),
-                ),
-                child: const Icon(
-                  Icons.qr_code_2_rounded,
+    return Column(
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final side = (constraints.maxWidth - 36)
+                .clamp(160.0, 240.0)
+                .toDouble();
+            return Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.line),
+              ),
+              child: QrImageView(
+                data: data,
+                version: QrVersions.auto,
+                size: side,
+                padding: EdgeInsets.zero,
+                backgroundColor: AppColors.white,
+                errorCorrectionLevel: QrErrorCorrectLevel.H,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
                   color: AppColors.verdePrincipal,
-                  size: 20,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: AppColors.verdePrincipal,
+                ),
+                embeddedImage: const AssetImage('assets/images/logo_mark.png'),
+                embeddedImageStyle: QrEmbeddedImageStyle(
+                  size: Size(side * 0.18, side * 0.18),
                 ),
               ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Identifica tu paquete',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      'El QR guarda la zona y la versión.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const Pill(
-                label: 'Pequeño y rápido',
-                icon: Icons.bolt_rounded,
-                color: AppColors.verdePrincipal,
-                background: AppColors.buenoSoft,
-                compact: true,
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Center(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final side = constraints.maxWidth
-                    .clamp(160.0, 248.0)
-                    .toDouble();
-                return _QrFrame(
-                  child: QrImageView(
-                    data: data,
-                    version: QrVersions.auto,
-                    size: side,
-                    padding: EdgeInsets.zero,
-                    backgroundColor: AppColors.white,
-                    errorCorrectionLevel: QrErrorCorrectLevel.H,
-                    eyeStyle: const QrEyeStyle(
-                      eyeShape: QrEyeShape.square,
-                      color: AppColors.verdePrincipal,
-                    ),
-                    dataModuleStyle: const QrDataModuleStyle(
-                      dataModuleShape: QrDataModuleShape.square,
-                      color: AppColors.verdePrincipal,
-                    ),
-                    embeddedImage: const AssetImage(
-                      'assets/images/logo_mark.png',
-                    ),
-                    embeddedImageStyle: QrEmbeddedImageStyle(
-                      size: Size(side * 0.18, side * 0.18),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            zona,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            version,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          const InfoBanner(
-            message:
-                'El QR no lleva el paquete completo. Para enviar todo, '
-                'comparte el archivo JSON de abajo.',
-            icon: Icons.info_outline_rounded,
-            color: AppColors.tecnologia,
-            background: AppColors.heladaSoft,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QrFrame extends StatelessWidget {
-  const _QrFrame({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.line),
-        boxShadow: AppShadows.soft,
-      ),
-      child: Stack(
-        children: [
-          child,
-          Positioned(
-            left: 0,
-            top: 0,
-            child: _Corner(color: AppColors.verdeSecundario, top: true),
-          ),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: _Corner(
-              color: AppColors.verdeSecundario,
-              top: true,
-              right: true,
-            ),
-          ),
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: _Corner(color: AppColors.verdeSecundario),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: _Corner(color: AppColors.verdeSecundario, right: true),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Corner extends StatelessWidget {
-  const _Corner({required this.color, this.top = false, this.right = false});
-
-  final Color color;
-  final bool top;
-  final bool right;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 16,
-      height: 16,
-      decoration: BoxDecoration(
-        border: Border(
-          top: top ? BorderSide(color: color, width: 2.5) : BorderSide.none,
-          bottom: !top ? BorderSide(color: color, width: 2.5) : BorderSide.none,
-          left: !right ? BorderSide(color: color, width: 2.5) : BorderSide.none,
-          right: right ? BorderSide(color: color, width: 2.5) : BorderSide.none,
+            );
+          },
         ),
-      ),
+        const SizedBox(height: AppSpacing.md),
+        Text(
+          zona,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        Text(
+          version,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        InfoBanner(
+          message: context.tr('share.qr.note'),
+          icon: Icons.info_outline_rounded,
+          color: const Color(0xFF075985),
+          background: AppColors.heladaSoft,
+        ),
+      ],
     );
   }
 }
 
+/// Acción dominante: pasar el paquete a otro celular.
 class _FileActions extends StatelessWidget {
   const _FileActions({
+    required this.zona,
+    required this.detail,
     required this.sharing,
     required this.importing,
     required this.onShare,
     required this.onImport,
   });
 
+  final String zona;
+  final String detail;
   final bool sharing;
   final bool importing;
   final VoidCallback onShare;
@@ -421,65 +274,40 @@ class _FileActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return SoftCard(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(AppSpacing.base),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.heladaSoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.ios_share_rounded,
-                  size: 20,
-                  color: AppColors.tecnologia,
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Enviar el paquete completo',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      kIsWeb
-                          ? 'En web se copia el JSON al portapapeles.'
-                          : 'Archivo JSON · Quick Share, Bluetooth o correo.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Text(
+            zona,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.titleLarge,
           ),
-          const SizedBox(height: 14),
+          Text(detail, style: textTheme.bodySmall),
+          const SizedBox(height: AppSpacing.base),
           GradientButton(
-            label: kIsWeb ? 'Copiar paquete' : 'Compartir archivo del paquete',
+            label: context.tr(kIsWeb ? 'share.send.btnWeb' : 'share.send.btn'),
             icon: kIsWeb ? Icons.copy_rounded : Icons.share_rounded,
             loading: sharing,
             onPressed: sharing ? null : onShare,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           OutlinedButton.icon(
             onPressed: importing ? null : onImport,
             icon: importing
                 ? const SizedBox(
-                    width: 16,
-                    height: 16,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.file_open_rounded, size: 18),
+                : const Icon(Icons.file_open_rounded),
             label: Text(
-              importing ? 'Leyendo archivo…' : 'Recibir un paquete (.json)',
+              context.tr(
+                importing ? 'share.import.reading' : 'share.import.btn',
+              ),
             ),
           ),
         ],
@@ -488,67 +316,8 @@ class _FileActions extends StatelessWidget {
   }
 }
 
-class _OfflineNote extends StatelessWidget {
-  const _OfflineNote();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: AppColors.gradientHero,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.soft,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: const Icon(
-              Icons.bluetooth_rounded,
-              color: AppColors.acentoNatural,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Sin internet, sin problema',
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(color: AppColors.white),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Pasa el archivo de un celular a otro con Quick Share, '
-                  'Bluetooth o un cable. La app lo importa y queda listo '
-                  'para usarse en modo avión.',
-                  style: TextStyle(
-                    fontFamily: AppFonts.body,
-                    fontSize: 12,
-                    height: 1.5,
-                    color: AppColors.white.withValues(alpha: 0.78),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StorageCard extends StatelessWidget {
-  const _StorageCard({required this.state, required this.onRefresh});
+class _StorageDetails extends StatelessWidget {
+  const _StorageDetails({required this.state, required this.onRefresh});
 
   final AppState state;
   final VoidCallback onRefresh;
@@ -556,77 +325,51 @@ class _StorageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final origin = state.origin;
-    return SoftCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.phone_android_rounded,
-                size: 18,
-                color: AppColors.verdePrincipal,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'En este celular',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ],
+    final paquete = state.paquete;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          label: context.tr('share.store.origin'),
+          value: origin == null
+              ? context.tr('common.localCopy')
+              : context.tr(origin.labelKey),
+        ),
+        _InfoRow(
+          label: context.tr('share.store.integrity'),
+          value: context.tr(
+            (paquete?.verified ?? false) ? 'common.hashOk' : 'common.hashNo',
           ),
-          const SizedBox(height: 10),
-          _InfoRow(label: 'Origen', value: origin?.label ?? 'Copia local'),
-          const SizedBox(height: 6),
-          _InfoRow(
-            label: 'Versión',
-            value: state.paquete?.versionLabel ?? 'Sin versión',
+        ),
+        _InfoRow(
+          label: context.tr('share.store.hash'),
+          value: (paquete?.hash.isNotEmpty ?? false)
+              ? shortPackageHash(paquete!.hash)
+              : context.tr('share.store.noHash'),
+        ),
+        _InfoRow(
+          label: context.tr('share.store.state'),
+          value: context.tr(
+            state.online ? 'share.store.online' : 'common.offline',
           ),
-          const SizedBox(height: 6),
-          _InfoRow(
-            label: 'Integridad',
-            value: (state.paquete?.verified ?? false)
-                ? 'Hash verificado'
-                : 'Sin verificar',
-          ),
-          const SizedBox(height: 6),
-          _InfoRow(
-            label: 'Hash',
-            value: (state.paquete?.hash.isNotEmpty ?? false)
-                ? shortPackageHash(state.paquete!.hash)
-                : 'Sin hash',
-          ),
-          const SizedBox(height: 6),
-          _InfoRow(
-            label: 'Estado',
-            value: state.online
-                ? 'En línea · listo para actualizar'
-                : 'Offline',
-          ),
-          const SizedBox(height: 6),
-          const _InfoRow(
-            label: 'Modo avión',
-            value: 'Calendario y rotaciones disponibles',
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: state.downloading ? null : onRefresh,
-              icon: state.downloading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.refresh_rounded, size: 17),
-              label: Text(
-                state.downloading ? 'Actualizando…' : 'Actualizar paquete',
-              ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        OutlinedButton.icon(
+          onPressed: state.downloading ? null : onRefresh,
+          icon: state.downloading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh_rounded),
+          label: Text(
+            context.tr(
+              state.downloading ? 'common.updating' : 'common.updatePkg',
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -639,70 +382,19 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 76,
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontFamily: AppFonts.body,
-              fontWeight: FontWeight.w600,
-              fontSize: 11,
-              color: AppColors.inkFaint,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontFamily: AppFonts.body,
-              fontWeight: FontWeight.w500,
-              fontSize: 11.5,
-              color: AppColors.ink,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ShareEmpty extends StatelessWidget {
-  const _ShareEmpty({required this.onNavigate});
-
-  final ValueChanged<int> onNavigate;
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      padding: const EdgeInsets.all(24),
-      child: Column(
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.share_rounded,
-            size: 44,
-            color: AppColors.tecnologia,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Nada para compartir todavía',
-            style: Theme.of(context).textTheme.headlineSmall,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Elige una zona y carga su paquete primero.',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          GradientButton(
-            label: 'Ir a Inicio',
-            icon: Icons.home_rounded,
-            onPressed: () => onNavigate(0),
+          Expanded(flex: 2, child: Text(label, style: textTheme.labelMedium)),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.ink),
+            ),
           ),
         ],
       ),

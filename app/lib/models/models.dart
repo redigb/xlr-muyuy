@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import '../utils/package_hash.dart';
 
 enum MesEstado { helada, seco, bueno }
 
-enum PackageOrigin { api, cache, asset, demo, imported }
+enum PackageOrigin { api, cache, asset, demo, imported, location }
+
+/// Estado de vigencia de una sección del paquete (🟢 🟡 🔴).
+enum ValidityState { fresh, expiring, expired, unknown }
 
 extension PackageOriginLabel on PackageOrigin {
   String get label {
@@ -19,6 +23,8 @@ extension PackageOriginLabel on PackageOrigin {
         return 'Vista previa demo';
       case PackageOrigin.imported:
         return 'Paquete importado';
+      case PackageOrigin.location:
+        return 'Calculado para tu ubicación';
     }
   }
 
@@ -34,8 +40,14 @@ extension PackageOriginLabel on PackageOrigin {
         return 'Demo';
       case PackageOrigin.imported:
         return 'Importado';
+      case PackageOrigin.location:
+        return 'Tu ubicación';
     }
   }
+
+  /// Claves de `lib/l10n/strings.dart`: `origin.<name>` y `origin.short.<name>`.
+  String get labelKey => 'origin.$name';
+  String get shortLabelKey => 'origin.short.$name';
 }
 
 class Zona {
@@ -361,12 +373,23 @@ class SeccionValidez {
     if (validoHasta.isNotEmpty) 'valido_hasta': validoHasta,
   };
 
-  bool get vencida {
-    final date = DateTime.tryParse(validoHasta);
-    if (date == null) return false;
-    final now = DateTime.now();
-    return date.isBefore(DateTime(now.year, now.month, now.day));
+  bool get vencida => estadoEn(DateTime.now()) == ValidityState.expired;
+
+  /// 🟢 vigente · 🟡 queda ≤ 25 % del periodo (mín. 3 días) · 🔴 vencido.
+  ValidityState estadoEn(DateTime now) {
+    final hasta = DateTime.tryParse(validoHasta);
+    if (hasta == null) return ValidityState.unknown;
+    final hoy = DateTime(now.year, now.month, now.day);
+    if (hasta.isBefore(hoy)) return ValidityState.expired;
+    final desde = DateTime.tryParse(actualizado);
+    final total = desde == null ? 0 : hasta.difference(desde).inDays;
+    final margen = total <= 0 ? 3 : (total * 0.25).ceil().clamp(3, 30);
+    return hasta.difference(hoy).inDays <= margen
+        ? ValidityState.expiring
+        : ValidityState.fresh;
   }
+
+  ValidityState get estado => estadoEn(DateTime.now());
 }
 
 class PaqueteMeta {
@@ -504,12 +527,41 @@ class Paquete {
   final bool verified;
 
   int get packageVersion => meta.version;
+
+  static final _imagenes = Expando<Uint8List>();
+
+  /// Foto satelital de la zona (extras, cubierta por el hash). Null si no vino.
+  Uint8List? get imagenSatelital {
+    final cached = _imagenes[this];
+    if (cached != null) return cached;
+    final b64 = extras['imagen_satelital_b64'];
+    if (b64 is! String || b64.isEmpty) return null;
+    try {
+      return _imagenes[this] = base64Decode(b64);
+    } catch (_) {
+      return null;
+    }
+  }
+
   String get version =>
       meta.generado.isNotEmpty ? meta.generado : 'v${meta.version}';
   String get versionLabel =>
       meta.version > 0 ? 'v${meta.version}' : 'Sin versión';
   bool get validadaLocalmente => meta.validadaLocalmente;
   String get hash => meta.hash;
+
+  /// Clave de almacenamiento: id de zona oficial o `celda_<celda>`.
+  String get clave => zona.id;
+
+  /// Identificador para conexiones: `huanuco-sierra@12`.
+  String get etiquetaVersion => '$clave@${meta.version}';
+
+  bool get esCoordenada => meta.origen == 'coordenada';
+
+  /// Vigencia de cada sección presente en `meta.secciones`.
+  Map<String, ValidityState> get vigencias => {
+    for (final entry in meta.secciones.entries) entry.key: entry.value.estado,
+  };
 
   factory Paquete.fromJson(
     Map<String, dynamic> json, {
@@ -533,13 +585,25 @@ class Paquete {
         : (p['zona'] is Map
               ? Map<String, dynamic>.from(p['zona'] as Map)
               : <String, dynamic>{});
-    final zona = Zona.fromJson(zonaJson);
+    var zona = Zona.fromJson(zonaJson);
 
     final meta = PaqueteMeta.fromJson(
       metaJson,
       fallbackZonaId: zona.id,
       fallbackGenerated: p['version'] as String? ?? '',
     );
+    // Paquetes por coordenada: "zona": null y "celda": "-0.5_36.0".
+    if (zona.id.isEmpty && meta.celda.isNotEmpty) {
+      zona = Zona(
+        id: 'celda_${meta.celda}',
+        nombre: zona.nombre.isNotEmpty ? zona.nombre : meta.celda,
+        lat: zona.lat,
+        lon: zona.lon,
+        elevacionM: zona.elevacionM,
+        region: 'global',
+        riego: zona.riego,
+      );
+    }
 
     final rawDoc = (isWrapped || hasNucleo)
         ? (isWrapped ? Map<String, dynamic>.from(json) : {'paquete': p})

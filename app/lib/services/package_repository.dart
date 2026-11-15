@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/community.dart';
 import '../models/models.dart';
 import '../models/soil_analysis.dart';
+import '../utils/package_hash.dart';
 import 'api_service.dart';
 import 'local_store.dart';
 import 'package_file_stub.dart' if (dart.library.io) 'package_file_io.dart';
@@ -16,6 +17,36 @@ class LocalPackage {
   final PackageOrigin origin;
 }
 
+/// Resultado de importar un archivo (spec 3.5: verificar → comparar → instalar o descartar).
+enum ImportOutcome { installed, same, older }
+
+class ImportResult {
+  const ImportResult({
+    required this.paquete,
+    required this.outcome,
+    this.installedVersion,
+    this.compartidoPor,
+  });
+
+  /// El paquete que quedó activo (el importado o el que ya estaba).
+  final Paquete paquete;
+  final ImportOutcome outcome;
+  final int? installedVersion;
+
+  /// `sobre.compartido_por` del archivo, si venía.
+  final String? compartidoPor;
+}
+
+/// Error de importación con clave de `lib/l10n/strings.dart`.
+class ImportException implements Exception {
+  const ImportException(this.code);
+
+  final String code;
+
+  @override
+  String toString() => code;
+}
+
 class PackageRepository {
   PackageRepository({ApiService? api, LocalStore? store})
     : _api = api ?? ApiService(),
@@ -24,6 +55,7 @@ class PackageRepository {
   final ApiService _api;
   final LocalStore _store;
 
+  static const fallbackZona = 'huanuco-sierra';
   static const fallbackAsset = 'assets/data/paquete_huanuco-sierra.json';
 
   final Map<String, Paquete> _assetCache = {};
@@ -32,12 +64,13 @@ class PackageRepository {
 
   Future<List<Zona>> fetchZonas() => _api.fetchZonas();
 
-  Future<PackageVersionInfo> fetchVersion(String zonaId) {
-    return _api.fetchVersion(zonaId);
+  Future<PackageVersionInfo> fetchVersion(String zonaId, {String lang = 'es'}) {
+    return _api.fetchVersion(zonaId, lang: lang);
   }
 
   Future<bool> checkHealth() => _api.checkSalud();
 
+  /// Copia del celular (solo si su hash verifica); si no, el paquete incluido.
   Future<LocalPackage?> loadLocal(String zonaId) async {
     final cached = await _store.readPackageJson(zonaId);
     if (cached != null && cached.isNotEmpty) {
@@ -46,11 +79,14 @@ class PackageRepository {
           Map<String, dynamic>.from(jsonDecode(cached) as Map),
           rawJson: cached,
         );
-        if (paquete.hash.isEmpty || paquete.verified) {
-          return LocalPackage(paquete, PackageOrigin.cache);
+        if (paquete.hash.isNotEmpty && paquete.verified) {
+          return LocalPackage(
+            paquete,
+            paquete.esCoordenada ? PackageOrigin.location : PackageOrigin.cache,
+          );
         }
       } catch (_) {
-        // A damaged cache must never block the bundled package.
+        // Una caché dañada nunca bloquea el paquete incluido.
       }
     }
 
@@ -61,39 +97,90 @@ class PackageRepository {
     return null;
   }
 
-  Future<Paquete> fetchRemote(String zonaId) async {
-    final paquete = await _api.fetchPaquete(zonaId);
+  Future<Paquete> fetchRemote(String zonaId, {String lang = 'es'}) async {
+    final paquete = await _api.fetchPaquete(zonaId, lang: lang);
     await _save(paquete);
     return paquete;
   }
 
-  Future<Paquete?> fetchRemoteSilently(String zonaId) async {
+  Future<Paquete> fetchCoordenada({
+    required double lat,
+    required double lon,
+    required String lang,
+  }) async {
+    final paquete = await _api.fetchCoordenada(lat: lat, lon: lon, lang: lang);
+    await _save(paquete);
+    return paquete;
+  }
+
+  /// Verifica el hash, compara versiones ("gana la más nueva") e instala
+  /// solo si es más nueva que la instalada. Nunca acepta paquetes sin hash.
+  Future<ImportResult> importJson(String rawJson) async {
+    final Object? decoded;
     try {
-      return await fetchRemote(zonaId);
+      decoded = jsonDecode(rawJson);
     } catch (_) {
-      return null;
+      throw const ImportException('import.notMuyuy');
     }
-  }
+    if (decoded is! Map) throw const ImportException('import.notMuyuy');
+    final document = Map<String, dynamic>.from(decoded);
+    final Paquete paquete;
+    try {
+      paquete = Paquete.fromJson(document, rawJson: rawJson);
+    } catch (_) {
+      throw const ImportException('import.invalid');
+    }
+    if (paquete.clave.isEmpty || paquete.rotaciones.isEmpty) {
+      throw const ImportException('import.invalid');
+    }
+    if (paquete.hash.isEmpty) throw const ImportException('import.unsigned');
+    if (!paquete.verified) throw const ImportException('import.tampered');
 
-  Future<Paquete> importJson(String rawJson) async {
-    final decoded = jsonDecode(rawJson);
-    if (decoded is! Map) {
-      throw const FormatException('El archivo no es un paquete MUYUY.');
+    final sobre = document['sobre'];
+    final compartidoPor = sobre is Map
+        ? sobre['compartido_por']?.toString()
+        : null;
+
+    final current = (await loadLocal(paquete.clave))?.paquete;
+    // Las versiones solo se comparan dentro del mismo idioma (es y en se numeran aparte).
+    if (current != null &&
+        current.clave == paquete.clave &&
+        current.meta.idioma == paquete.meta.idioma) {
+      final installedVersion = current.packageVersion;
+      if (installedVersion > paquete.packageVersion) {
+        return ImportResult(
+          paquete: current,
+          outcome: ImportOutcome.older,
+          installedVersion: installedVersion,
+          compartidoPor: compartidoPor,
+        );
+      }
+      if (installedVersion == paquete.packageVersion &&
+          current.hash == paquete.hash) {
+        return ImportResult(
+          paquete: current,
+          outcome: ImportOutcome.same,
+          installedVersion: installedVersion,
+          compartidoPor: compartidoPor,
+        );
+      }
     }
-    final paquete = Paquete.fromJson(
-      Map<String, dynamic>.from(decoded),
-      rawJson: rawJson,
+
+    // Se guarda solo el paquete, sin el sobre de quien lo compartió.
+    final paqueteRaw = rawTopLevelMember(rawJson, 'paquete');
+    final clean = paqueteRaw == null
+        ? paquete
+        : Paquete.fromJson(
+            {'paquete': jsonDecode(paqueteRaw)},
+            rawJson: '{"paquete":$paqueteRaw}',
+          );
+    await _save(clean);
+    return ImportResult(
+      paquete: clean,
+      outcome: ImportOutcome.installed,
+      installedVersion: current?.packageVersion,
+      compartidoPor: compartidoPor,
     );
-    if (paquete.zona.id.isEmpty || paquete.rotaciones.isEmpty) {
-      throw const FormatException('El archivo no es un paquete MUYUY válido.');
-    }
-    if (paquete.hash.isNotEmpty && !paquete.verified) {
-      throw const FormatException(
-        'El paquete no pasó la verificación de integridad.',
-      );
-    }
-    await _save(paquete);
-    return paquete;
   }
 
   Future<void> save(Paquete paquete) => _save(paquete);
@@ -102,9 +189,17 @@ class PackageRepository {
 
   Future<List<String>> readPrioridades() => _store.readPrioridades();
 
-  Future<bool> readRiego() => _store.readRiego();
+  Future<bool?> readRiego(String zonaId) => _store.readRiego(zonaId);
 
   Future<String> readCultivoId() async => await _store.readCultivoId() ?? '';
+
+  Future<String?> readLang() => _store.readLang();
+
+  Future<void> saveLang(String code) => _store.writeLang(code);
+
+  Future<String?> readLocalId() => _store.readLocalId();
+
+  Future<void> saveLocalId(String id) => _store.writeLocalId(id);
 
   Future<void> saveZonaId(String zonaId) => _store.writeZonaId(zonaId);
 
@@ -112,10 +207,17 @@ class PackageRepository {
     return _store.writePrioridades(prioridades);
   }
 
-  Future<void> saveRiego(bool value) => _store.writeRiego(value);
+  Future<void> saveRiego(String zonaId, bool value) {
+    return _store.writeRiego(zonaId, value);
+  }
 
   Future<void> saveCultivoId(String cultivoId) {
     return _store.writeCultivoId(cultivoId);
+  }
+
+  Future<void> clearAll() async {
+    _assetCache.clear();
+    await _store.clearAll();
   }
 
   Future<DeviceCredential?> readDevice() async {
@@ -137,23 +239,35 @@ class PackageRepository {
   Future<void> clearDevice() => _store.clearDevice();
 
   Future<List<Observacion>> readObservaciones() async {
-    final raw = await _store.readObservacionesJson();
-    if (raw == null || raw.isEmpty) return const [];
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! List) return const [];
-      return decoded
-          .whereType<Map>()
-          .map((item) => Observacion.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-    } catch (_) {
-      return const [];
-    }
+    final list = _decodeList(await _store.readObservacionesJson());
+    return list.map(Observacion.fromJson).toList();
   }
 
   Future<void> writeObservaciones(List<Observacion> observaciones) {
     return _store.writeObservacionesJson(
       jsonEncode(observaciones.map((item) => item.toJson()).toList()),
+    );
+  }
+
+  Future<List<Conexion>> readConexiones() async {
+    final list = _decodeList(await _store.readConexionesJson());
+    return list.map(Conexion.fromJson).toList();
+  }
+
+  Future<void> writeConexiones(List<Conexion> conexiones) {
+    return _store.writeConexionesJson(
+      jsonEncode(conexiones.map((item) => item.toJson()).toList()),
+    );
+  }
+
+  Future<List<Reporte>> readReportes() async {
+    final list = _decodeList(await _store.readReportesJson());
+    return list.map(Reporte.fromJson).toList();
+  }
+
+  Future<void> writeReportes(List<Reporte> reportes) {
+    return _store.writeReportesJson(
+      jsonEncode(reportes.map((item) => item.toJson()).toList()),
     );
   }
 
@@ -173,25 +287,39 @@ class PackageRepository {
     return _store.writeSoilJson(record.zonaId, jsonEncode(record.toJson()));
   }
 
-  Future<DeviceCredential> registerDevice({required bool demo}) {
-    return _api.registerDevice(demo: demo);
+  Future<DeviceCredential> registerDevice({
+    required bool demo,
+    String? idLocal,
+  }) {
+    return _api.registerDevice(demo: demo, idLocal: idLocal);
   }
 
   Future<SyncSummary> sync({
     required String token,
     required List<Observacion> observaciones,
+    required List<Conexion> conexiones,
   }) {
-    return _api.sync(token: token, observaciones: observaciones);
+    return _api.sync(
+      token: token,
+      observaciones: observaciones,
+      conexiones: conexiones,
+    );
   }
 
-  Future<String> encode(Paquete paquete) async {
-    return paquete.toJsonString(pretty: true);
+  /// Archivo para compartir: `sobre` nuevo (fuera del hash) + paquete intacto.
+  String encode(Paquete paquete, {required String compartidoPor}) {
+    return wrapWithSobre(paquete.toJsonString(), {
+      'compartido_por': compartidoPor,
+      'fecha_compartido': DateTime.now().toUtc().toIso8601String(),
+    });
   }
 
-  Future<ShareBundle> prepareShare(Paquete paquete) async {
-    final json = await encode(paquete);
-    final stamp = DateTime.now().toUtc().toIso8601String().split('T').first;
-    final fileName = 'muyuy_${paquete.zona.id}_$stamp.json';
+  Future<ShareBundle> prepareShare(
+    Paquete paquete, {
+    required String compartidoPor,
+  }) async {
+    final json = encode(paquete, compartidoPor: compartidoPor);
+    final fileName = 'muyuy_${paquete.clave}_v${paquete.packageVersion}.json';
     final path = await writePackageFile(fileName, json);
     return ShareBundle(
       json: json,
@@ -201,9 +329,23 @@ class PackageRepository {
     );
   }
 
+  List<Map<String, dynamic>> _decodeList(String? raw) {
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   Future<void> _save(Paquete paquete) async {
     final raw = paquete.rawJson ?? jsonEncode(paquete.toJson());
-    await _store.writePackageJson(paquete.zona.id, raw);
+    await _store.writePackageJson(paquete.clave, raw);
   }
 
   Future<Paquete?> _loadAsset(String zonaId) async {
@@ -212,7 +354,7 @@ class PackageRepository {
 
     final assets = [
       if (zonaId.isNotEmpty) 'assets/data/paquete_$zonaId.json',
-      if (zonaId != 'huanuco-sierra') fallbackAsset,
+      if (zonaId != fallbackZona) fallbackAsset,
     ];
 
     for (final asset in assets) {
@@ -222,11 +364,11 @@ class PackageRepository {
           Map<String, dynamic>.from(jsonDecode(raw) as Map),
           rawJson: raw,
         );
-        if (paquete.hash.isNotEmpty && !paquete.verified) continue;
-        _assetCache[paquete.zona.id] = paquete;
+        if (paquete.hash.isEmpty || !paquete.verified) continue;
+        _assetCache[paquete.clave] = paquete;
         return paquete;
       } catch (_) {
-        // Try the next bundled package.
+        // Probar el siguiente paquete incluido.
       }
     }
     return null;

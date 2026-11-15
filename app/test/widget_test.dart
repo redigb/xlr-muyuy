@@ -24,10 +24,11 @@ void main() {
       expect(paquete.calendario, hasLength(12));
       expect(paquete.cultivos, hasLength(11));
       expect(paquete.rotaciones, hasLength(10));
-      expect(paquete.meta.version, 1);
-      expect(paquete.packageVersion, 1);
+      // v2 = la que publica el servidor (los incluidos son copia exacta).
+      expect(paquete.meta.version, greaterThanOrEqualTo(2));
+      expect(paquete.packageVersion, paquete.meta.version);
       expect(paquete.meta.validadaLocalmente, isTrue);
-      expect(paquete.fuenteClima, contains('INVENTADO'));
+      expect(paquete.fuenteClima, isNotEmpty);
     });
 
     test('verifica el hash canónico del paquete', () {
@@ -37,9 +38,10 @@ void main() {
 
     test('rechaza un paquete alterado', () {
       final alteredRaw = rawJsonString.replaceFirst(
-        'INVENTADO para desarrollo',
-        'Fuente alterada',
+        '"fuente_clima":"',
+        '"fuente_clima":"ALTERADA ',
       );
+      expect(alteredRaw, isNot(rawJsonString));
       final altered = Paquete.fromJson(
         jsonDecode(alteredRaw) as Map<String, dynamic>,
         rawJson: alteredRaw,

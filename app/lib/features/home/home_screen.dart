@@ -1,20 +1,17 @@
-import 'dart:math' as math;
-
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../models/models.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/gradient_button.dart';
-import '../../widgets/organic_background.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/soft_card.dart';
-import '../soil/soil_vision_screen.dart';
+import '../../widgets/status_widgets.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.onNavigate});
@@ -24,91 +21,78 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
+    final showValidity =
+        state.hasPackage && ValidityPanel.sections.any(state.seccionVencida);
 
-    return Stack(
+    return PageBody(
       children: [
-        const Positioned.fill(child: OrganicBackground()),
-        PageBody(
+        Row(
           children: [
-            _HomeTopBar(state: state),
-            const SizedBox(height: 18),
-            _HeroPanel(
-              state: state,
-              onNavigate: onNavigate,
-              onChooseZone: () => _openZoneSheet(context),
+            const Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: BrandLogo(height: 28),
+              ),
             ),
-            const SizedBox(height: 16),
-            _PackagePanel(state: state, onDownload: () => _download(context)),
-            if (state.lastError != null) ...[
-              const SizedBox(height: 12),
-              InfoBanner(
-                message: state.lastError!,
-                icon: Icons.cloud_off_rounded,
-                color: AppColors.alerta,
-                background: AppColors.alertaSoft,
-                onClose: state.clearError,
-              ).animate().fadeIn().slideY(begin: 0.1),
-            ] else if (state.notice != null) ...[
-              const SizedBox(height: 12),
-              InfoBanner(
-                message: state.notice!,
-                icon: Icons.check_circle_outline_rounded,
-                color: AppColors.verdePrincipal,
-                background: AppColors.buenoSoft,
-                onClose: state.clearError,
-              ).animate().fadeIn().slideY(begin: 0.1),
-            ],
-            const SizedBox(height: 14),
-            _CommunityCard(state: state),
-            if (state.alertas.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              _AlertsCard(alertas: state.alertas),
-            ],
-            const SizedBox(height: 28),
-            const SectionHeader(
-              kicker: 'Tu temporada',
-              title: 'Decide con claridad',
-              subtitle: 'Todo lo importante, listo para usar en el campo.',
-            ),
-            const SizedBox(height: 14),
-            _FeatureTile(
-              icon: Icons.calendar_month_rounded,
-              title: 'Calendario climático',
-              subtitle: 'Heladas, meses secos y ventanas buenas.',
-              color: AppColors.tecnologia,
-              background: AppColors.heladaSoft,
-              onTap: () => onNavigate(2),
-            ).animate().fadeIn(delay: 120.ms).slideY(begin: 0.08),
-            const SizedBox(height: 10),
-            _FeatureTile(
-              icon: Icons.layers_rounded,
-              title: 'Rotaciones explicadas',
-              subtitle: 'Ordenadas según lo que más te importa.',
-              color: AppColors.verdeSecundario,
-              background: AppColors.buenoSoft,
-              onTap: () => onNavigate(3),
-            ).animate().fadeIn(delay: 180.ms).slideY(begin: 0.08),
-            const SizedBox(height: 10),
-            _FeatureTile(
-              icon: Icons.camera_alt_rounded,
-              title: 'SoilVision AI',
-              subtitle: 'Analiza la apariencia de tu suelo.',
-              color: AppColors.tecnologia,
-              background: AppColors.heladaSoft,
-              onTap: () => _openSoilVision(context, state),
-            ).animate().fadeIn(delay: 220.ms).slideY(begin: 0.08),
-            const SizedBox(height: 10),
-            _FeatureTile(
-              icon: Icons.qr_code_2_rounded,
-              title: 'Comparte sin internet',
-              subtitle: 'QR y archivo para otro celular.',
-              color: AppColors.tierra,
-              background: AppColors.secoSoft,
-              onTap: () => onNavigate(4),
-            ).animate().fadeIn(delay: 240.ms).slideY(begin: 0.08),
-            const SizedBox(height: 26),
-            const _Footer(),
+            const LangSelector(),
           ],
+        ),
+        const SizedBox(height: AppSpacing.base),
+        const ZoneWarning(),
+        if (state.lastError != null)
+          _Message(
+            text: state.lastError!,
+            icon: Icons.cloud_off_rounded,
+            color: AppColors.tierra,
+            background: AppColors.secoSoft,
+            onClose: state.clearError,
+          )
+        else if (state.notice != null)
+          _Message(
+            text: state.notice!,
+            icon: Icons.check_circle_outline_rounded,
+            color: AppColors.verdePrincipal,
+            background: AppColors.buenoSoft,
+            onClose: state.clearError,
+          ),
+        _HeroPanel(
+          state: state,
+          onNavigate: onNavigate,
+          onChooseZone: () => _openZoneSheet(context),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _LocationButton(state: state),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          context.tr('location.privacy'),
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        if (showValidity) ...[
+          const SizedBox(height: AppSpacing.base),
+          const SoftCard(
+            padding: EdgeInsets.all(AppSpacing.base),
+            child: ValidityPanel(),
+          ),
+        ],
+        if (state.alertas.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.base),
+          SectionFreshness(
+            section: 'alertas',
+            child: _AlertsCard(alertas: state.alertas),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.base),
+        _CommunityCard(state: state),
+        const SizedBox(height: AppSpacing.base),
+        _PackagePanel(state: state, onDownload: () => _download(context)),
+        const SizedBox(height: AppSpacing.md),
+        _AdvancedSection(state: state),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          context.tr('home.footer1'),
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.labelSmall,
         ),
       ],
     );
@@ -122,8 +106,10 @@ class HomeScreen extends StatelessWidget {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       barrierColor: AppColors.ink.withValues(alpha: 0.35),
-      builder: (_) =>
-          _ZoneSheet(zonas: state.zonas, selectedId: state.zona?.id),
+      builder: (_) => AppScope(
+        state: state,
+        child: _ZoneSheet(zonas: state.zonas, selectedId: state.zona?.id),
+      ),
     );
 
     if (selected == null || !context.mounted) return;
@@ -142,43 +128,45 @@ class HomeScreen extends StatelessWidget {
       SnackBar(
         content: Text(
           ok
-              ? (state.notice ?? 'Paquete actualizado.')
-              : (state.lastError ?? 'No se pudo descargar el paquete.'),
+              ? (state.notice ?? context.tr('home.pkg.updated'))
+              : (state.lastError ?? context.tr('home.pkg.failed')),
         ),
       ),
     );
   }
-
-  void _openSoilVision(BuildContext context, AppState state) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => SoilVisionScreen(state: state)),
-    );
-  }
 }
 
-class _HomeTopBar extends StatelessWidget {
-  const _HomeTopBar({required this.state});
+class _Message extends StatelessWidget {
+  const _Message({
+    required this.text,
+    required this.icon,
+    required this.color,
+    required this.background,
+    required this.onClose,
+  });
 
-  final AppState state;
+  final String text;
+  final IconData icon;
+  final Color color;
+  final Color background;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const BrandLogo(height: 28),
-        const Spacer(),
-        Pill(
-          label: state.online ? 'En línea' : 'Sin señal',
-          icon: state.online ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-          color: state.online ? AppColors.verdePrincipal : AppColors.tierra,
-          background: state.online ? AppColors.buenoSoft : AppColors.secoSoft,
-          compact: true,
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.base),
+      child: InfoBanner(
+        message: text,
+        icon: icon,
+        color: color,
+        background: background,
+        onClose: onClose,
+      ),
     );
   }
 }
 
+/// Tarjeta dominante: zona activa, "listo sin señal" y un solo botón.
 class _HeroPanel extends StatelessWidget {
   const _HeroPanel({
     required this.state,
@@ -197,93 +185,52 @@ class _HeroPanel extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: AppColors.gradientHero,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        boxShadow: AppShadows.lifted,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.soft,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Positioned.fill(
-            child: CustomPaint(painter: _HeroTexturePainter()),
-          ),
-          Positioned(
-            right: -34,
-            bottom: -24,
-            child: Opacity(
-              opacity: 0.12,
-              child: BrandLogo(markOnly: true, white: true, height: 210),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
+          _ZoneSelector(zona: zona, onTap: onChooseZone),
+          if (state.hasPackage) ...[
+            const SizedBox(height: AppSpacing.base),
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const BrandLogo(white: true, height: 26),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(100),
-                        border: Border.all(
-                          color: AppColors.white.withValues(alpha: 0.16),
-                        ),
-                      ),
-                      child: const Text(
-                        'NASA POWER',
-                        style: TextStyle(
-                          fontFamily: AppFonts.body,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 9.5,
-                          letterSpacing: 0.8,
-                          color: AppColors.white,
-                        ),
-                      ),
+                const Icon(
+                  Icons.offline_bolt_rounded,
+                  size: 20,
+                  color: AppColors.acentoNatural,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    context.tr('home.pkg.saved'),
+                    style: TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 15,
+                      height: 1.4,
+                      color: AppColors.white.withValues(alpha: 0.92),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  'Del dato satelital\na tu chacra.',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: AppColors.white,
-                    fontSize: 34,
-                    height: 1.08,
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Calendario, rotaciones y explicaciones simples para decidir '
-                  'mejor. Diseñado para funcionar aunque no haya señal.',
-                  style: TextStyle(
-                    fontFamily: AppFonts.body,
-                    fontSize: 13.5,
-                    height: 1.5,
-                    color: AppColors.white.withValues(alpha: 0.82),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _ZoneSelector(zona: zona, onTap: onChooseZone),
-                const SizedBox(height: 14),
-                GradientButton(
-                  label: zona == null ? 'Elegir mi zona' : 'Ver mi chacra',
-                  icon: zona == null
-                      ? Icons.travel_explore_rounded
-                      : Icons.arrow_forward_rounded,
-                  onPressed: zona == null ? onChooseZone : () => onNavigate(1),
                 ),
               ],
             ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          GradientButton(
+            label: context.tr(
+              zona == null ? 'home.chooseZone' : 'home.seeFarm',
+            ),
+            icon: zona == null
+                ? Icons.travel_explore_rounded
+                : Icons.arrow_forward_rounded,
+            onPressed: zona == null ? onChooseZone : () => onNavigate(1),
           ),
         ],
       ),
-    ).animate().fadeIn(duration: 520.ms).slideY(begin: 0.06);
+    );
   }
 }
 
@@ -299,53 +246,48 @@ class _ZoneSelector extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: AppColors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.white.withValues(alpha: 0.16)),
+            color: AppColors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.2)),
           ),
           child: Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.location_on_rounded,
-                  size: 19,
-                  color: AppColors.white,
-                ),
+              const Icon(
+                Icons.location_on_rounded,
+                size: 22,
+                color: AppColors.white,
               ),
-              const SizedBox(width: 11),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      zona == null ? 'Mi zona' : 'Zona activa',
+                      context.tr(
+                        zona == null ? 'home.zoneNone' : 'home.zoneActive',
+                      ),
                       style: TextStyle(
                         fontFamily: AppFonts.body,
                         fontWeight: FontWeight.w600,
-                        fontSize: 9.5,
-                        letterSpacing: 0.7,
-                        color: AppColors.white.withValues(alpha: 0.6),
+                        fontSize: 12,
+                        color: AppColors.white.withValues(alpha: 0.8),
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
-                      zona?.nombre ?? 'Elegir mi zona',
-                      maxLines: 1,
+                      zona == null
+                          ? context.tr('home.chooseZone')
+                          : prettyZoneName(zona!.nombre),
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: AppFonts.display,
                         fontWeight: FontWeight.w600,
-                        fontSize: 13.5,
+                        fontSize: 15,
                         color: AppColors.white,
                       ),
                     ),
@@ -353,10 +295,10 @@ class _ZoneSelector extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
+              const Icon(
                 Icons.swap_horiz_rounded,
-                size: 20,
-                color: AppColors.white.withValues(alpha: 0.75),
+                size: 22,
+                color: AppColors.white,
               ),
             ],
           ),
@@ -366,6 +308,35 @@ class _ZoneSelector extends StatelessWidget {
   }
 }
 
+/// "Usar mi ubicación": lee el GPS (5 a 30 s) y calcula el paquete de la celda.
+class _LocationButton extends StatelessWidget {
+  const _LocationButton({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = state.locating;
+    return OutlinedButton.icon(
+      onPressed: busy
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              state.useMyLocation();
+            },
+      icon: busy
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            )
+          : const Icon(Icons.my_location_rounded, size: 20),
+      label: Text(context.tr(busy ? 'location.reading' : 'location.use')),
+    );
+  }
+}
+
+/// Todo lo técnico del paquete, plegado.
 class _PackagePanel extends StatelessWidget {
   const _PackagePanel({required this.state, required this.onDownload});
 
@@ -376,273 +347,80 @@ class _PackagePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final paquete = state.paquete;
     final origin = state.origin;
+    final theme = Theme.of(context).textTheme;
 
     return SoftCard(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.base,
+        vertical: AppSpacing.xs,
+      ),
+      child: DetailsSection(
+        title: context.tr('home.pkg.title'),
+        subtitle: paquete == null
+            ? context.tr('home.pkg.none')
+            : context.tr('home.pkg.summary', {
+                'm': paquete.calendario.length,
+                'r': paquete.rotaciones.length,
+              }),
         children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.fondoSuave,
-                  borderRadius: BorderRadius.circular(13),
-                  border: Border.all(color: AppColors.line),
-                ),
-                child: const Icon(
-                  Icons.storage_rounded,
-                  color: AppColors.verdePrincipal,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Paquete de datos',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      paquete == null
-                          ? 'Sin paquete cargado'
-                          : '${paquete.calendario.length} meses · '
-                                '${paquete.rotaciones.length} rotaciones',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              if (origin != null)
-                Pill(
-                  label: origin.shortLabel,
-                  icon: _originIcon(origin),
-                  color: _originColor(origin),
-                  background: _originBackground(origin),
-                  compact: true,
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
           if (paquete == null)
             _EmptyPackage(loading: state.loadingPackage)
           else ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.superficie,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: AppColors.line),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    paquete.verified
-                        ? Icons.verified_rounded
-                        : Icons.gpp_maybe_rounded,
-                    size: 16,
-                    color: paquete.verified
-                        ? AppColors.verdeSecundario
-                        : AppColors.tierra,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${prettyZoneName(paquete.zona.nombre)} · '
-                          '${paquete.versionLabel} · '
-                          '${formatVersion(paquete.version)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: AppFonts.body,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.inkSoft,
-                          ),
-                        ),
-                        if (paquete.fuenteClima.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            'Fuente del clima: ${paquete.fuenteClima}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: AppFonts.body,
-                              fontSize: 9.5,
-                              height: 1.35,
-                              color: AppColors.inkFaint,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            Text(
+              '${prettyZoneName(paquete.zona.nombre)} · '
+              '${packageVersionLabel(context, paquete)} · '
+              '${formatVersion(paquete.version)}',
+              style: theme.titleSmall,
             ),
-            const SizedBox(height: 8),
+            if (paquete.fuenteClima.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                context.tr('home.pkg.source', {'src': paquete.fuenteClima}),
+                style: theme.bodySmall,
+              ),
+            ],
+            const SizedBox(height: AppSpacing.md),
             Wrap(
-              spacing: 6,
-              runSpacing: 6,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
-                Pill(
-                  label: paquete.verified ? 'Hash verificado' : 'Sin verificar',
-                  icon: paquete.verified
-                      ? Icons.verified_user_rounded
-                      : Icons.gpp_maybe_rounded,
-                  color: paquete.verified
-                      ? AppColors.verdePrincipal
-                      : AppColors.tierra,
-                  background: paquete.verified
-                      ? AppColors.buenoSoft
-                      : AppColors.secoSoft,
-                  compact: true,
-                ),
-                Pill(
-                  label: paquete.validadaLocalmente
-                      ? 'Validada localmente'
-                      : 'No validada localmente',
-                  icon: Icons.place_rounded,
-                  color: paquete.validadaLocalmente
-                      ? AppColors.verdePrincipal
-                      : AppColors.tierra,
-                  background: paquete.validadaLocalmente
-                      ? AppColors.buenoSoft
-                      : AppColors.secoSoft,
-                  compact: true,
-                ),
+                VerifiedPills(paquete: paquete),
+                if (origin != null) OriginPill(origin: origin),
                 if (!state.apiHealthy)
-                  const Pill(
-                    label: 'API sin respuesta',
+                  Pill(
+                    label: context.tr('home.pkg.noApi'),
                     icon: Icons.cloud_off_rounded,
-                    color: AppColors.tierra,
-                    background: AppColors.secoSoft,
+                    color: AppColors.inkSoft,
+                    background: AppColors.pendienteSoft,
                     compact: true,
                   ),
               ],
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _MiniStat(
-                    value: '${paquete.calendario.length}',
-                    label: 'meses',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MiniStat(
-                    value: '${paquete.cultivos.length}',
-                    label: 'cultivos',
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MiniStat(
-                    value: '${(paquete.rotaciones.length)}',
-                    label: 'opciones',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSpacing.base),
+            const ValidityPanel(),
+            const SizedBox(height: AppSpacing.base),
             if (state.downloading) ...[
               const ClipRRect(
                 borderRadius: BorderRadius.all(Radius.circular(100)),
                 child: LinearProgressIndicator(minHeight: 5),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSpacing.md),
             ],
-            Row(
-              children: [
-                Expanded(
-                  child: GradientButton(
-                    label: state.downloading
-                        ? 'Descargando…'
-                        : 'Actualizar paquete',
-                    icon: Icons.download_rounded,
-                    loading: state.downloading,
-                    height: 50,
-                    gradient: AppColors.gradientHero,
-                    foreground: AppColors.white,
-                    onPressed: state.downloading ? null : onDownload,
-                  ),
+            OutlinedButton.icon(
+              onPressed: state.downloading ? null : onDownload,
+              icon: const Icon(Icons.download_rounded, size: 20),
+              label: Text(
+                context.tr(
+                  state.downloading
+                      ? 'home.pkg.downloading'
+                      : 'common.updatePkg',
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(
-                  Icons.offline_bolt_rounded,
-                  size: 14,
-                  color: AppColors.verdeSecundario,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Guardado en el celular. Funciona completo en modo avión.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ],
       ),
     );
-  }
-
-  IconData _originIcon(PackageOrigin origin) {
-    switch (origin) {
-      case PackageOrigin.api:
-        return Icons.cloud_done_rounded;
-      case PackageOrigin.cache:
-        return Icons.phone_android_rounded;
-      case PackageOrigin.asset:
-        return Icons.inventory_2_rounded;
-      case PackageOrigin.demo:
-        return Icons.preview_rounded;
-      case PackageOrigin.imported:
-        return Icons.file_download_done_rounded;
-    }
-  }
-
-  Color _originColor(PackageOrigin origin) {
-    switch (origin) {
-      case PackageOrigin.api:
-        return AppColors.verdePrincipal;
-      case PackageOrigin.cache:
-        return AppColors.tecnologia;
-      case PackageOrigin.asset:
-        return AppColors.tierra;
-      case PackageOrigin.demo:
-        return AppColors.tecnologia;
-      case PackageOrigin.imported:
-        return AppColors.verdePrincipal;
-    }
-  }
-
-  Color _originBackground(PackageOrigin origin) {
-    switch (origin) {
-      case PackageOrigin.api:
-      case PackageOrigin.imported:
-        return AppColors.buenoSoft;
-      case PackageOrigin.cache:
-      case PackageOrigin.demo:
-        return AppColors.heladaSoft;
-      case PackageOrigin.asset:
-        return AppColors.secoSoft;
-    }
   }
 }
 
@@ -653,61 +431,32 @@ class _EmptyPackage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          if (loading)
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else
-            const Icon(
-              Icons.download_for_offline_outlined,
-              color: AppColors.inkFaint,
-            ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              loading
-                  ? 'Cargando el paquete local…'
-                  : 'Elige una zona para cargar su paquete.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+    return Row(
+      children: [
+        if (loading)
+          const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        else
+          const Icon(
+            Icons.download_for_offline_outlined,
+            color: AppColors.inkSoft,
           ),
-        ],
-      ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Text(
+            context.tr(loading ? 'home.pkg.loading' : 'home.pkg.pick'),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.line),
-      ),
-      child: Column(
-        children: [
-          Text(value, style: AppTypography.dataValue),
-          Text(label, style: AppTypography.dataLabel),
-        ],
-      ),
-    );
-  }
-}
-
+/// Reporte rápido: tocar lo que se ve en la chacra.
 class _CommunityCard extends StatelessWidget {
   const _CommunityCard({required this.state});
 
@@ -725,116 +474,79 @@ class _CommunityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!state.hasZona) return const SizedBox.shrink();
     final pending = state.pendingObservations;
+    final connections = state.pendingConexiones;
+    final theme = Theme.of(context).textTheme;
 
     return SoftCard(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.base),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.heladaSoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.groups_rounded,
-                  size: 20,
-                  color: AppColors.tecnologia,
-                ),
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Comunidad de tu zona',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      'Reporta lo que ves. Se envía al recuperar señal.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              Pill(
-                label: pending == 0 ? 'Al día' : '$pending pendiente(s)',
-                icon: pending == 0
-                    ? Icons.check_circle_rounded
-                    : Icons.cloud_upload_rounded,
-                color: pending == 0
-                    ? AppColors.verdePrincipal
-                    : AppColors.tierra,
-                background: pending == 0
-                    ? AppColors.buenoSoft
-                    : AppColors.secoSoft,
-                compact: true,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
+          Text(context.tr('home.comm.title'), style: theme.titleMedium),
+          const SizedBox(height: AppSpacing.xs),
+          Text(context.tr('home.comm.sub'), style: theme.bodySmall),
+          const SizedBox(height: AppSpacing.md),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
               for (final type in _types)
                 _EventChip(type: type, onTap: () => _report(context, type)),
             ],
           ),
           if (state.communityMessage != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.md),
             InfoBanner(
               message: state.communityMessage!,
               icon: Icons.cloud_sync_rounded,
-              color: AppColors.tecnologia,
-              background: AppColors.heladaSoft,
+              color: AppColors.verdePrincipal,
+              background: AppColors.buenoSoft,
               onClose: state.clearCommunityMessage,
             ),
           ],
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Icon(
-                state.apiHealthy
-                    ? Icons.cloud_done_rounded
-                    : Icons.cloud_off_rounded,
-                size: 14,
-                color: state.apiHealthy
-                    ? AppColors.verdeSecundario
-                    : AppColors.tierra,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  state.apiHealthy
-                      ? 'Servidor disponible'
-                      : 'Servidor sin respuesta · se reintentará',
-                  style: Theme.of(context).textTheme.bodySmall,
+          if (state.reportes.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.base),
+            Text(context.tr('home.comm.recent'), style: theme.titleSmall),
+            const SizedBox(height: AppSpacing.xs),
+            ReportList(reportes: state.reportes),
+          ],
+          if (pending > 0 || connections > 0 || state.syncingCommunity) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                const Icon(
+                  Icons.hourglass_empty_rounded,
+                  size: 18,
+                  color: AppColors.inkSoft,
                 ),
-              ),
-              if (state.syncingCommunity)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                TextButton(
-                  onPressed: pending > 0 ? state.syncCommunity : null,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    minimumSize: const Size(0, 32),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    pending > 0
+                        ? context.tr('home.comm.pending', {'n': pending})
+                        : context.tr('home.comm.connections', {
+                            'n': connections,
+                          }),
+                    style: theme.bodySmall,
                   ),
-                  child: const Text('Sincronizar'),
                 ),
-            ],
-          ),
+                if (state.syncingCommunity)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  TextButton(
+                    onPressed: pending > 0 ? state.syncCommunity : null,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                    ),
+                    child: Text(context.tr('common.sync')),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -849,9 +561,12 @@ class _CommunityCard extends StatelessWidget {
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          state.online
-              ? 'Reporte guardado. Enviando a la comunidad…'
-              : 'Reporte guardado. Se enviará cuando vuelva la señal.',
+          state.communityMessage ??
+              context.tr(
+                state.online
+                    ? 'community.savedOnline'
+                    : 'community.savedOffline',
+              ),
         ),
       ),
     );
@@ -872,7 +587,8 @@ class _EventChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(100),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.circular(100),
@@ -881,15 +597,15 @@ class _EventChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(eventEmoji(type), style: const TextStyle(fontSize: 13)),
-              const SizedBox(width: 5),
+              Text(eventEmoji(type), style: const TextStyle(fontSize: 18)),
+              const SizedBox(width: 6),
               Text(
-                eventLabel(type),
+                eventLabel(context, type),
                 style: const TextStyle(
                   fontFamily: AppFonts.body,
                   fontWeight: FontWeight.w600,
-                  fontSize: 11,
-                  color: AppColors.inkSoft,
+                  fontSize: 14,
+                  color: AppColors.ink,
                 ),
               ),
             ],
@@ -914,144 +630,116 @@ class _AlertsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.campaign_rounded,
-                size: 18,
-                color: AppColors.tierra,
-              ),
-              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Alertas de la comunidad',
+                  context.tr('home.alerts.title'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              Pill(
-                label: '${alertas.length}',
-                color: AppColors.tierra,
-                background: AppColors.secoSoft,
-                compact: true,
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final alerta in alertas.take(4))
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Text(
+                    eventEmoji(alerta.tipo),
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${eventLabel(context, alerta.tipo)} · ${alerta.fecha}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  Text(
+                    context.tr('home.alerts.confirm', {
+                      'n': alerta.confirmaciones,
+                    }),
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Reiniciar demo": siempre visible en web; en el celular, dentro de Avanzado.
+class _AdvancedSection extends StatefulWidget {
+  const _AdvancedSection({required this.state});
+
+  final AppState state;
+
+  @override
+  State<_AdvancedSection> createState() => _AdvancedSectionState();
+}
+
+class _AdvancedSectionState extends State<_AdvancedSection> {
+  bool _open = false;
+
+  Future<void> _reset(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AppScope(
+        state: widget.state,
+        child: Builder(
+          builder: (dialogContext) => AlertDialog(
+            title: Text(dialogContext.tr('home.reset.title')),
+            content: Text(dialogContext.tr('home.reset.body')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(dialogContext.tr('common.cancel')),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(dialogContext.tr('home.reset.btn')),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          for (final alerta in alertas.take(4)) ...[
-            Row(
-              children: [
-                Text(
-                  eventEmoji(alerta.tipo),
-                  style: const TextStyle(fontSize: 14),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${eventLabel(alerta.tipo)} · ${alerta.fecha}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-                Text(
-                  '${alerta.confirmaciones} confirmaciones',
-                  style: const TextStyle(
-                    fontFamily: AppFonts.body,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 9.5,
-                    color: AppColors.inkFaint,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-          ],
-        ],
+        ),
+      ),
+    );
+    if (confirmed != true) return;
+    await widget.state.resetDemo();
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(widget.state.notice ?? context.tr('demo.reset.done')),
       ),
     );
   }
-}
-
-class _FeatureTile extends StatelessWidget {
-  const _FeatureTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.background,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final Color background;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SoftCard(
-      padding: const EdgeInsets.all(14),
-      onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, size: 22, color: color),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 2),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 13,
-            color: AppColors.inkFaint,
-          ),
-        ],
-      ),
+    final button = OutlinedButton.icon(
+      onPressed: () => _reset(context),
+      icon: const Icon(Icons.restart_alt_rounded, size: 20),
+      label: Text(context.tr('home.reset.btn')),
     );
-  }
-}
 
-class _Footer extends StatelessWidget {
-  const _Footer();
+    if (widget.state.isDemo) return button;
 
-  @override
-  Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(width: 18, height: 2, color: AppColors.line),
-            const SizedBox(width: 8),
-            const BrandLogo(height: 17),
-            const SizedBox(width: 8),
-            Container(width: 18, height: 2, color: AppColors.line),
-          ],
+        TextButton.icon(
+          onPressed: () => setState(() => _open = !_open),
+          icon: Icon(
+            _open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+          ),
+          label: Text(context.tr('home.advanced')),
+          style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
         ),
-        const SizedBox(height: 10),
-        Text(
-          'NASA Space Apps Challenge 2026 · Huánuco, Perú',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: 2),
-        Text(
-          'Datos abiertos NASA POWER · decisiones con criterio local',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
+        if (_open) button,
       ],
     );
   }
@@ -1072,12 +760,12 @@ class _ZoneSheet extends StatelessWidget {
       child: Container(
         decoration: const BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: SafeArea(
           top: false,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -1092,7 +780,7 @@ class _ZoneSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     const BrandLogo(markOnly: true, height: 40),
@@ -1102,12 +790,12 @@ class _ZoneSheet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '¿Dónde está tu chacra?',
+                            context.tr('home.zones.title'),
                             style: Theme.of(context).textTheme.headlineSmall,
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Elige una zona para cargar su paquete climático.',
+                            context.tr('home.zones.sub'),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -1115,7 +803,7 @@ class _ZoneSheet extends StatelessWidget {
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded, size: 20),
+                      icon: const Icon(Icons.close_rounded, size: 24),
                     ),
                   ],
                 ),
@@ -1126,9 +814,8 @@ class _ZoneSheet extends StatelessWidget {
                     selected: zona.id == selectedId,
                     onTap: () => Navigator.of(context).pop(zona),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                 ],
-                const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -1141,15 +828,13 @@ class _ZoneSheet extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.offline_bolt_rounded,
-                        size: 18,
-                        color: AppColors.verdeSecundario,
+                        size: 20,
+                        color: AppColors.verdePrincipal,
                       ),
-                      const SizedBox(width: 9),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'La sierra de Huánuco viene incluida para que '
-                          'puedas empezar sin señal. Las demás zonas se '
-                          'actualizan al conectar.',
+                          context.tr('home.zones.note'),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
@@ -1161,10 +846,6 @@ class _ZoneSheet extends StatelessWidget {
           ),
         ),
       ),
-    ).animate().slideY(
-      begin: 0.06,
-      duration: 320.ms,
-      curve: Curves.easeOutCubic,
     );
   }
 }
@@ -1189,8 +870,8 @@ class _ZoneTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 64),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: selected ? AppColors.buenoSoft : AppColors.superficie,
@@ -1202,27 +883,15 @@ class _ZoneTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.verdeSecundario.withValues(alpha: 0.16)
-                      : AppColors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.line),
-                ),
-                child: Icon(
-                  isBackup
-                      ? Icons.landscape_rounded
-                      : zona.id.contains('selva')
-                      ? Icons.forest_rounded
-                      : zona.id.contains('valle')
-                      ? Icons.water_rounded
-                      : Icons.public_rounded,
-                  color: AppColors.verdePrincipal,
-                  size: 20,
-                ),
+              IconBadge(
+                icon: isBackup
+                    ? Icons.landscape_rounded
+                    : zona.id.contains('selva')
+                    ? Icons.forest_rounded
+                    : zona.id.contains('valle')
+                    ? Icons.water_rounded
+                    : Icons.public_rounded,
+                background: AppColors.white,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1230,25 +899,25 @@ class _ZoneTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      zona.nombre,
+                      prettyZoneName(zona.nombre),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       '${zona.coordenadas} · ${zona.elevacionM.round()} m',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Pill(
-                      label: isBackup
-                          ? 'Listo sin señal'
-                          : 'Demo offline · API al conectar',
+                      label: context.tr(
+                        isBackup ? 'home.zones.ready' : 'home.zones.demo',
+                      ),
                       icon: isBackup
                           ? Icons.offline_pin_rounded
                           : Icons.cloud_sync_rounded,
                       color: isBackup
                           ? AppColors.verdePrincipal
-                          : AppColors.tecnologia,
+                          : const Color(0xFF075985),
                       background: isBackup
                           ? AppColors.white
                           : AppColors.heladaSoft,
@@ -1258,29 +927,14 @@ class _ZoneTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: selected
-                      ? AppColors.verdeSecundario
-                      : Colors.transparent,
-                  border: Border.all(
-                    color: selected
-                        ? AppColors.verdeSecundario
-                        : AppColors.inkFaint,
-                    width: 1.6,
-                  ),
-                ),
-                child: selected
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 14,
-                        color: AppColors.white,
-                      )
-                    : null,
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: 24,
+                color: selected
+                    ? AppColors.verdeSecundario
+                    : AppColors.inkFaint,
               ),
             ],
           ),
@@ -1288,48 +942,4 @@ class _ZoneTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _HeroTexturePainter extends CustomPainter {
-  const _HeroTexturePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = AppColors.white.withValues(alpha: 0.07);
-
-    for (var i = 0; i < 6; i++) {
-      final path = Path();
-      final base = size.height * (0.18 + i * 0.115);
-      path.moveTo(-20, base);
-      for (var x = -20.0; x <= size.width + 20; x += 14) {
-        final y =
-            base + math.sin((x / size.width) * math.pi * 2.4 + i * 0.5) * 14;
-        path.lineTo(x, y);
-      }
-      canvas.drawPath(path, paint);
-    }
-
-    canvas.drawCircle(
-      Offset(size.width * 0.86, size.height * 0.18),
-      size.width * 0.22,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = AppColors.acentoNatural.withValues(alpha: 0.16),
-    );
-    canvas.drawCircle(
-      Offset(size.width * 0.86, size.height * 0.18),
-      size.width * 0.3,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = AppColors.acentoNatural.withValues(alpha: 0.1),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

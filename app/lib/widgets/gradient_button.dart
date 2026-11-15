@@ -146,7 +146,7 @@ class Pill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: compact ? 12 : 14, color: color),
+            Icon(icon, size: compact ? 14 : 16, color: color),
             const SizedBox(width: 5),
           ],
           Flexible(
@@ -157,7 +157,7 @@ class Pill extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppFonts.body,
                 fontWeight: FontWeight.w600,
-                fontSize: compact ? 10.5 : 11.5,
+                fontSize: compact ? 12 : 13,
                 color: color,
                 height: 1.2,
               ),

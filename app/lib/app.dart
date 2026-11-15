@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'features/shell/app_shell.dart';
 import 'features/splash/splash_view.dart';
+import 'l10n/strings.dart';
 import 'state/app_state.dart';
 import 'theme/app_theme.dart';
 
@@ -15,19 +16,32 @@ class MuyuyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reconstruye al cambiar de idioma.
+    return ListenableBuilder(
+      listenable: state,
+      builder: (context, _) => _buildApp(),
+    );
+  }
+
+  Widget _buildApp() {
     return MaterialApp(
       title: 'MUYUY',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.build(),
       themeMode: ThemeMode.light,
-      locale: const Locale('es', 'PE'),
-      supportedLocales: const [Locale('es', 'PE'), Locale('es')],
+      // Quechua no tiene localización de Material: usa la de español.
+      locale: state.lang == AppLang.en
+          ? const Locale('en')
+          : const Locale('es', 'PE'),
+      supportedLocales: const [Locale('es', 'PE'), Locale('es'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
       scrollBehavior: const _AppScrollBehavior(),
-      home: AppScope(state: state, child: const _RootGate()),
+      // Sobre el Navigator: rutas, sheets y diálogos también ven AppScope.
+      builder: (context, child) => AppScope(state: state, child: child!),
+      home: const _RootGate(),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../utils/formatters.dart';
@@ -36,7 +37,7 @@ class ScoreBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = AppColors.factor(factor);
-    final label = factorLabel(factor);
+    final label = factorLabel(context, factor);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,7 +54,7 @@ class ScoreBar extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: AppFonts.body,
                   fontWeight: FontWeight.w600,
-                  fontSize: compact ? 11.5 : 12.5,
+                  fontSize: compact ? 12.5 : 13.5,
                   color: AppColors.inkSoft,
                 ),
               ),
@@ -68,7 +69,7 @@ class ScoreBar extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.display,
                     fontWeight: FontWeight.w700,
-                    fontSize: compact ? 11.5 : 12.5,
+                    fontSize: compact ? 12.5 : 13.5,
                     color: color,
                   ),
                 );
@@ -120,19 +121,9 @@ class ConfidenceChip extends StatelessWidget {
   final String factor;
   final String level;
 
-  String get _label {
-    switch (factor) {
-      case 'clima':
-        return 'Clima';
-      case 'agua':
-        return 'Agua';
-      case 'suelo':
-        return 'Suelo';
-      case 'mercado':
-        return 'Mercado';
-      default:
-        return factor;
-    }
+  String _label(BuildContext context) {
+    final text = context.tr('confk.$factor');
+    return text == 'confk.$factor' ? factor : text;
   }
 
   @override
@@ -155,11 +146,11 @@ class ConfidenceChip extends StatelessWidget {
           ),
           const SizedBox(width: 5),
           Text(
-            '$_label · ${confidenceLabel(level)}',
+            '${_label(context)} · ${confidenceLabel(context, level)}',
             style: TextStyle(
               fontFamily: AppFonts.body,
               fontWeight: FontWeight.w600,
-              fontSize: 10.5,
+              fontSize: 12,
               color: color,
               height: 1.2,
             ),
@@ -191,14 +182,14 @@ class CropChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(cropEmoji(id), style: TextStyle(fontSize: compact ? 11 : 13)),
+          Text(cropEmoji(id), style: TextStyle(fontSize: compact ? 13 : 15)),
           const SizedBox(width: 4),
           Text(
-            cropName(id),
+            cropName(context, id),
             style: TextStyle(
               fontFamily: AppFonts.body,
               fontWeight: FontWeight.w600,
-              fontSize: compact ? 10.5 : 11.5,
+              fontSize: compact ? 12 : 13,
               color: AppColors.verdePrincipal,
               height: 1.2,
             ),

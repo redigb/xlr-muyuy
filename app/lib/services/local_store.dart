@@ -6,14 +6,19 @@ class LocalStore {
 
   final SharedPreferencesAsync _prefs;
 
+  static const _prefix = 'muyuy.';
   static const _zonaKey = 'muyuy.zona';
   static const _prioridadesKey = 'muyuy.prioridades';
   static const _riegoKey = 'muyuy.riego';
   static const _cultivoKey = 'muyuy.cultivo';
   static const _paqueteKey = 'muyuy.paquete.';
   static const _deviceKey = 'muyuy.dispositivo';
+  static const _localIdKey = 'muyuy.id_local';
   static const _observacionesKey = 'muyuy.observaciones';
+  static const _conexionesKey = 'muyuy.conexiones';
+  static const _reportesKey = 'muyuy.reportes';
   static const _soilKey = 'muyuy.suelo.';
+  static const _langKey = 'muyuy.idioma';
 
   Future<String?> readZonaId() => _prefs.getString(_zonaKey);
 
@@ -33,17 +38,28 @@ class LocalStore {
     return _prefs.setString(_prioridadesKey, prioridades.join(','));
   }
 
-  Future<bool> readRiego() async {
-    return await _prefs.getBool(_riegoKey) ?? false;
-  }
+  /// `null` si el usuario nunca lo eligió (se usa el valor de la zona).
+  Future<bool?> readRiego(String zonaId) => _prefs.getBool('$_riegoKey.$zonaId');
 
-  Future<void> writeRiego(bool value) => _prefs.setBool(_riegoKey, value);
+  Future<void> writeRiego(String zonaId, bool value) {
+    return _prefs.setBool('$_riegoKey.$zonaId', value);
+  }
 
   Future<String?> readCultivoId() => _prefs.getString(_cultivoKey);
 
   Future<void> writeCultivoId(String cultivoId) {
     return _prefs.setString(_cultivoKey, cultivoId);
   }
+
+  Future<String?> readLang() => _prefs.getString(_langKey);
+
+  Future<void> writeLang(String code) => _prefs.setString(_langKey, code);
+
+  /// UUID anónimo generado al primer uso (spec 7). Se usa en el `sobre`
+  /// y en las conexiones, aunque el celular nunca se haya registrado.
+  Future<String?> readLocalId() => _prefs.getString(_localIdKey);
+
+  Future<void> writeLocalId(String id) => _prefs.setString(_localIdKey, id);
 
   Future<String?> readDeviceJson() => _prefs.getString(_deviceKey);
 
@@ -61,6 +77,18 @@ class LocalStore {
     return _prefs.setString(_observacionesKey, json);
   }
 
+  Future<String?> readConexionesJson() => _prefs.getString(_conexionesKey);
+
+  Future<void> writeConexionesJson(String json) {
+    return _prefs.setString(_conexionesKey, json);
+  }
+
+  Future<String?> readReportesJson() => _prefs.getString(_reportesKey);
+
+  Future<void> writeReportesJson(String json) {
+    return _prefs.setString(_reportesKey, json);
+  }
+
   Future<String?> readPackageJson(String zonaId) {
     return _prefs.getString('$_paqueteKey$zonaId');
   }
@@ -75,5 +103,15 @@ class LocalStore {
 
   Future<void> writeSoilJson(String zonaId, String json) {
     return _prefs.setString('$_soilKey$zonaId', json);
+  }
+
+  /// "Reiniciar demo": borra todo lo de MUYUY menos el idioma elegido.
+  Future<void> clearAll() async {
+    final keys = await _prefs.getKeys();
+    for (final key in keys) {
+      if (key.startsWith(_prefix) && key != _langKey) {
+        await _prefs.remove(key);
+      }
+    }
   }
 }

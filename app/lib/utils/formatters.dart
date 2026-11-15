@@ -1,42 +1,18 @@
-const List<String> monthNames = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
-];
+import 'package:material_ui/material_ui.dart';
 
-const List<String> monthShort = [
-  'Ene',
-  'Feb',
-  'Mar',
-  'Abr',
-  'May',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dic',
-];
+import '../state/app_state.dart';
 
-String monthName(int month) {
-  if (month < 1 || month > 12) return '';
-  return monthNames[month - 1];
+/// Traduce una clave y, si no existe, devuelve [fallback] (ej. un id desconocido).
+String _trOr(BuildContext c, String key, String fallback) {
+  final text = c.tr(key);
+  return text == key ? fallback : text;
 }
 
-String monthShortName(int month) {
-  if (month < 1 || month > 12) return '';
-  return monthShort[month - 1];
-}
+String monthName(BuildContext c, int month) =>
+    (month < 1 || month > 12) ? '' : c.tr('month.$month');
+
+String monthShortName(BuildContext c, int month) =>
+    (month < 1 || month > 12) ? '' : c.tr('mshort.$month');
 
 String cropEmoji(String id) {
   switch (id) {
@@ -69,40 +45,7 @@ String cropEmoji(String id) {
   }
 }
 
-String cropName(String id) {
-  switch (id) {
-    case 'papa':
-      return 'Papa';
-    case 'haba':
-      return 'Haba';
-    case 'avena_forrajera':
-      return 'Avena';
-    case 'tarwi':
-      return 'Tarwi';
-    case 'quinua':
-      return 'Quinua';
-    case 'maiz_amilaceo':
-      return 'Maíz amiláceo';
-    case 'maiz_duro':
-      return 'Maíz duro';
-    case 'arveja':
-      return 'Arveja';
-    case 'cebada':
-      return 'Cebada';
-    case 'trigo':
-      return 'Trigo';
-    case 'oca':
-      return 'Oca';
-    case 'olluco':
-      return 'Olluco';
-    case 'pasto':
-      return 'Pasto';
-    case 'descanso':
-      return 'Descanso';
-    default:
-      return id;
-  }
-}
+String cropName(BuildContext c, String id) => _trOr(c, 'crop.$id', id);
 
 String prettyZoneName(String name) {
   return name
@@ -128,52 +71,14 @@ String eventEmoji(String tipo) {
   }
 }
 
-String eventLabel(String tipo) {
-  switch (tipo) {
-    case 'helada':
-      return 'Helada';
-    case 'sequia':
-      return 'Sequía';
-    case 'lluvia_fuerte':
-      return 'Lluvia fuerte';
-    case 'granizo':
-      return 'Granizo';
-    case 'plaga':
-      return 'Plaga';
-    default:
-      return tipo;
-  }
-}
+String eventLabel(BuildContext c, String tipo) =>
+    _trOr(c, 'event.$tipo', tipo);
 
-String factorLabel(String key) {
-  switch (key) {
-    case 'agua':
-      return 'Agua';
-    case 'suelo':
-      return 'Suelo';
-    case 'ingresos':
-      return 'Ingresos';
-    case 'riesgo':
-      return 'Menor riesgo';
-    default:
-      return key;
-  }
-}
+String factorLabel(BuildContext c, String key) =>
+    _trOr(c, 'factor.$key', key);
 
-String confidenceLabel(String value) {
-  switch (value) {
-    case 'alta':
-      return 'Alta';
-    case 'media':
-      return 'Media';
-    case 'baja':
-      return 'Baja';
-    case 'sin_datos':
-      return 'Sin datos';
-    default:
-      return value;
-  }
-}
+String confidenceLabel(BuildContext c, String value) =>
+    _trOr(c, 'conf.$value', value);
 
 String priorityEmoji(String factor) {
   switch (factor) {
@@ -190,23 +95,11 @@ String priorityEmoji(String factor) {
   }
 }
 
-String priorityTitle(String factor) {
-  switch (factor) {
-    case 'riesgo':
-      return 'Comida';
-    case 'ingresos':
-      return 'Ingresos';
-    case 'suelo':
-      return 'Suelo';
-    case 'agua':
-      return 'Agua';
-    default:
-      return factor;
-  }
-}
+String priorityTitle(BuildContext c, String factor) =>
+    _trOr(c, 'prio.$factor', factor);
 
 String formatVersion(String iso) {
-  if (iso.isEmpty) return 'Sin fecha';
+  if (iso.isEmpty) return '—';
   final base = iso.contains('+') ? iso.split('+').first : iso;
   final parsed = DateTime.tryParse(base);
   if (parsed == null) return base;

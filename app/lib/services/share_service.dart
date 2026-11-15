@@ -12,21 +12,25 @@ class ShareService {
 
   final PackageRepository _repository;
 
-  Future<ShareBundle> prepare(Paquete paquete) {
-    return _repository.prepareShare(paquete);
+  Future<ShareBundle> prepare(Paquete paquete, {required String compartidoPor}) {
+    return _repository.prepareShare(paquete, compartidoPor: compartidoPor);
   }
 
-  Future<ShareOutcome> sharePackage(Paquete paquete) async {
-    final bundle = await _repository.prepareShare(paquete);
+  /// Envía el archivo (Quick Share / Bluetooth). En web lo copia al portapapeles.
+  Future<ShareOutcome> sharePackage(
+    Paquete paquete, {
+    required String compartidoPor,
+    String subject = 'MUYUY',
+    String text = '',
+  }) async {
+    final bundle = await prepare(paquete, compartidoPor: compartidoPor);
     if (!kIsWeb && bundle.filePath != null) {
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(bundle.filePath!)],
-          subject: 'Paquete MUYUY · ${paquete.zona.nombre}',
-          title: 'Compartir paquete MUYUY',
-          text:
-              'Paquete de datos MUYUY para ${paquete.zona.nombre}. '
-              'Ábrelo en la app para ver calendario y rotaciones sin señal.',
+          files: [XFile(bundle.filePath!, mimeType: 'application/json')],
+          subject: subject,
+          title: subject,
+          text: text,
         ),
       );
       return ShareOutcome.shared;
@@ -35,9 +39,23 @@ class ShareService {
     return ShareOutcome.copied;
   }
 
-  String qrPayload(Paquete paquete) {
-    return 'muyuy://paquete?zona=${paquete.zona.id}'
-        '&version=${paquete.packageVersion}'
-        '&hash=${Uri.encodeComponent(paquete.hash)}';
+  /// QR = solo `{zona|celda, version, hash corto, compartido_por}` (spec 3.5).
+  String qrPayload(Paquete paquete, {required String compartidoPor}) {
+    final params = {
+      if (paquete.meta.celda.isNotEmpty)
+        'celda': paquete.meta.celda
+      else
+        'zona': paquete.clave,
+      'v': '${paquete.packageVersion}',
+      'h': _hexCorto(paquete.hash),
+      'de': compartidoPor,
+    };
+    return Uri(scheme: 'muyuy', host: 'paquete', queryParameters: params)
+        .toString();
+  }
+
+  static String _hexCorto(String hash) {
+    final hex = hash.startsWith('sha256:') ? hash.substring(7) : hash;
+    return hex.length <= 12 ? hex : hex.substring(0, 12);
   }
 }

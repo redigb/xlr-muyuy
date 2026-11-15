@@ -1,6 +1,7 @@
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/brand_logo.dart';
@@ -30,12 +31,12 @@ class SplashView extends StatelessWidget {
                   const BrandLogo(white: true, height: 74, animateIn: true),
                   const SizedBox(height: 18),
                   Text(
-                    'Del dato satelital a tu chacra.',
+                    context.tr('splash.tagline'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: AppFonts.body,
                       fontWeight: FontWeight.w500,
-                      fontSize: 13.5,
+                      fontSize: 15,
                       color: AppColors.white.withValues(alpha: 0.78),
                       height: 1.5,
                     ),
@@ -58,7 +59,7 @@ class SplashView extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: AppFonts.body,
                       fontWeight: FontWeight.w600,
-                      fontSize: 9.5,
+                      fontSize: 11,
                       letterSpacing: 1.4,
                       color: AppColors.white.withValues(alpha: 0.5),
                     ),

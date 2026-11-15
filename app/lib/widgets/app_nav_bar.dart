@@ -1,45 +1,47 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 
 class NavDestination {
   const NavDestination({
     required this.icon,
     required this.activeIcon,
-    required this.label,
+    required this.labelKey,
   });
 
   final IconData icon;
   final IconData activeIcon;
-  final String label;
+  final String labelKey;
 }
 
 const appDestinations = <NavDestination>[
   NavDestination(
     icon: Icons.home_outlined,
     activeIcon: Icons.home_rounded,
-    label: 'Inicio',
+    labelKey: 'nav.home',
   ),
   NavDestination(
     icon: Icons.agriculture_outlined,
     activeIcon: Icons.agriculture_rounded,
-    label: 'Chacra',
+    labelKey: 'nav.farm',
   ),
   NavDestination(
     icon: Icons.calendar_month_outlined,
     activeIcon: Icons.calendar_month_rounded,
-    label: 'Calendario',
+    labelKey: 'nav.calendar',
   ),
   NavDestination(
     icon: Icons.layers_outlined,
     activeIcon: Icons.layers_rounded,
-    label: 'Opciones',
+    labelKey: 'nav.options',
   ),
   NavDestination(
     icon: Icons.qr_code_2_outlined,
     activeIcon: Icons.qr_code_2_rounded,
-    label: 'Compartir',
+    labelKey: 'nav.share',
   ),
 ];
 
@@ -63,7 +65,9 @@ class AppNavBar extends StatelessWidget {
       child: Center(
         heightFactor: 1,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
           child: Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
@@ -107,7 +111,7 @@ class _NavItem extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      label: destination.label,
+      label: context.tr(destination.labelKey),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -143,15 +147,15 @@ class _NavItem extends StatelessWidget {
                   style: TextStyle(
                     fontFamily: AppFonts.body,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    fontSize: 9.5,
-                    letterSpacing: 0.1,
+                    fontSize: 11.5,
+                    letterSpacing: 0,
                     color: selected
                         ? AppColors.verdePrincipal
                         : AppColors.inkFaint,
                     height: 1.1,
                   ),
                   child: Text(
-                    destination.label,
+                    context.tr(destination.labelKey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

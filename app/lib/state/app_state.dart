@@ -7,25 +7,35 @@ import 'package:flutter/widgets.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/demo_data.dart';
+import '../l10n/strings.dart';
 import '../models/community.dart';
 import '../models/models.dart';
 import '../models/soil_analysis.dart';
 import '../services/api_service.dart';
+import '../services/location_service.dart';
 import '../services/package_repository.dart';
 import '../services/share_service.dart';
+
+/// Estado de "Usar mi ubicación" (spec 10.1).
+enum LocationStatus { idle, locating, calculating, done, fallback }
 
 class AppState extends ChangeNotifier {
   AppState({
     PackageRepository? repository,
     Connectivity? connectivity,
     ShareService? shareService,
+    LocationService? locationService,
+    AppLang? initialLang,
   }) : _repo = repository ?? PackageRepository(),
-       _connectivity = connectivity ?? Connectivity() {
+       _connectivity = connectivity ?? Connectivity(),
+       _location = locationService ?? LocationService(),
+       _lang = initialLang ?? _deviceLang() {
     _sharing = shareService ?? ShareService(_repo);
   }
 
   final PackageRepository _repo;
   final Connectivity _connectivity;
+  final LocationService _location;
   late final ShareService _sharing;
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -40,16 +50,23 @@ class AppState extends ChangeNotifier {
   String? _notice;
   String? _communityMessage;
 
+  AppLang _lang;
+  String _localId = '';
   List<Zona> _zonas = List<Zona>.of(DemoData.zonas);
   Zona? _zona;
   Paquete? _paquete;
   PackageOrigin? _origin;
   String? _cultivoInicial;
   int _pendingObservations = 0;
+  int _pendingConexiones = 0;
+  List<Reporte> _reportes = const [];
   SoilRecord? _lastSoil;
+  LocationStatus _locationStatus = LocationStatus.idle;
 
   Set<String> _prioridades = {'riesgo', 'ingresos'};
   bool _riego = false;
+
+  // ---------------------------------------------------------------- getters
 
   bool get initializing => _initializing;
   bool get online => _online;
@@ -60,13 +77,35 @@ class AppState extends ChangeNotifier {
   String? get lastError => _lastError;
   String? get notice => _notice;
   String? get communityMessage => _communityMessage;
+
+  /// Idioma de la interfaz (es / en / qu).
+  AppLang get lang => _lang;
+
+  /// Traduce una clave de `lib/l10n/strings.dart` al idioma actual.
+  String t(String key, [Map<String, Object?> args = const {}]) =>
+      tr(_lang, key, args);
+
+  /// `true` en la demo web para el jurado (observaciones con `demo: true`).
+  bool get isDemo => kIsWeb;
+
+  /// ID anónimo de este celular (va en el `sobre` y en las conexiones).
+  String get localId => _localId;
+
   List<Zona> get zonas => _zonas;
   Zona? get zona => _zona;
   Paquete? get paquete => _paquete;
   PackageOrigin? get origin => _origin;
   String? get cultivoInicial => _cultivoInicial;
   int get pendingObservations => _pendingObservations;
+  int get pendingConexiones => _pendingConexiones;
+
+  /// Historial de reportes con su estado (⏳ / ✅), más nuevos primero.
+  List<Reporte> get reportes => _reportes;
   SoilRecord? get lastSoil => _lastSoil;
+  LocationStatus get locationStatus => _locationStatus;
+  bool get locating =>
+      _locationStatus == LocationStatus.locating ||
+      _locationStatus == LocationStatus.calculating;
   Set<String> get prioridades => Set.unmodifiable(_prioridades);
   bool get riego => _riego;
   bool get canContinue => _prioridades.length == 2;
@@ -75,6 +114,15 @@ class AppState extends ChangeNotifier {
   String get apiBaseUrl => _repo.apiBaseUrl;
   ShareService get sharing => _sharing;
   List<Alerta> get alertas => _paquete?.alertas ?? const [];
+
+  /// `false` para paquetes por coordenada: mostrar aviso 🟡.
+  bool get validadaLocalmente => _paquete?.validadaLocalmente ?? true;
+
+  /// Vigencia por sección (`calendario`, `condiciones`, `alertas`).
+  Map<String, ValidityState> get vigencias => _paquete?.vigencias ?? const {};
+
+  bool seccionVencida(String seccion) =>
+      vigencias[seccion] == ValidityState.expired;
 
   List<String> get cultivosIniciales {
     final current = _zona;
@@ -93,39 +141,49 @@ class AppState extends ChangeNotifier {
   Rotacion? get rotacionActual {
     final data = _paquete;
     if (data == null) return null;
-    for (final rotacion in data.rotaciones) {
+    final candidatas = _filtradas(data);
+    for (final rotacion in candidatas) {
       if (rotacion.esPracticaComun) return rotacion;
     }
     final practice = _zona?.practicaComun ?? const <String>[];
     if (practice.isNotEmpty) {
-      for (final rotation in data.rotaciones) {
+      for (final rotation in candidatas) {
         if (_sameSequence(rotation.secuencia, practice)) return rotation;
       }
     }
-    return data.rotaciones.isEmpty ? null : data.rotaciones.first;
+    return null;
   }
 
+  /// Todas las candidatas del cultivo actual, ordenadas por prioridades.
   List<Rotacion> get rotacionesTodas {
     final data = _paquete;
     if (data == null) return const [];
-    final crop = _cultivoInicial;
-    final filtered = crop == null || crop.isEmpty
-        ? data.rotaciones
-        : data.rotaciones.where((item) => item.cultivoInicial == crop).toList();
-    return Scoring.ordenar(
-      filtered.isEmpty ? data.rotaciones : filtered,
-      _prioridades,
-    );
+    return Scoring.ordenar(_filtradas(data), _prioridades);
   }
 
   List<Rotacion> get rotacionesOrdenadas => rotacionesTodas;
 
-  double puntaje(Rotacion rotacion) {
-    return rotacion.puntajeFinal(_prioridades);
+  /// Las 3 que se muestran (spec 4.4): práctica común (si existe) + 2 mejores.
+  List<Rotacion> get rotacionesRecomendadas {
+    final todas = rotacionesTodas;
+    final actual = rotacionActual;
+    if (actual == null) return todas.take(3).toList();
+    return [
+      actual,
+      ...todas.where((item) => item.id != actual.id).take(2),
+    ];
   }
+
+  double puntaje(Rotacion rotacion) => rotacion.puntajeFinal(_prioridades);
+
+  // ------------------------------------------------------------ ciclo de vida
 
   Future<void> initialize() async {
     try {
+      final storedLang = await _repo.readLang();
+      if (storedLang != null) _lang = AppLangInfo.fromCode(storedLang);
+      _localId = await _ensureLocalId();
+
       final storedZone = await _repo.readZonaId();
       final storedPrioridades = await _repo.readPrioridades();
       final storedCrop = await _repo.readCultivoId();
@@ -133,13 +191,13 @@ class AppState extends ChangeNotifier {
         _prioridades = LinkedHashSet<String>.of(storedPrioridades);
       }
 
-      final targetId = storedZone.isNotEmpty ? storedZone : 'huanuco-sierra';
-      _zona = _findZona(targetId) ?? DemoData.zonas.first;
-      await _loadLocal(_zona!.id);
-      await _loadSoil(_zona!.id);
-      _riego = _zona?.riego ?? await _repo.readRiego();
+      final targetId = storedZone.isNotEmpty
+          ? storedZone
+          : PackageRepository.fallbackZona;
+      await _openZona(targetId);
       _resolveInitialCrop(storedCrop);
-      _pendingObservations = (await _repo.readObservaciones()).length;
+      await _reloadPendingCounts();
+      _reportes = await _repo.readReportes();
     } finally {
       _initializing = false;
       notifyListeners();
@@ -147,75 +205,87 @@ class AppState extends ChangeNotifier {
 
     unawaited(_watchConnectivity());
     unawaited(_syncInBackground());
-    if (_pendingObservations > 0) {
-      unawaited(syncCommunity(silent: true));
-    }
   }
+
+  Future<void> setLang(AppLang value) async {
+    if (_lang == value) return;
+    final cambiaApi = _lang.apiLang != value.apiLang;
+    _lang = value;
+    notifyListeners();
+    await _repo.saveLang(value.code);
+    // Las explicaciones del paquete vienen en el idioma pedido (es / en).
+    if (cambiaApi && _online) unawaited(_refreshSilently(_zona?.id ?? ''));
+  }
+
+  /// El paquete instalado está al día si es la versión del servidor y en el idioma actual.
+  bool _alDia(Paquete? current, int remoteVersion) =>
+      current != null &&
+      current.meta.idioma == _lang.apiLang &&
+      current.packageVersion >= remoteVersion;
 
   Future<void> selectZona(Zona zona) async {
     if (_zona?.id == zona.id && _paquete != null) return;
-    _zona = zona;
-    _paquete = null;
-    _origin = null;
     _loadingPackage = true;
     _lastError = null;
     _notice = null;
+    _paquete = null;
+    _origin = null;
+    _zona = zona;
     notifyListeners();
 
     await _repo.saveZonaId(zona.id);
-    await _loadLocal(zona.id);
-    await _loadSoil(zona.id);
-    _riego = zona.riego;
+    await _openZona(zona.id, zonaHint: zona);
     _resolveInitialCrop(null);
 
     _loadingPackage = false;
     notifyListeners();
 
-    if (_online) {
-      unawaited(_refreshSilently(zona.id));
-    }
+    if (_online) unawaited(_refreshSilently(zona.id));
   }
 
   Future<bool> downloadCurrent() async {
     final target = _zona;
     if (target == null || _downloading) return false;
+    if (_paquete?.esCoordenada ?? false) return false;
 
     _downloading = true;
     _lastError = null;
     notifyListeners();
 
     try {
-      final remoteInfo = await _repo.fetchVersion(target.id);
+      final remoteInfo = await _repo.fetchVersion(
+        target.id,
+        lang: _lang.apiLang,
+      );
       _apiHealthy = true;
       final current = _paquete;
-      if (current != null &&
-          current.packageVersion == remoteInfo.version &&
-          current.hash == remoteInfo.hash) {
-        _notice = 'Ya tienes la última versión (v${remoteInfo.version}).';
+      if (_alDia(current, remoteInfo.version)) {
+        _notice = t('pkg.latest', {'version': current!.packageVersion});
         return true;
       }
 
-      final remote = await _repo.fetchRemote(target.id);
+      final remote = await _repo.fetchRemote(target.id, lang: _lang.apiLang);
       if (_zona?.id == target.id) {
         _paquete = remote;
         _origin = PackageOrigin.api;
-        _notice =
-            'Paquete v${remote.packageVersion} verificado y guardado en el celular.';
+        _notice = t('pkg.downloaded', {'version': remote.packageVersion});
         _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
       }
       return true;
     } on ApiException catch (error) {
-      _lastError = error.message;
+      _lastError = error.messageIn(_lang);
       _notice = null;
       return false;
     } catch (_) {
-      _lastError = 'No se pudo descargar el paquete. Usando la copia local.';
+      _lastError = t('pkg.downloadFailed');
       return false;
     } finally {
       _downloading = false;
       notifyListeners();
     }
   }
+
+  // ---------------------------------------------------------- "Mi chacra"
 
   void togglePrioridad(String factor) {
     if (_prioridades.contains(factor)) {
@@ -235,7 +305,8 @@ class AppState extends ChangeNotifier {
     if (_riego == value) return;
     _riego = value;
     notifyListeners();
-    unawaited(_repo.saveRiego(value));
+    final zonaId = _zona?.id;
+    if (zonaId != null) unawaited(_repo.saveRiego(zonaId, value));
   }
 
   void setCultivoInicial(String cultivoId) {
@@ -245,85 +316,197 @@ class AppState extends ChangeNotifier {
     unawaited(_repo.saveCultivoId(cultivoId));
   }
 
+  // --------------------------------------------- "Usar mi ubicación" (P1)
+
+  /// Pide la ubicación, calcula un paquete para esa celda y, si algo falla
+  /// (permiso, señal, servidor o > 30 s), vuelve a Huánuco sin pantalla de error.
+  Future<void> useMyLocation() async {
+    if (locating) return;
+    _locationStatus = LocationStatus.locating;
+    _lastError = null;
+    _notice = null;
+    notifyListeners();
+
+    if (!_online) {
+      await _fallbackToHuanuco('location.fallback.offline');
+      return;
+    }
+
+    final position = await _location.current();
+    if (position == null) {
+      await _fallbackToHuanuco('location.fallback.denied');
+      return;
+    }
+
+    _locationStatus = LocationStatus.calculating;
+    notifyListeners();
+
+    try {
+      final paquete = await _repo
+          .fetchCoordenada(
+            lat: position.lat,
+            lon: position.lon,
+            lang: _lang.apiLang,
+          )
+          .timeout(ApiService.coordenadaTimeout);
+      _installActive(paquete, PackageOrigin.location);
+      await _repo.saveZonaId(paquete.clave);
+      _riego = await _repo.readRiego(paquete.clave) ?? paquete.zona.riego;
+      _lastSoil = await _repo.readSoil(paquete.clave);
+      _resolveInitialCrop(null);
+      _apiHealthy = true;
+      _locationStatus = LocationStatus.done;
+      _notice = t('location.ok');
+      notifyListeners();
+    } catch (_) {
+      await _fallbackToHuanuco('location.fallback.failed');
+    }
+  }
+
+  Future<void> _fallbackToHuanuco(String noticeKey) async {
+    final huanuco =
+        _findZona(PackageRepository.fallbackZona) ?? DemoData.zonas.first;
+    _paquete = null;
+    _zona = huanuco;
+    await _repo.saveZonaId(huanuco.id);
+    await _openZona(huanuco.id, zonaHint: huanuco);
+    _resolveInitialCrop(null);
+    _locationStatus = LocationStatus.fallback;
+    _notice = t(noticeKey);
+    notifyListeners();
+  }
+
+  // --------------------------------------------------------- "Reiniciar demo"
+
+  /// Borra el estado local (menos el idioma) y vuelve a Huánuco.
+  Future<void> resetDemo() async {
+    await _repo.clearAll();
+    _localId = await _ensureLocalId();
+    _prioridades = {'riesgo', 'ingresos'};
+    _reportes = const [];
+    _pendingObservations = 0;
+    _pendingConexiones = 0;
+    _communityMessage = null;
+    _lastError = null;
+    _locationStatus = LocationStatus.idle;
+    _zonas = List<Zona>.of(DemoData.zonas);
+    await _openZona(PackageRepository.fallbackZona);
+    _resolveInitialCrop(null);
+    _notice = t('demo.reset.done');
+    notifyListeners();
+  }
+
+  // --------------------------------------------------------------- comunidad
+
   Future<bool> reportObservation(String tipo, {double? valor}) async {
     final currentZone = _zona;
+    final data = _paquete;
     if (currentZone == null) return false;
     final now = DateTime.now();
+    final celda = (data?.esCoordenada ?? false) ? data!.meta.celda : null;
     final observation = Observacion(
       idLocal: const Uuid().v4(),
       zonaId: currentZone.id,
+      celda: celda,
+      // Centro de la zona/celda: nunca la ubicación exacta (spec 15).
+      latAprox: currentZone.lat,
+      lonAprox: currentZone.lon,
       tipo: tipo,
       fechaEvento:
           '${now.year.toString().padLeft(4, '0')}-'
           '${now.month.toString().padLeft(2, '0')}-'
           '${now.day.toString().padLeft(2, '0')}',
-      demo: kIsWeb,
+      demo: isDemo,
       creado: now.toUtc().toIso8601String(),
       valor: valor,
     );
 
     final pending = [...await _repo.readObservaciones(), observation];
     await _repo.writeObservaciones(pending);
+    _reportes = [
+      Reporte(
+        idLocal: observation.idLocal,
+        tipo: tipo,
+        fechaEvento: observation.fechaEvento,
+        estado: 'por_enviar',
+      ),
+      ..._reportes,
+    ];
+    await _repo.writeReportes(_reportes);
     _pendingObservations = pending.length;
-    _communityMessage = _online
-        ? 'Reporte guardado. Enviando a la comunidad…'
-        : 'Reporte guardado. Se enviará cuando vuelva la señal.';
+    _communityMessage = t(
+      _online ? 'community.savedOnline' : 'community.savedOffline',
+    );
     notifyListeners();
 
-    if (_online) {
-      unawaited(syncCommunity(silent: true));
-    }
+    if (_online) unawaited(syncCommunity(silent: true));
     return true;
   }
 
+  /// `POST /api/dispositivos` (1.ª vez) + `POST /api/sync` con observaciones
+  /// y conexiones guardadas offline.
   Future<void> syncCommunity({bool silent = false}) async {
     if (_syncingCommunity) return;
     final pending = await _repo.readObservaciones();
+    final conexiones = await _repo.readConexiones();
     _pendingObservations = pending.length;
-    if (pending.isEmpty) {
+    _pendingConexiones = conexiones.length;
+    if (pending.isEmpty && conexiones.isEmpty && !_hayReportesEnRevision) {
       if (!silent) {
-        _communityMessage = 'No hay reportes pendientes de enviar.';
+        _communityMessage = t('community.nothing');
         notifyListeners();
       }
       return;
     }
 
     _syncingCommunity = true;
-    if (!silent) {
-      _communityMessage = 'Sincronizando reportes…';
-    }
+    if (!silent) _communityMessage = t('community.syncing');
     notifyListeners();
 
     try {
       var device = await _repo.readDevice();
       if (device == null) {
-        device = await _repo.registerDevice(demo: kIsWeb);
+        device = await _repo.registerDevice(demo: isDemo, idLocal: _localId);
         await _repo.saveDevice(device);
       }
 
       SyncSummary summary;
       try {
-        summary = await _repo.sync(token: device.token, observaciones: pending);
+        summary = await _repo.sync(
+          token: device.token,
+          observaciones: pending,
+          conexiones: conexiones,
+        );
       } on ApiAuthException {
         await _repo.clearDevice();
-        device = await _repo.registerDevice(demo: kIsWeb);
+        device = await _repo.registerDevice(demo: isDemo, idLocal: _localId);
         await _repo.saveDevice(device);
-        summary = await _repo.sync(token: device.token, observaciones: pending);
+        summary = await _repo.sync(
+          token: device.token,
+          observaciones: pending,
+          conexiones: conexiones,
+        );
       }
 
       await _repo.writeObservaciones(const []);
+      await _repo.writeConexiones(const []);
       _pendingObservations = 0;
+      _pendingConexiones = 0;
+      await _applySyncDetalle(summary);
       _apiHealthy = true;
-      _communityMessage =
-          '${summary.aceptadas} reporte(s) enviados. '
-          '${summary.rechazadas} rechazado(s).';
+      if (pending.isNotEmpty || !silent) {
+        _communityMessage = t('community.synced', {
+          'ok': summary.aceptadas,
+          'bad': summary.rechazadas,
+        });
+      }
       notifyListeners();
       unawaited(_refreshSilently(_zona?.id ?? ''));
     } on ApiException catch (error) {
-      _communityMessage = error.message;
+      if (!silent) _communityMessage = error.messageIn(_lang);
       notifyListeners();
     } catch (_) {
-      _communityMessage = 'No se pudieron enviar los reportes. Se reintentará.';
+      if (!silent) _communityMessage = t('community.retry');
       notifyListeners();
     } finally {
       _syncingCommunity = false;
@@ -337,27 +520,65 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --------------------------------------------------------- compartir
+
+  Future<ShareOutcome> sharePackage() async {
+    final data = _paquete;
+    if (data == null) return ShareOutcome.copied;
+    return _sharing.sharePackage(data, compartidoPor: _localId);
+  }
+
+  String qrPayload() {
+    final data = _paquete;
+    if (data == null) return '';
+    return _sharing.qrPayload(data, compartidoPor: _localId);
+  }
+
+  /// Importa un archivo recibido: verifica hash → compara versión →
+  /// instala o descarta → registra la conexión `COMPARTIO`.
   Future<bool> importPackage(String rawJson) async {
     try {
-      final imported = await _repo.importJson(rawJson);
-      _paquete = imported;
-      _origin = PackageOrigin.imported;
-      _zona = _findZona(imported.zona.id) ?? imported.zona;
-      if (!_zonas.any((item) => item.id == imported.zona.id)) {
-        _zonas = [..._zonas, imported.zona];
+      final result = await _repo.importJson(rawJson);
+      await _recordConexion(result);
+
+      final imported = result.paquete;
+      if (result.outcome == ImportOutcome.installed) {
+        final zona = _findZona(imported.clave) ?? imported.zona;
+        if (!_zonas.any((item) => item.id == zona.id)) {
+          _zonas = [..._zonas, zona];
+        }
+        _zona = zona;
+        _installActive(
+          imported,
+          imported.esCoordenada
+              ? PackageOrigin.location
+              : PackageOrigin.imported,
+        );
+        await _repo.saveZonaId(imported.clave);
+        _riego = await _repo.readRiego(imported.clave) ?? zona.riego;
+        _lastSoil = await _repo.readSoil(imported.clave);
+        _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
+        _notice = t('import.ok', {'version': imported.packageVersion});
+      } else if (result.outcome == ImportOutcome.older) {
+        _notice = t('import.older', {
+          'installed': result.installedVersion,
+          'incoming': _incomingVersion(rawJson),
+        });
+      } else {
+        _notice = t('import.same', {'version': imported.packageVersion});
       }
-      await _repo.saveZonaId(imported.zona.id);
-      await _loadSoil(imported.zona.id);
-      _riego = imported.zona.riego;
-      _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
       _lastError = null;
-      _notice = 'Paquete importado y verificado. Ya funciona sin señal.';
       notifyListeners();
+      if (_online) unawaited(syncCommunity(silent: true));
       return true;
-    } catch (error) {
-      _lastError = error is FormatException
-          ? error.message
-          : 'No se pudo leer el archivo del paquete.';
+    } on ImportException catch (error) {
+      _lastError = t(error.code);
+      _notice = null;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _lastError = t('import.unreadable');
+      _notice = null;
       notifyListeners();
       return false;
     }
@@ -369,6 +590,8 @@ class AppState extends ChangeNotifier {
     _notice = null;
     notifyListeners();
   }
+
+  // ------------------------------------------------------------------ suelo
 
   Future<void> saveSoilAnalysis(SoilRecord record) async {
     _lastSoil = record;
@@ -386,19 +609,122 @@ class AppState extends ChangeNotifier {
     await reportObservation('otro', valor: correctedIndex.toDouble());
   }
 
-  Future<void> _loadSoil(String zonaId) async {
-    _lastSoil = await _repo.readSoil(zonaId);
+  // ---------------------------------------------------------------- privado
+
+  static AppLang _deviceLang() {
+    if (!kIsWeb) return AppLang.es;
+    // En la web (jurado): idioma del navegador; español solo si lo pide.
+    final code = PlatformDispatcher.instance.locale.languageCode;
+    if (code == 'es') return AppLang.es;
+    if (code == 'qu') return AppLang.qu;
+    return AppLang.en;
   }
 
-  Future<void> _loadLocal(String zonaId) async {
+  Future<String> _ensureLocalId() async {
+    final stored = await _repo.readLocalId();
+    if (stored != null && stored.isNotEmpty) return stored;
+    final id = 'disp-${const Uuid().v4()}';
+    await _repo.saveLocalId(id);
+    return id;
+  }
+
+  Future<void> _openZona(String zonaId, {Zona? zonaHint}) async {
     final local = await _repo.loadLocal(zonaId);
     if (local == null) {
+      _zona = zonaHint ?? _findZona(zonaId) ?? DemoData.zonas.first;
       _paquete = null;
       _origin = null;
-      return;
+    } else {
+      _zona = zonaHint ?? _findZona(local.paquete.clave) ?? local.paquete.zona;
+      if (!_zonas.any((item) => item.id == _zona!.id)) {
+        _zonas = [..._zonas, _zona!];
+      }
+      _paquete = local.paquete;
+      _origin = local.origin;
     }
-    _paquete = local.paquete;
-    _origin = local.origin;
+    final id = _zona!.id;
+    _riego = await _repo.readRiego(id) ?? _zona!.riego;
+    _lastSoil = await _repo.readSoil(id);
+  }
+
+  void _installActive(Paquete paquete, PackageOrigin origin) {
+    _paquete = paquete;
+    _origin = origin;
+    if (paquete.esCoordenada) {
+      _zona = paquete.zona;
+      if (!_zonas.any((item) => item.id == paquete.clave)) {
+        _zonas = [..._zonas, paquete.zona];
+      }
+    }
+  }
+
+  Future<void> _recordConexion(ImportResult result) async {
+    final origen = result.compartidoPor;
+    if (origen == null || origen.isEmpty || origen == _localId) return;
+    final conexion = Conexion(
+      origen: origen,
+      destino: _localId,
+      paquete: result.paquete.etiquetaVersion,
+      fecha: DateTime.now().toUtc().toIso8601String(),
+      demo: isDemo,
+    );
+    final existing = await _repo.readConexiones();
+    if (existing.any((item) => item.sameAs(conexion))) return;
+    final updated = [...existing, conexion];
+    await _repo.writeConexiones(updated);
+    _pendingConexiones = updated.length;
+  }
+
+  /// Versión del archivo descartado (solo para el mensaje).
+  int? _incomingVersion(String rawJson) {
+    final match = RegExp(r'"version"\s*:\s*(\d+)').firstMatch(rawJson);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
+  /// Reportes enviados que el consenso todavía puede cambiar.
+  bool get _hayReportesEnRevision =>
+      _reportes.any((r) => r.estado == 'pendiente' || r.estado == 'sospechosa');
+
+  Future<void> _applySyncDetalle(SyncSummary summary) async {
+    if (_reportes.isEmpty) return;
+    // `estados` = estado ACTUAL en el servidor; `detalle` = lo recién enviado (gana).
+    final byId = {
+      for (final item in summary.estados) item.idLocal: item,
+      for (final item in summary.detalle) item.idLocal: item,
+    };
+    _reportes = [
+      for (final reporte in _reportes)
+        if (byId[reporte.idLocal] case final detalle?)
+          reporte.withEstado(
+            detalle.aceptada
+                ? _normalizeEstado(detalle.estado)
+                : 'rechazada',
+            puntaje: detalle.puntaje,
+          )
+        else if (!reporte.enviado)
+          reporte.withEstado('pendiente')
+        else
+          reporte,
+    ];
+    await _repo.writeReportes(_reportes);
+  }
+
+  String _normalizeEstado(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'validada':
+      case 'validated':
+        return 'validada';
+      case 'sospechosa':
+      case 'suspicious':
+        return 'sospechosa';
+      default:
+        return 'pendiente';
+    }
+  }
+
+  Future<void> _reloadPendingCounts() async {
+    _pendingObservations = (await _repo.readObservaciones()).length;
+    _pendingConexiones = (await _repo.readConexiones()).length;
   }
 
   Future<void> _syncInBackground() async {
@@ -414,41 +740,38 @@ class AppState extends ChangeNotifier {
         notifyListeners();
       }
     } catch (_) {
-      // The bundled zone list keeps the app fully usable offline.
+      // La lista incluida mantiene la app usable sin señal.
     }
 
     final target = _zona;
-    if (target == null || _origin == PackageOrigin.imported) return;
-    await _refreshSilently(target.id);
-    if (_pendingObservations > 0) {
+    if (target != null) await _refreshSilently(target.id);
+    if (_pendingObservations > 0 ||
+        _pendingConexiones > 0 ||
+        _hayReportesEnRevision) {
       unawaited(syncCommunity(silent: true));
     }
   }
 
+  /// Con señal: `GET /version` y descarga solo si hay una versión MAYOR.
   Future<void> _refreshSilently(String zonaId) async {
-    if (zonaId.isEmpty) return;
+    if (zonaId.isEmpty || (_paquete?.esCoordenada ?? false)) return;
     try {
-      final info = await _repo.fetchVersion(zonaId);
+      final info = await _repo.fetchVersion(zonaId, lang: _lang.apiLang);
       _apiHealthy = true;
-      final current = _paquete;
-      if (current != null &&
-          current.packageVersion == info.version &&
-          current.hash == info.hash) {
+      if (_alDia(_paquete, info.version)) {
         notifyListeners();
         return;
       }
+      final remote = await _repo.fetchRemote(zonaId, lang: _lang.apiLang);
+      if (_zona?.id != zonaId) return;
+      _paquete = remote;
+      _origin = PackageOrigin.api;
+      _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
+      notifyListeners();
     } catch (_) {
       _apiHealthy = false;
       notifyListeners();
-      return;
     }
-
-    final remote = await _repo.fetchRemoteSilently(zonaId);
-    if (remote == null || _zona?.id != zonaId) return;
-    _paquete = remote;
-    _origin = PackageOrigin.api;
-    _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
-    notifyListeners();
   }
 
   Future<void> _watchConnectivity() async {
@@ -462,9 +785,7 @@ class AppState extends ChangeNotifier {
     _connectivitySub = _connectivity.onConnectivityChanged.listen((results) {
       final isOnline = !results.contains(ConnectivityResult.none);
       _setOnline(isOnline);
-      if (isOnline) {
-        unawaited(_syncInBackground());
-      }
+      if (isOnline) unawaited(_syncInBackground());
     });
   }
 
@@ -472,6 +793,15 @@ class AppState extends ChangeNotifier {
     if (_online == value) return;
     _online = value;
     notifyListeners();
+  }
+
+  List<Rotacion> _filtradas(Paquete data) {
+    final crop = _cultivoInicial;
+    if (crop == null || crop.isEmpty) return data.rotaciones;
+    final filtered = data.rotaciones
+        .where((item) => item.cultivoInicial == crop)
+        .toList();
+    return filtered.isEmpty ? data.rotaciones : filtered;
   }
 
   void _resolveInitialCrop(String? stored, {bool keepCurrent = false}) {
@@ -534,4 +864,10 @@ class AppScope extends InheritedNotifier<AppState> {
     assert(scope != null, 'AppScope no encontrado en el árbol de widgets.');
     return scope!.notifier!;
   }
+}
+
+/// Atajo para la UI: `context.tr('clave')`.
+extension AppTr on BuildContext {
+  String tr(String key, [Map<String, Object?> args = const {}]) =>
+      AppScope.of(this).t(key, args);
 }

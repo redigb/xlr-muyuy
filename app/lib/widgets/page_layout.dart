@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import 'brand_logo.dart';
 
 class PageBody extends StatelessWidget {
@@ -19,7 +20,9 @@ class PageBody extends StatelessWidget {
       bottom: false,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 760),
+          constraints: const BoxConstraints(
+            maxWidth: AppSpacing.maxContentWidth,
+          ),
           child: ListView(
             padding: padding,
             physics: const BouncingScrollPhysics(

@@ -7,11 +7,13 @@ import '../../models/soil_analysis.dart';
 import '../../services/soil/soil_vision_service.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/soft_card.dart';
+import '../../widgets/status_widgets.dart';
 
 class SoilVisionScreen extends StatefulWidget {
   const SoilVisionScreen({super.key, required this.state});
@@ -80,7 +82,7 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'No se pudo usar la cámara o leer la foto. Intenta de nuevo.';
+        _error = context.tr('soil.err.camera');
         _busy = false;
       });
     }
@@ -138,12 +140,12 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'SoilVision AI',
+                        context.tr('soil.title'),
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
                         zone == null
-                            ? 'Lectura visual del suelo'
+                            ? context.tr('soil.subtitle')
                             : prettyZoneName(zone.nombre),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -152,18 +154,9 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
                     ],
                   ),
                 ),
-                Pill(
-                  label: kIsWeb ? 'Vista web' : 'TFLite local',
-                  icon: Icons.memory_rounded,
-                  color: AppColors.tecnologia,
-                  background: AppColors.heladaSoft,
-                  compact: true,
-                ),
               ],
             ),
             const SizedBox(height: 14),
-            const _SoilHero(),
-            const SizedBox(height: 16),
             _PhotoCard(
               bytes: _bytes,
               busy: _busy,
@@ -184,8 +177,10 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
               ),
             ],
             if (_result != null) ...[
-              const SizedBox(height: 16),
-              _QualityCard(result: _result!),
+              if (!_result!.quality.ok) ...[
+                const SizedBox(height: 12),
+                _QualityCard(result: _result!),
+              ],
               if (_result!.prediction != null) ...[
                 const SizedBox(height: 12),
                 _PredictionCard(prediction: _result!.prediction!),
@@ -208,161 +203,50 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
                   background: AppColors.heladaSoft,
                 ),
               ],
-              const SizedBox(height: 12),
-              const _DisclaimerCard(),
-              const SizedBox(height: 12),
-              const _MeaningCard(),
               const SizedBox(height: 16),
               GradientButton(
-                label: 'Analizar otra foto',
+                label: context.tr('soil.again'),
                 icon: Icons.camera_alt_rounded,
                 onPressed: _reset,
               ),
             ],
             const SizedBox(height: 14),
-            const InfoBanner(
-              message:
-                  'Modelo fp16 no validado en suelos de Huánuco. '
-                  'Úsalo como apoyo visual, no como diagnóstico agronómico.',
+            InfoBanner(
+              message: context.tr('soil.warn'),
               icon: Icons.science_rounded,
               color: AppColors.tierra,
               background: AppColors.secoSoft,
             ),
             const SizedBox(height: 8),
-            Center(
-              child: Text(
-                SoilVisionService.modelVersion,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall,
+            SoftCard(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: AppSpacing.xs,
+              ),
+              child: DetailsSection(
+                children: [
+                  if (_result != null && _result!.quality.ok) ...[
+                    _QualityCard(result: _result!),
+                    const SizedBox(height: 12),
+                  ],
+                  if (_result != null) ...[
+                    const _DisclaimerCard(),
+                    const SizedBox(height: 12),
+                    const _MeaningCard(),
+                    const SizedBox(height: 12),
+                  ],
+                  Text(
+                    kIsWeb ? context.tr('soil.web') : context.tr('soil.local'),
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  Text(
+                    SoilVisionService.modelVersion,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ],
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SoilHero extends StatelessWidget {
-  const _SoilHero();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0F3D23), Color(0xFF14532D), Color(0xFF1B6B3A)],
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.soft,
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -10,
-            top: -10,
-            child: Opacity(
-              opacity: 0.12,
-              child: Icon(
-                Icons.center_focus_strong_rounded,
-                size: 120,
-                color: AppColors.acentoNatural.withValues(alpha: 0.8),
-              ),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt_rounded,
-                      size: 19,
-                      color: AppColors.acentoNatural,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'SOILVISION AI',
-                    style: TextStyle(
-                      fontFamily: AppFonts.body,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                      letterSpacing: 1.4,
-                      color: AppColors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Mira tu suelo.\nEntiende su apariencia.',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.white,
-                  fontSize: 26,
-                  height: 1.12,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Clasifica color y textura con una foto. '
-                'No mide pH, NPK ni fertilidad.',
-                style: TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontSize: 12.5,
-                  height: 1.5,
-                  color: AppColors.white.withValues(alpha: 0.78),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: const [
-                  _HeroChip(label: '4 clases'),
-                  _HeroChip(label: '224 × 224'),
-                  _HeroChip(label: '100% en el teléfono'),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroChip extends StatelessWidget {
-  const _HeroChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.14)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontFamily: AppFonts.body,
-          fontWeight: FontWeight.w600,
-          fontSize: 9.5,
-          color: AppColors.white,
         ),
       ),
     );
@@ -396,16 +280,8 @@ class _PhotoCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Foto del suelo',
+                context.tr('soil.photo'),
                 style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const Spacer(),
-              const Pill(
-                label: 'Enfoca la tierra',
-                icon: Icons.center_focus_weak_rounded,
-                color: AppColors.inkSoft,
-                background: AppColors.fondoSuave,
-                compact: true,
               ),
             ],
           ),
@@ -432,7 +308,7 @@ class _PhotoCard extends StatelessWidget {
                             color: AppColors.verdePrincipal.withValues(
                               alpha: 0.72,
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -446,7 +322,7 @@ class _PhotoCard extends StatelessWidget {
                                   ),
                                   SizedBox(height: 10),
                                   Text(
-                                    'Analizando en el teléfono…',
+                                    context.tr('soil.analyzing'),
                                     style: TextStyle(
                                       fontFamily: AppFonts.body,
                                       fontWeight: FontWeight.w600,
@@ -475,7 +351,7 @@ class _PhotoCard extends StatelessWidget {
                                   color: AppColors.ink.withValues(alpha: 0.62),
                                   borderRadius: BorderRadius.circular(100),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
@@ -485,11 +361,11 @@ class _PhotoCard extends StatelessWidget {
                                     ),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Quitar',
+                                      context.tr('soil.remove'),
                                       style: TextStyle(
                                         fontFamily: AppFonts.body,
                                         fontWeight: FontWeight.w600,
-                                        fontSize: 10,
+                                        fontSize: 12,
                                         color: AppColors.white,
                                       ),
                                     ),
@@ -511,7 +387,7 @@ class _PhotoCard extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: busy ? null : onCamera,
                     icon: const Icon(Icons.photo_camera_rounded, size: 18),
-                    label: const Text('Cámara'),
+                    label: Text(context.tr('soil.camera')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -519,7 +395,7 @@ class _PhotoCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: busy ? null : onGallery,
                     icon: const Icon(Icons.photo_library_rounded, size: 18),
-                    label: const Text('Galería'),
+                    label: Text(context.tr('soil.gallery')),
                   ),
                 ),
               ],
@@ -531,7 +407,7 @@ class _PhotoCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: busy ? null : onCamera,
                     icon: const Icon(Icons.photo_camera_rounded, size: 18),
-                    label: const Text('Repetir'),
+                    label: Text(context.tr('soil.retry')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -539,7 +415,7 @@ class _PhotoCard extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: busy ? null : onGallery,
                     icon: const Icon(Icons.photo_library_rounded, size: 18),
-                    label: const Text('Elegir otra'),
+                    label: Text(context.tr('soil.other')),
                   ),
                 ),
               ],
@@ -547,8 +423,7 @@ class _PhotoCard extends StatelessWidget {
           if (!hasResult && bytes == null) ...[
             const SizedBox(height: 10),
             Text(
-              'Toma la foto a 30–50 cm de la tierra, con luz natural y sin '
-              'sombras fuertes. Evita incluir paredes, zapatos o plantas.',
+              context.tr('soil.tip'),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -585,12 +460,12 @@ class _EmptyPhoto extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Una foto clara de tu suelo',
+          context.tr('soil.empty.t'),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 3),
         Text(
-          'El modelo mira color y textura.',
+          context.tr('soil.empty.s'),
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
@@ -615,7 +490,7 @@ class _AnalyzingCard extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Revisando calidad y ejecutando el modelo local…',
+              context.tr('soil.checking'),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
@@ -647,12 +522,14 @@ class _QualityCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Calidad de la foto',
+                context.tr('soil.quality'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const Spacer(),
               Pill(
-                label: quality.ok ? 'Apta' : 'Repetir',
+                label: quality.ok
+                    ? context.tr('soil.quality.ok')
+                    : context.tr('soil.retry'),
                 icon: quality.ok
                     ? Icons.check_circle_rounded
                     : Icons.refresh_rounded,
@@ -718,7 +595,7 @@ class _CheckRow extends StatelessWidget {
                     style: const TextStyle(
                       fontFamily: AppFonts.body,
                       fontWeight: FontWeight.w600,
-                      fontSize: 11.5,
+                      fontSize: 12,
                       color: AppColors.inkSoft,
                     ),
                   ),
@@ -728,7 +605,7 @@ class _CheckRow extends StatelessWidget {
                     style: TextStyle(
                       fontFamily: AppFonts.body,
                       fontWeight: FontWeight.w500,
-                      fontSize: 10.5,
+                      fontSize: 12,
                       color: color,
                     ),
                   ),
@@ -785,11 +662,15 @@ class _PredictionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      conclusive ? prediction.labelEs : 'No concluyente',
+                      conclusive
+                          ? prediction.labelEs
+                          : context.tr('soil.inconclusive'),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
-                      conclusive ? prediction.label : 'Confianza menor al 70%',
+                      conclusive
+                          ? prediction.label
+                          : context.tr('soil.lowConf'),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -805,37 +686,24 @@ class _PredictionCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            conclusive
-                ? 'La foto se parece a esta categoría visual del dataset. '
-                      'No es una medición de fertilidad.'
-                : 'La foto no es suficientemente clara para una lectura '
-                      'segura. Repite con más luz y enfoque.',
+            conclusive ? context.tr('soil.match') : context.tr('soil.unclear'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 14),
-          for (var i = 0; i < prediction.probabilities.length; i++) ...[
-            _ProbabilityBar(
-              label: SoilVisionService.labelsEs[i],
-              value: prediction.probabilities[i],
-              highlight: i == prediction.index,
-            ),
-            if (i < prediction.probabilities.length - 1)
-              const SizedBox(height: 9),
-          ],
-          const SizedBox(height: 14),
-          Row(
+          DetailsSection(
             children: [
-              const Icon(
-                Icons.memory_rounded,
-                size: 14,
-                color: AppColors.inkFaint,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'Ejecutado en el teléfono · fp16 · 224×224',
-                  style: Theme.of(context).textTheme.labelSmall,
+              for (var i = 0; i < prediction.probabilities.length; i++) ...[
+                _ProbabilityBar(
+                  label: SoilVisionService.labelsEs[i],
+                  value: prediction.probabilities[i],
+                  highlight: i == prediction.index,
                 ),
+                if (i < prediction.probabilities.length - 1)
+                  const SizedBox(height: 9),
+              ],
+              const SizedBox(height: 10),
+              Text(
+                context.tr('soil.ran'),
+                style: Theme.of(context).textTheme.labelSmall,
               ),
             ],
           ),
@@ -867,7 +735,7 @@ class _AgronomyAdviceCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Qué significa para tu chacra',
+                  context.tr('soil.means'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -884,26 +752,29 @@ class _AgronomyAdviceCard extends StatelessWidget {
           Text(profile.summary, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 14),
           _AdviceBlock(
-            title: 'A favor',
-            items: profile.strengths,
-            color: AppColors.verdeSecundario,
-          ),
-          const SizedBox(height: 10),
-          _AdviceBlock(
-            title: 'Cuidados',
-            items: profile.cautions,
-            color: AppColors.tierra,
-          ),
-          const SizedBox(height: 10),
-          _AdviceBlock(
-            title: 'Consejos',
+            title: context.tr('soil.tips'),
             items: profile.tips,
             color: AppColors.tecnologia,
           ),
+          DetailsSection(
+            title: '${context.tr('soil.pros')} · ${context.tr('soil.cares')}',
+            children: [
+              _AdviceBlock(
+                title: context.tr('soil.pros'),
+                items: profile.strengths,
+                color: AppColors.verdeSecundario,
+              ),
+              const SizedBox(height: 10),
+              _AdviceBlock(
+                title: context.tr('soil.cares'),
+                items: profile.cautions,
+                color: AppColors.tierra,
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           Text(
-            'Consejos según la apariencia del suelo, no una medición de '
-            'fertilidad. Confirma con un experto local.',
+            context.tr('soil.tipsNote'),
             style: Theme.of(context).textTheme.labelSmall,
           ),
         ],
@@ -930,7 +801,7 @@ class _AdviceBlock extends StatelessWidget {
       children: [
         Text(
           title.toUpperCase(),
-          style: AppTypography.kicker.copyWith(fontSize: 9.5, color: color),
+          style: AppTypography.kicker.copyWith(fontSize: 12, color: color),
         ),
         const SizedBox(height: 6),
         for (final item in items)
@@ -987,7 +858,7 @@ class _CorrectionCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '¿Coincide con tu suelo?',
+                  context.tr('soil.matches'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -996,9 +867,8 @@ class _CorrectionCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             chosen == null
-                ? 'Elige la clase real. Ayuda a mejorar el modelo para Huánuco.'
-                : '¡Gracias! Guardamos tu respuesta y la enviamos a la '
-                      'comunidad.',
+                ? context.tr('soil.matches.pick')
+                : context.tr('soil.matches.thanks'),
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -1079,7 +949,7 @@ class _CorrectionChip extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: AppFonts.body,
                   fontWeight: FontWeight.w600,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   color: color,
                 ),
               ),
@@ -1116,7 +986,7 @@ class _ProbabilityBar extends StatelessWidget {
                 style: TextStyle(
                   fontFamily: AppFonts.body,
                   fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
-                  fontSize: 11.5,
+                  fontSize: 12,
                   color: AppColors.inkSoft,
                 ),
               ),
@@ -1126,7 +996,7 @@ class _ProbabilityBar extends StatelessWidget {
               style: TextStyle(
                 fontFamily: AppFonts.display,
                 fontWeight: FontWeight.w700,
-                fontSize: 11.5,
+                fontSize: 12,
                 color: color,
               ),
             ),
@@ -1190,13 +1060,11 @@ class _DisclaimerCard extends StatelessWidget {
           const SizedBox(width: 9),
           Expanded(
             child: Text(
-              'Esto describe apariencia visual. No mide pH, fósforo, potasio, '
-              'materia orgánica ni fertilidad. No cambia automáticamente tus '
-              'rotaciones. Confirma siempre con un experto local.',
+              context.tr('soil.disclaimer'),
               style: TextStyle(
                 fontFamily: AppFonts.body,
                 fontWeight: FontWeight.w500,
-                fontSize: 11.5,
+                fontSize: 12,
                 height: 1.5,
                 color: AppColors.tierra,
               ),
@@ -1227,21 +1095,15 @@ class _MeaningCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '¿Para qué sirve?',
+                context.tr('soil.use.t'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ],
           ),
           const SizedBox(height: 8),
-          const _Bullet(
-            text: 'Tamiza fotos oscuras, borrosas o con poco suelo visible.',
-          ),
-          const _Bullet(
-            text: 'Apoyo educativo para reconocer apariencias del suelo.',
-          ),
-          const _Bullet(
-            text: 'Para decidir siembra, usa el calendario y las rotaciones.',
-          ),
+          _Bullet(text: context.tr('soil.use.1')),
+          _Bullet(text: context.tr('soil.use.2')),
+          _Bullet(text: context.tr('soil.use.3')),
         ],
       ),
     );

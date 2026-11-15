@@ -13,8 +13,8 @@ class AppColors {
   static const fondoSuave = Color(0xFFECFDF5);
 
   static const ink = Color(0xFF0B1F14);
-  static const inkSoft = Color(0xFF486356);
-  static const inkFaint = Color(0xFF7C9488);
+  static const inkSoft = Color(0xFF334E40);
+  static const inkFaint = Color(0xFF566F62);
   static const line = Color(0xFFD8EADF);
   static const white = Color(0xFFFFFFFF);
   static const superficie = Color(0xFFF8FCFA);

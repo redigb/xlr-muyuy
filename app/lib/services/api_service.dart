@@ -2,21 +2,31 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../l10n/strings.dart';
 import '../models/community.dart';
 import '../models/models.dart';
 
+/// Error de API. `code` es una clave de `lib/l10n/strings.dart`;
+/// `serverMessage` es el texto que mandó el backend (si mandó).
 class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(this.code, {this.statusCode, this.serverMessage});
 
-  final String message;
+  final String code;
   final int? statusCode;
+  final String? serverMessage;
+
+  /// Siempre en el idioma del usuario (el backend responde en inglés).
+  String messageIn(AppLang lang) => tr(lang, code, {'code': statusCode});
+
+  String get message => messageIn(AppLang.es);
 
   @override
   String toString() => message;
 }
 
 class ApiAuthException extends ApiException {
-  const ApiAuthException(super.message) : super(statusCode: 401);
+  const ApiAuthException({super.serverMessage})
+    : super('err.server', statusCode: 401);
 }
 
 class ApiService {
@@ -41,7 +51,7 @@ class ApiService {
     final response = await _get('/api/zonas');
     final decoded = jsonDecode(response);
     if (decoded is! List) {
-      throw const ApiException('La API devolvió un formato inesperado.');
+      throw const ApiException('err.format');
     }
     return decoded
         .whereType<Map>()
@@ -50,29 +60,49 @@ class ApiService {
         .toList();
   }
 
-  Future<Paquete> fetchPaquete(String zonaId) async {
-    final response = await _get('/api/paquete/$zonaId');
+  /// `lang`: idioma de las explicaciones (es / en).
+  Future<Paquete> fetchPaquete(String zonaId, {String lang = 'es'}) async {
+    return _parsePaquete(await _get('/api/paquete/$zonaId?lang=$lang'));
+  }
+
+  /// Paquete bajo demanda para cualquier punto (spec 11.1). Hasta 30 s.
+  Future<Paquete> fetchCoordenada({
+    required double lat,
+    required double lon,
+    required String lang,
+  }) async {
+    final query = 'lat=${lat.toStringAsFixed(4)}&lon=${lon.toStringAsFixed(4)}'
+        '&lang=$lang';
+    final response = await _get(
+      '/api/paquete/coordenada?$query',
+      timeout: coordenadaTimeout,
+    );
+    return _parsePaquete(response);
+  }
+
+  static const coordenadaTimeout = Duration(seconds: 30);
+
+  Paquete _parsePaquete(String response) {
     final decoded = jsonDecode(response);
-    if (decoded is! Map) {
-      throw const ApiException('El paquete no tiene el formato esperado.');
-    }
+    if (decoded is! Map) throw const ApiException('err.format');
     final paquete = Paquete.fromJson(
       Map<String, dynamic>.from(decoded),
       rawJson: response,
     );
-    if (paquete.hash.isNotEmpty && !paquete.verified) {
-      throw const ApiException(
-        'El paquete no pasó la verificación de integridad. No se guardó.',
-      );
+    if (paquete.hash.isEmpty || !paquete.verified) {
+      throw const ApiException('err.integrity');
     }
     return paquete;
   }
 
-  Future<PackageVersionInfo> fetchVersion(String zonaId) async {
-    final response = await _get('/api/paquete/$zonaId/version');
+  Future<PackageVersionInfo> fetchVersion(
+    String zonaId, {
+    String lang = 'es',
+  }) async {
+    final response = await _get('/api/paquete/$zonaId/version?lang=$lang');
     final decoded = jsonDecode(response);
     if (decoded is! Map) {
-      throw const ApiException('La versión del paquete no es válida.');
+      throw const ApiException('err.format');
     }
     return PackageVersionInfo.fromJson(Map<String, dynamic>.from(decoded));
   }
@@ -87,19 +117,23 @@ class ApiService {
     }
   }
 
-  Future<DeviceCredential> registerDevice({bool demo = false}) async {
-    final response = await _post('/api/dispositivos', {'demo': demo});
+  Future<DeviceCredential> registerDevice({
+    bool demo = false,
+    String? idLocal,
+  }) async {
+    final response = await _post('/api/dispositivos', {
+      'demo': demo,
+      if (idLocal != null && idLocal.isNotEmpty) 'id_local': idLocal,
+    });
     final decoded = jsonDecode(response);
     if (decoded is! Map) {
-      throw const ApiException(
-        'La API no devolvió las credenciales del equipo.',
-      );
+      throw const ApiException('err.device');
     }
     final credential = DeviceCredential.fromJson(
       Map<String, dynamic>.from(decoded),
     );
     if (credential.id.isEmpty || credential.token.isEmpty) {
-      throw const ApiException('Las credenciales del equipo están vacías.');
+      throw const ApiException('err.device');
     }
     return credential;
   }
@@ -107,26 +141,24 @@ class ApiService {
   Future<SyncSummary> sync({
     required String token,
     required List<Observacion> observaciones,
+    List<Conexion> conexiones = const [],
   }) async {
     final response = await _post('/api/sync', {
       'observaciones': observaciones.map((item) => item.toJson()).toList(),
-      'conexiones': const [],
+      'conexiones': conexiones.map((item) => item.toJson()).toList(),
     }, token: token);
     final decoded = jsonDecode(response);
-    if (decoded is! Map) {
-      throw const ApiException(
-        'La sincronización devolvió un formato extraño.',
-      );
-    }
+    if (decoded is! Map) throw const ApiException('err.format');
     return SyncSummary.fromJson(Map<String, dynamic>.from(decoded));
   }
 
-  Future<String> _get(String path) async {
+  Future<String> _get(String path, {Duration timeout = _timeout}) async {
     return _request(
       () => _client.get(
         Uri.parse('$baseUrl$path'),
         headers: const {'Accept': 'application/json'},
       ),
+      timeout: timeout,
     );
   }
 
@@ -148,26 +180,29 @@ class ApiService {
     );
   }
 
-  Future<String> _request(Future<http.Response> Function() send) async {
+  Future<String> _request(
+    Future<http.Response> Function() send, {
+    Duration timeout = _timeout,
+  }) async {
     try {
-      final response = await send().timeout(_timeout);
+      final response = await send().timeout(timeout);
       final text = utf8.decode(response.bodyBytes);
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        final message =
-            _errorMessage(text) ??
-            'El servidor respondió ${response.statusCode}. Intenta otra vez.';
+        final message = _errorMessage(text);
         if (response.statusCode == 401) {
-          throw ApiAuthException(message);
+          throw ApiAuthException(serverMessage: message);
         }
-        throw ApiException(message, statusCode: response.statusCode);
+        throw ApiException(
+          'err.server',
+          statusCode: response.statusCode,
+          serverMessage: message,
+        );
       }
       return text;
     } on ApiException {
       rethrow;
     } catch (_) {
-      throw const ApiException(
-        'No se pudo conectar con el servidor. Revisa tu señal.',
-      );
+      throw const ApiException('err.network');
     }
   }
 

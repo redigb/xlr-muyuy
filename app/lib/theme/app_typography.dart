@@ -71,14 +71,14 @@ class AppTypography {
     titleMedium: TextStyle(
       fontFamily: AppFonts.display,
       fontWeight: FontWeight.w600,
-      fontSize: 15,
+      fontSize: 16,
       height: 1.3,
       color: AppColors.ink,
     ),
     titleSmall: TextStyle(
       fontFamily: AppFonts.display,
       fontWeight: FontWeight.w600,
-      fontSize: 13,
+      fontSize: 14,
       height: 1.3,
       color: AppColors.ink,
     ),
@@ -99,9 +99,9 @@ class AppTypography {
     bodySmall: TextStyle(
       fontFamily: AppFonts.body,
       fontWeight: FontWeight.w400,
-      fontSize: 12,
+      fontSize: 13,
       height: 1.4,
-      color: AppColors.inkFaint,
+      color: AppColors.inkSoft,
     ),
     labelLarge: TextStyle(
       fontFamily: AppFonts.display,
@@ -122,9 +122,9 @@ class AppTypography {
     labelSmall: TextStyle(
       fontFamily: AppFonts.body,
       fontWeight: FontWeight.w600,
-      fontSize: 11,
+      fontSize: 12,
       height: 1.2,
-      letterSpacing: 0.5,
+      letterSpacing: 0.3,
       color: AppColors.inkFaint,
     ),
   );
@@ -132,8 +132,8 @@ class AppTypography {
   static TextStyle get kicker => const TextStyle(
     fontFamily: AppFonts.body,
     fontWeight: FontWeight.w700,
-    fontSize: 11,
-    letterSpacing: 1.6,
+    fontSize: 12,
+    letterSpacing: 1.2,
     color: AppColors.verdeSecundario,
   );
 
@@ -149,7 +149,7 @@ class AppTypography {
   static TextStyle get dataLabel => const TextStyle(
     fontFamily: AppFonts.body,
     fontWeight: FontWeight.w500,
-    fontSize: 11,
+    fontSize: 12,
     letterSpacing: 0.2,
     color: AppColors.inkFaint,
   );

@@ -48,6 +48,24 @@ bool verifyPackageIntegrityRaw(String rawJson, String expectedHash) {
   return computed.isNotEmpty && computed == expectedHash;
 }
 
+/// Texto exacto (sin re-serializar) del miembro `key` del objeto raíz.
+/// Sirve para envolver el paquete en un `sobre` nuevo sin tocar los bytes
+/// que entran al hash (en web, `jsonEncode` convierte `135.0` en `135`).
+String? rawTopLevelMember(String rawJson, String key) {
+  try {
+    return _JsonReader(rawJson).topLevelMember(key);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Arma `{"sobre": {...}, "paquete": <paquete original>}` conservando
+/// los bytes del paquete. Si el archivo no venía envuelto, todo él es el paquete.
+String wrapWithSobre(String rawJson, Map<String, Object?> sobre) {
+  final paquete = rawTopLevelMember(rawJson, 'paquete') ?? rawJson.trim();
+  return '{"sobre":${jsonEncode(sobre)},"paquete":$paquete}';
+}
+
 String shortPackageHash(String hash) {
   if (hash.length <= 18) return hash;
   final value = hash.startsWith('sha256:') ? hash.substring(7) : hash;
@@ -130,6 +148,32 @@ class _JsonReader {
 
   final String source;
   int _index = 0;
+
+  String? topLevelMember(String wanted) {
+    _skipWhitespace();
+    if (!_peek('{')) return null;
+    _index++;
+    _skipWhitespace();
+    if (_peek('}')) return null;
+    while (true) {
+      _skipWhitespace();
+      final key = _readString();
+      _skipWhitespace();
+      if (!_peek(':')) throw const FormatException('Falta ":" en JSON.');
+      _index++;
+      _skipWhitespace();
+      final start = _index;
+      _readValue();
+      final end = _index;
+      if (key == wanted) return source.substring(start, end);
+      _skipWhitespace();
+      if (_peek(',')) {
+        _index++;
+        continue;
+      }
+      return null;
+    }
+  }
 
   Object? parse() {
     _skipWhitespace();
