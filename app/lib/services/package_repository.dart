@@ -107,8 +107,14 @@ class PackageRepository {
     required double lat,
     required double lon,
     required String lang,
+    bool riego = false,
   }) async {
-    final paquete = await _api.fetchCoordenada(lat: lat, lon: lon, lang: lang);
+    final paquete = await _api.fetchCoordenada(
+      lat: lat,
+      lon: lon,
+      lang: lang,
+      riego: riego,
+    );
     await _save(paquete);
     return paquete;
   }

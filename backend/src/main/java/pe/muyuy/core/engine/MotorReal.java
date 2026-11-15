@@ -110,16 +110,42 @@ public class MotorReal implements MotorRotaciones {
         return List.copyOf(out);
     }
 
-    /** Zonas oficiales: los de zonas.json. Coordenadas: los 3 aptos con menos daño esperado. */
+    /**
+     * Zonas oficiales: los de zonas.json. Coordenadas: los 3 con mejor orden según
+     * 1) se siembra en todo el mundo (zonas incluye "global"; los nativos andinos quedan como opción dentro),
+     * 2) cultivo principal (cereal o tubérculo), 3) aptitud al clima. Las leguminosas van al final:
+     * entran después en la rotación (leguminosa tras cultivo exigente).
+     */
     private List<String> iniciales(Zona zona, List<Cultivo> aptos, Calendario cal, int mes) {
         if (!esCoordenada(zona) || (zona.cultivosIniciales() != null && !zona.cultivosIniciales().isEmpty())) {
             return zona.cultivosIniciales() == null ? List.of() : zona.cultivosIniciales();
         }
-        return aptos.stream()
-                .sorted(Comparator.comparingDouble((Cultivo c) -> dano(c, cal, mes)).thenComparing(Cultivo::id))
+        Comparator<Cultivo> orden = Comparator
+                .comparing((Cultivo c) -> c.fijaNitrogeno())
+                .thenComparing(c -> !c.zonas().contains("global"))
+                .thenComparing(c -> !c.principal())
+                .thenComparingDouble(c -> -aptitud(zona, c, cal, mes))
+                .thenComparing(Cultivo::id);
+        return aptos.stream().sorted(orden)
                 .limit(INICIALES_COORDENADA)
                 .map(Cultivo::id)
                 .toList();
+    }
+
+    /**
+     * Qué tan bien le va al cultivo en este clima, 0..1: temperatura dentro del óptimo (50%),
+     * lluvia del ciclo frente a su necesidad (30%) y valor de mercado (20%). La helada letal y la falta de
+     * lluvia ya los descartó esApto; el daño parcial lo mide el puntaje de riesgo de la rotación.
+     */
+    double aptitud(Zona zona, Cultivo c, Calendario cal, int mes) {
+        List<MesClima> ciclo = ciclo(cal, c, mes);
+        double tMedia = ciclo.stream().mapToDouble(MesClima::tMedia).average().orElse(0);
+        double fuera = Math.max(0, Math.max(c.tOptMin() - tMedia, tMedia - c.tOptMax()));
+        double temperatura = Math.max(0, 1 - fuera / Math.max(1, reglas.toleranciaTempC()));
+        double necesidad = c.lluviaOptMin() * c.cicloMeses() / 12.0;
+        double lluvia = zona.riego() || necesidad <= 0 ? 1
+                : Math.min(1, ciclo.stream().mapToDouble(MesClima::lluviaMm).sum() / necesidad);
+        return 0.5 * temperatura + 0.3 * lluvia + 0.2 * c.valorMercado();
     }
 
     @Override

@@ -29,6 +29,7 @@ String cropEmoji(String id) {
       return '🌱';
     case 'quinua':
       return '🌾';
+    case 'maiz':
     case 'maiz_amilaceo':
     case 'maiz_duro':
       return '🌽';

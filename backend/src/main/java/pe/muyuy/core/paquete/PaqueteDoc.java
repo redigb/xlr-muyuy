@@ -48,7 +48,8 @@ public record PaqueteDoc(Paquete paquete) {
             @Schema(description = "Display name") String nombre,
             @Schema(description = "Latitude (degrees)") double lat,
             @Schema(description = "Longitude (degrees)") double lon,
-            @Schema(description = "Elevation (m)") int elevacionM) {}
+            @Schema(description = "Elevation (m)") int elevacionM,
+            @Schema(description = "true = rotations assume irrigation (rain does not limit the crops)") boolean riego) {}
 
     @Schema(description = "Everything needed to decide offline")
     public record Nucleo(

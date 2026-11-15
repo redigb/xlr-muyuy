@@ -59,15 +59,17 @@ public class ServicioPaquetes {
     }
 
     /** De dónde sale el paquete. Determina la clave, la fila en `paquetes` y la meta. */
-    record Origen(String tipo, String zonaId, String celda, String idioma) {
-        static Origen oficial(String zonaId, String idioma) { return new Origen(ZONA_OFICIAL, zonaId, null, idioma); }
-        static Origen coordenada(String celda, String idioma) { return new Origen(COORDENADA, null, celda, idioma); }
+    record Origen(String tipo, String zonaId, String celda, String idioma, boolean riego) {
+        static Origen oficial(String zonaId, String idioma) { return new Origen(ZONA_OFICIAL, zonaId, null, idioma, false); }
+        static Origen coordenada(String celda, String idioma, boolean riego) {
+            return new Origen(COORDENADA, null, celda, idioma, riego);
+        }
 
         boolean esCoordenada() { return COORDENADA.equals(tipo); }
 
         /** Clave sin versión. Las zonas oficiales en español conservan la clave histórica. */
         String base() {
-            if (esCoordenada()) return celda + "|" + idioma;
+            if (esCoordenada()) return celda + "|" + idioma + (riego ? "|riego" : "");
             return ES.equals(idioma) ? zonaId : zonaId + "|" + idioma;
         }
     }
@@ -128,19 +130,20 @@ public class ServicioPaquetes {
     // ---------------------------------------------------------------- coordenadas
 
     /** Paquete de una celda generado hace menos de `dias` (caché persistente, §14). */
-    public Optional<Sellado> coordenadaReciente(String celda, String idioma, int dias) {
-        Origen origen = Origen.coordenada(celda, idioma(idioma));
+    public Optional<Sellado> coordenadaReciente(String celda, String idioma, boolean riego, int dias) {
+        Origen origen = Origen.coordenada(celda, idioma(idioma), riego);
         Sellado enCache = cache.get(origen.base());
         if (enCache != null) return Optional.of(enCache);
         String sql = "select version, hash, contenido from paquetes where origen = ? and celda = ? and idioma = ? "
-                   + "and generado > now() - make_interval(days => ?) and generado >= ? "
+                   + "and riego = ? and generado > now() - make_interval(days => ?) and generado >= ? "
                    + "order by version desc limit 1";
         try (var c = ds.getConnection(); var ps = c.prepareStatement(sql)) {
             ps.setString(1, COORDENADA);
             ps.setString(2, celda);
             ps.setString(3, origen.idioma());
-            ps.setInt(4, dias);
-            ps.setObject(5, arranque);
+            ps.setBoolean(4, riego);
+            ps.setInt(5, dias);
+            ps.setObject(6, arranque);
             try (var rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
                 Sellado s = new Sellado(origen.base(), rs.getInt(1), rs.getString(2), rs.getString(3));
@@ -155,7 +158,7 @@ public class ServicioPaquetes {
 
     /** Genera y sella el paquete de una celda. `zona` debe tener region "coordenada". */
     public Sellado coordenada(String celda, String idioma, Zona zona, Calendario cal) {
-        Origen origen = Origen.coordenada(celda, idioma(idioma));
+        Origen origen = Origen.coordenada(celda, idioma(idioma), zona.riego());
         synchronized (this) {
             Sellado s = generar(origen, zona, cal);
             cache.put(origen.base(), s);
@@ -199,7 +202,7 @@ public class ServicioPaquetes {
 
         String idZona = origen.esCoordenada() ? "celda_" + origen.celda() : zona.id();
         Nucleo nucleo = new Nucleo(
-                new ZonaPaquete(idZona, zona.nombre(), zona.lat(), zona.lon(), zona.elevacionM()),
+                new ZonaPaquete(idZona, zona.nombre(), zona.lat(), zona.lon(), zona.elevacionM(), zona.riego()),
                 cal.fuente(), motor.mesSiembra(zona, cal), cal.calendario(),
                 Map.of(), usados, rotaciones, alertas(origen));
         // Imagen satelital solo en zonas oficiales (§3.3): coordenadas quedan livianas.
@@ -298,11 +301,12 @@ public class ServicioPaquetes {
     private Optional<Sellado> ultimo(Origen origen) {
         String columna = origen.esCoordenada() ? "celda" : "zona_id";
         String sql = "select version, hash, contenido from paquetes where origen = ? and " + columna + " = ? "
-                   + "and idioma = ? order by version desc limit 1";
+                   + "and idioma = ? and riego = ? order by version desc limit 1";
         try (var c = ds.getConnection(); var ps = c.prepareStatement(sql)) {
             ps.setString(1, origen.tipo());
             ps.setString(2, origen.esCoordenada() ? origen.celda() : origen.zonaId());
             ps.setString(3, origen.idioma());
+            ps.setBoolean(4, origen.riego());
             try (var rs = ps.executeQuery()) {
                 return rs.next()
                         ? Optional.of(new Sellado(origen.base(), rs.getInt(1), rs.getString(2), rs.getString(3)))
@@ -314,8 +318,8 @@ public class ServicioPaquetes {
     }
 
     private void guardar(Origen origen, Sellado s) {
-        String sql = "insert into paquetes (clave, origen, zona_id, celda, idioma, version, hash, contenido) "
-                   + "values (?, ?, ?, ?, ?, ?, ?, ?) "
+        String sql = "insert into paquetes (clave, origen, zona_id, celda, idioma, version, hash, contenido, riego) "
+                   + "values (?, ?, ?, ?, ?, ?, ?, ?, ?) "
                    + "on conflict (clave) do update set contenido = excluded.contenido, generado = now()";
         try (var c = ds.getConnection(); var ps = c.prepareStatement(sql)) {
             ps.setString(1, s.clave());
@@ -326,6 +330,7 @@ public class ServicioPaquetes {
             ps.setInt(6, s.version());
             ps.setString(7, s.hash());
             ps.setString(8, s.contenido());
+            ps.setBoolean(9, origen.riego());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalStateException("No se pudo guardar el paquete " + s.clave(), e);

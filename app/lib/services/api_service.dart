@@ -70,9 +70,10 @@ class ApiService {
     required double lat,
     required double lon,
     required String lang,
+    bool riego = false,
   }) async {
     final query = 'lat=${lat.toStringAsFixed(4)}&lon=${lon.toStringAsFixed(4)}'
-        '&lang=$lang';
+        '&lang=$lang${riego ? '&riego=true' : ''}';
     final response = await _get(
       '/api/paquete/coordenada?$query',
       timeout: coordenadaTimeout,

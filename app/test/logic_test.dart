@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:muyuy/l10n/strings.dart';
 import 'package:muyuy/models/community.dart';
 import 'package:muyuy/models/models.dart';
+import 'package:muyuy/services/api_service.dart';
 import 'package:muyuy/services/package_repository.dart';
 import 'package:muyuy/utils/package_hash.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -158,6 +161,26 @@ void main() {
         demo: false,
       );
       expect(c.toJson()['tipo'], 'COMPARTIO');
+    });
+
+    test('ubicación con riego lo pide al servidor', () async {
+      final urls = <Uri>[];
+      final api = ApiService(
+        baseUrl: 'https://x',
+        client: MockClient((req) async {
+          urls.add(req.url);
+          return http.Response('{}', 200);
+        }),
+      );
+      for (final riego in [false, true]) {
+        try {
+          await api.fetchCoordenada(lat: 42, lon: -93.5, lang: 'en', riego: riego);
+        } on ApiException {
+          // '{}' no es un paquete: aquí solo importa la URL.
+        }
+      }
+      expect(urls[0].queryParameters.containsKey('riego'), isFalse);
+      expect(urls[1].queryParameters['riego'], 'true');
     });
 
     test('sync trae estados actuales de mis reportes', () {

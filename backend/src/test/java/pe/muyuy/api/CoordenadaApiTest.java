@@ -61,6 +61,23 @@ class CoordenadaApiTest {
     }
 
     @Test
+    void conRiegoEsOtraVarianteDeLaMismaCelda() {
+        String secano = given().queryParam("lat", 20.1).queryParam("lon", 30.1).get("/api/paquete/coordenada")
+                .then().statusCode(200).body("paquete.nucleo.zona.riego", equalTo(false))
+                .extract().path("paquete.meta.hash");
+        int antes = FuenteClimaFalsa.LLAMADAS.get();
+        given().queryParam("lat", 20.1).queryParam("lon", 30.1).queryParam("riego", true).get("/api/paquete/coordenada")
+                .then().statusCode(200)
+                .body("paquete.meta.celda", equalTo("20.0_30.0"))
+                .body("paquete.nucleo.zona.riego", equalTo(true))
+                .body("paquete.meta.hash", not(equalTo(secano)));
+        assertEquals(antes + 1, FuenteClimaFalsa.LLAMADAS.get(), "con riego no reutiliza el paquete de secano");
+        given().queryParam("lat", 20.1).queryParam("lon", 30.1).queryParam("riego", true).get("/api/paquete/coordenada")
+                .then().statusCode(200);
+        assertEquals(antes + 1, FuenteClimaFalsa.LLAMADAS.get(), "pero sí su propia caché");
+    }
+
+    @Test
     void coordenadaInvalidaDa400() {
         given().queryParam("lat", 75).queryParam("lon", 10).get("/api/paquete/coordenada").then().statusCode(400);
         given().queryParam("lat", 10).get("/api/paquete/coordenada").then().statusCode(400);

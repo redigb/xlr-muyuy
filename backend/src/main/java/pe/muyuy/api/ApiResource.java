@@ -108,7 +108,7 @@ public class ApiResource {
     @Path("/paquete/coordenada")
     @Operation(summary = "On-demand package for any location",
             description = "Same calculation as the official zones for any point: NASA POWER 1985-2024 for the 0.5° grid "
-                    + "cell, altitude-corrected with Open-Meteo elevation, sowing month computed from the rainy season, "
+                    + "cell, altitude-corrected with Open-Meteo elevation, sowing month computed from the season (after winter frosts in temperate climates, start of the rains elsewhere), "
                     + "and candidate rotations explained in the requested language. Not field-validated: "
                     + "meta.validada_localmente = false and confidence is at most 'media'. Only the ~50 km cell is used "
                     + "and cached (30 days); the exact location is never stored. Can take 5-20 s the first time per cell. "
@@ -121,12 +121,14 @@ public class ApiResource {
     public Response coordenada(@Parameter(description = "Latitude, -60 to 60", required = true) @QueryParam("lat") Double lat,
                                @Parameter(description = "Longitude, -180 to 180", required = true) @QueryParam("lon") Double lon,
                                @Parameter(description = "Language of the explanations: es | en (default)") @QueryParam("lang") String lang,
+                               @Parameter(description = "true if the farmer irrigates: rainfall no longer rules crops out (default false)")
+                               @QueryParam("riego") Boolean riego,
                                @Context HttpServerRequest req) {
         if (lat == null || lon == null) return error(400, "lat and lon are required");
         String ip = req == null || req.remoteAddress() == null ? "desconocida" : req.remoteAddress().host();
         if (!limiteCoordenadas.permitir(ip)) return error(429, "Too many location requests from this network. Try again later.");
         try {
-            return servir(coordenadas.paquete(lat, lon, lang == null ? ServicioPaquetes.EN : lang));
+            return servir(coordenadas.paquete(lat, lon, lang == null ? ServicioPaquetes.EN : lang, Boolean.TRUE.equals(riego)));
         } catch (IllegalArgumentException e) {
             return error(400, e.getMessage());
         } catch (ClimaNoDisponible e) {

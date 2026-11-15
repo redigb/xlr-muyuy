@@ -67,6 +67,7 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | Fuera de los Andes: siembra tras el invierno en clima templado (Iowa → mayo), abre con cultivo principal que se siembra en el mundo (maíz, sorgo, papa…) y la leguminosa va después, `?riego=true` en coordenada (V3), maíz grano ECOCROP. Clima NASA real de EE. UU., Kenia, Punjab y Níger en pruebas | `feat(motor): siembra por temperatura, cultivo principal primero y riego por ubicacion` |
 | 14/11 | Catálogo global: +13 cultivos ECOCROP (sorgo, mijo, arroz, soya, maní, caupí, garbanzo, lenteja, camote, girasol, tomate, cebolla, colza). Zonas oficiales solo con su catálogo andino; coordenadas con todo. `MotorGlobalTest` con clima NASA real de Kenia, Punjab y Níger | `feat(data): catalogo global de cultivos para otros paises` |
 | 14/11 | `GET /api/red/publica`: red anónima (alias por consulta, sin demo) + alcance/saltos + serie 30 días | `feat(api): red publica anonima con metricas` |
 | 14/11 | Imagen satelital NASA (Landsat WELD) en `extras` de zonas oficiales; app la muestra plegada en Chacra | `feat(api): imagen satelital en el paquete` |

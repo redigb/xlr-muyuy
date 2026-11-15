@@ -307,6 +307,28 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final zonaId = _zona?.id;
     if (zonaId != null) unawaited(_repo.saveRiego(zonaId, value));
+    // Paquete de ubicación: con riego entran cultivos que la lluvia sola descartaba.
+    final actual = _paquete;
+    if (actual != null && actual.esCoordenada && _online) {
+      unawaited(_refetchCoordenada(actual, value));
+    }
+  }
+
+  Future<void> _refetchCoordenada(Paquete actual, bool riego) async {
+    try {
+      final nuevo = await _repo.fetchCoordenada(
+        lat: actual.zona.lat,
+        lon: actual.zona.lon,
+        lang: _lang.apiLang,
+        riego: riego,
+      );
+      if (_paquete?.clave != actual.clave || _riego != riego) return;
+      _installActive(nuevo, PackageOrigin.location);
+      _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
+      notifyListeners();
+    } catch (_) {
+      // Sin señal o servidor caído: se queda el paquete actual.
+    }
   }
 
   void setCultivoInicial(String cultivoId) {
@@ -347,6 +369,7 @@ class AppState extends ChangeNotifier {
             lat: position.lat,
             lon: position.lon,
             lang: _lang.apiLang,
+            riego: _riego,
           )
           .timeout(ApiService.coordenadaTimeout);
       _installActive(paquete, PackageOrigin.location);

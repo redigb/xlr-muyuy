@@ -34,18 +34,21 @@ public class ServicioCoordenadas {
     }
 
     /** @throws IllegalArgumentException coordenada fuera de rango · {@link FuenteClima.ClimaNoDisponible} */
-    public Sellado paquete(double lat, double lon, String lang) {
+    public Sellado paquete(double lat, double lon, String lang) { return paquete(lat, lon, lang, false); }
+
+    /** riego = true: el agricultor riega, la lluvia no descarta cultivos (otra variante en caché). */
+    public Sellado paquete(double lat, double lon, String lang, boolean riego) {
         if (Double.isNaN(lat) || lat < -60 || lat > 60) throw new IllegalArgumentException("lat must be between -60 and 60");
         if (Double.isNaN(lon) || lon < -180 || lon > 180) throw new IllegalArgumentException("lon must be between -180 and 180");
         String idioma = ServicioPaquetes.idioma(lang);
         double cLat = redondear(lat), cLon = redondear(lon);
         String celda = celda(cLat, cLon);
 
-        var reciente = paquetes.coordenadaReciente(celda, idioma, cacheDias);
+        var reciente = paquetes.coordenadaReciente(celda, idioma, riego, cacheDias);
         if (reciente.isPresent()) return reciente.get();
 
         OptionalInt elev = clima.elevacion(cLat, cLon);
-        Zona zona = zona(celda, cLat, cLon, elev.orElse(0), idioma);
+        Zona zona = zona(celda, cLat, cLon, elev.orElse(0), idioma, riego);
         Calendario cal = clima.calendario(zona, elev.isPresent() ? elev.getAsInt() : null);
         return paquetes.coordenada(celda, idioma, zona, cal);
     }
@@ -57,9 +60,9 @@ public class ServicioCoordenadas {
         return String.format(Locale.ROOT, "%.1f_%.1f", lat + 0.0, lon + 0.0);   // + 0.0 evita "-0.0"
     }
 
-    private static Zona zona(String celda, double lat, double lon, int elev, String idioma) {
+    private static Zona zona(String celda, double lat, double lon, int elev, String idioma, boolean riego) {
         String nombre = String.format(Locale.ROOT, "en".equals(idioma) ? "Area near %.1f°, %.1f°" : "Zona cerca de %.1f°, %.1f°",
                 lat, lon);
-        return new Zona("celda_" + celda, nombre, MotorReal.REGION_COORDENADA, lat, lon, elev, false, List.of(), null);
+        return new Zona("celda_" + celda, nombre, MotorReal.REGION_COORDENADA, lat, lon, elev, riego, List.of(), null);
     }
 }

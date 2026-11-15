@@ -1,0 +1,143 @@
+{
+ "fuente": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 310 m → lugar 291 m (+0.1 °C); ET0 Hargreaves (FAO-56)",
+ "anios": 40,
+ "elevacion_celda_m": 310.22,
+ "correccion_c": 0.12,
+ "calendario": [
+  {
+   "mes": 1,
+   "prob_helada": 1.0,
+   "dias_helada": 30.9,
+   "lluvia_mm": 23.3,
+   "et_mm": 14.0,
+   "balance_hidrico_mm": 9.4,
+   "estres_calor": 0.0,
+   "t_min": -11.1,
+   "t_max": -1.7
+  },
+  {
+   "mes": 2,
+   "prob_helada": 1.0,
+   "dias_helada": 27.9,
+   "lluvia_mm": 25.3,
+   "et_mm": 23.5,
+   "balance_hidrico_mm": 1.8,
+   "estres_calor": 0.0,
+   "t_min": -8.9,
+   "t_max": 1.5
+  },
+  {
+   "mes": 3,
+   "prob_helada": 1.0,
+   "dias_helada": 26.2,
+   "lluvia_mm": 50.9,
+   "et_mm": 56.9,
+   "balance_hidrico_mm": -6.0,
+   "estres_calor": 0.0,
+   "t_min": -2.6,
+   "t_max": 9.2
+  },
+  {
+   "mes": 4,
+   "prob_helada": 1.0,
+   "dias_helada": 12.7,
+   "lluvia_mm": 82.5,
+   "et_mm": 95.5,
+   "balance_hidrico_mm": -13.0,
+   "estres_calor": 0.0,
+   "t_min": 3.2,
+   "t_max": 16.2
+  },
+  {
+   "mes": 5,
+   "prob_helada": 0.47,
+   "dias_helada": 1.0,
+   "lluvia_mm": 112.1,
+   "et_mm": 135.3,
+   "balance_hidrico_mm": -23.2,
+   "estres_calor": 0.01,
+   "t_min": 10.1,
+   "t_max": 22.3
+  },
+  {
+   "mes": 6,
+   "prob_helada": 0.0,
+   "dias_helada": 0.0,
+   "lluvia_mm": 125.4,
+   "et_mm": 155.3,
+   "balance_hidrico_mm": -29.9,
+   "estres_calor": 0.1,
+   "t_min": 15.9,
+   "t_max": 27.3
+  },
+  {
+   "mes": 7,
+   "prob_helada": 0.0,
+   "dias_helada": 0.0,
+   "lluvia_mm": 106.0,
+   "et_mm": 163.4,
+   "balance_hidrico_mm": -57.4,
+   "estres_calor": 0.24,
+   "t_min": 18.4,
+   "t_max": 29.5
+  },
+  {
+   "mes": 8,
+   "prob_helada": 0.0,
+   "dias_helada": 0.0,
+   "lluvia_mm": 107.8,
+   "et_mm": 144.3,
+   "balance_hidrico_mm": -36.5,
+   "estres_calor": 0.19,
+   "t_min": 17.1,
+   "t_max": 28.8
+  },
+  {
+   "mes": 9,
+   "prob_helada": 0.2,
+   "dias_helada": 0.3,
+   "lluvia_mm": 80.6,
+   "et_mm": 105.5,
+   "balance_hidrico_mm": -24.8,
+   "estres_calor": 0.08,
+   "t_min": 12.3,
+   "t_max": 25.0
+  },
+  {
+   "mes": 10,
+   "prob_helada": 1.0,
+   "dias_helada": 9.1,
+   "lluvia_mm": 64.3,
+   "et_mm": 61.8,
+   "balance_hidrico_mm": 2.5,
+   "estres_calor": 0.0,
+   "t_min": 5.0,
+   "t_max": 17.0
+  },
+  {
+   "mes": 11,
+   "prob_helada": 1.0,
+   "dias_helada": 24.2,
+   "lluvia_mm": 43.2,
+   "et_mm": 28.4,
+   "balance_hidrico_mm": 14.8,
+   "estres_calor": 0.0,
+   "t_min": -2.0,
+   "t_max": 8.0
+  },
+  {
+   "mes": 12,
+   "prob_helada": 1.0,
+   "dias_helada": 30.5,
+   "lluvia_mm": 32.3,
+   "et_mm": 14.7,
+   "balance_hidrico_mm": 17.7,
+   "estres_calor": 0.0,
+   "t_min": -8.1,
+   "t_max": 0.5
+  }
+ ],
+ "lat": 42.0,
+ "lon": -93.5,
+ "elevacion_m": 291
+}

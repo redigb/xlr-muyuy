@@ -10,6 +10,7 @@ public record Cultivo(
         @Schema(description = "Stable id", examples = "tarwi") String id,
         @Schema(description = "Display name") String nombre,
         @Schema(description = "Botanical family. Repeating it in consecutive seasons spreads pests, so the engine forbids it") String familia,
+        @Schema(description = "true = staple field crop (cereal, tuber) that leads a rotation; legumes follow it") boolean principal,
         @Schema(description = "Ecological floors where it is traditionally grown") List<String> zonas,
         @Schema(description = "true = legume that restores nitrogen to the soil (raises the soil score)") boolean fijaNitrogeno,
         @Schema(description = "Frost tolerance: baja (low) | media (medium) | alta (high)") Nivel toleraHelada,
