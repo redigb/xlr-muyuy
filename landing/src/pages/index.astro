@@ -72,6 +72,47 @@ const base = import.meta.env.BASE_URL;
 <Layout title={title} description={description} lang={DEFAULT_LOCALE}>
   <link slot="head" rel="preload" as="image" href={base + 'muyuy-logo.png'} />
 
+  {/*
+    Loader + contenido real en el HTML estático. Se ve desde el primer byte
+    (buscadores, lectores de pantalla y conexiones lentas leen el proyecto) y
+    se queda encima hasta que el terreno 3D pintó su primer frame: la isla
+    avanza las etapas con data-stage (LandingUI.jsx → loaderStage).
+  */}
+  <div id="muyuy-loader" class="loader" data-stage="boot" role="status" aria-busy="true" aria-live="polite">
+    <div class="loader-glow" aria-hidden="true"></div>
+    <div class="loader-body">
+      <div class="loader-mark">
+        <img src={base + 'muyuy-logo.png'} alt="" width="1370" height="436" />
+      </div>
+      <h1 class="sr-only">Muyuy</h1>
+      <p class="loader-tagline">NASA data to the last field <em>— even without signal.</em></p>
+
+      <div class="loader-progress" aria-hidden="true"><span></span></div>
+      <p class="loader-step">
+        <span data-for="boot">Preparing the soil</span>
+        <span data-for="terrain">Bringing NASA data down to the field</span>
+        <span data-for="render">Sowing the first row</span>
+        <span data-for="ready">The season begins</span>
+      </p>
+
+      <p class="loader-lead">
+        Muyuy helps smallholder farmers compare crop rotations, see seasonal climate risks, and
+        carry that information offline. Pilot region: Huánuco, Peru.
+      </p>
+      <ul class="loader-facts">
+        <li>NASA POWER 1985–2024</li>
+        <li>Offline after one download</li>
+        <li>≈2.5 KB regional core</li>
+      </ul>
+    </div>
+    <p class="loader-meta">NASA Space Apps Challenge 2026 · Huánuco, Peru</p>
+  </div>
+  <noscript><style>#muyuy-loader { display: none; }</style></noscript>
+  <script is:inline>
+    // Última red: si la isla nunca arranca (error de JS), no dejar la página tapada.
+    setTimeout(function () { var l = document.getElementById('muyuy-loader'); if (l) l.remove(); }, 20000);
+  </script>
+
   <LandingUI
     client:only="react"
     zones={ZONES}
@@ -81,27 +122,6 @@ const base = import.meta.env.BASE_URL;
     apkSha256={release.apkSha256}
     githubUrl={release.githubUrl}
   >
-    {/*
-      Contenido real, renderizado en el HTML estático (sin JavaScript).
-      Cumple dos funciones: los buscadores y los lectores de pantalla leen algo
-      útil, y en una conexión lenta el visitante ve el proyecto antes de que
-      descargue el bundle de React + Three.js. Al hidratar, la isla lo reemplaza.
-    */}
-    <div slot="fallback" class="ssr-shell">
-      <img class="ssr-logo" src={base + 'muyuy-logo.png'} alt="Muyuy" width="1370" height="436" />
-      <h1>Muyuy</h1>
-      <p class="ssr-tagline">NASA data to the last field — even without signal.</p>
-      <p class="ssr-lead">
-        Muyuy helps smallholder farmers compare crop rotations, see seasonal climate risks, and
-        carry that information offline. Pilot region: Huánuco, Peru.
-      </p>
-      <ul class="ssr-facts">
-        <li>40 years of NASA POWER records (1985–2024)</li>
-        <li>Works fully offline after one download</li>
-        <li>Regional package of about 2 KB gzipped</li>
-      </ul>
-      <p class="ssr-meta">NASA Space Apps Challenge 2026 · Opening the interactive 3D terrain…</p>
-    </div>
   </LandingUI>
 
   <noscript>
@@ -117,67 +137,137 @@ const base = import.meta.env.BASE_URL;
 </Layout>
 
 <style>
-  .ssr-shell {
-    min-height: 100svh;
+  .loader {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 14px;
     padding: 40px 24px;
     text-align: center;
-    background: radial-gradient(ellipse at 50% 40%, #1b2a20 0%, #090c0b 70%);
+    background: #090c0b;
+    transition: opacity .7s cubic-bezier(.32,.72,0,1), visibility .7s;
+  }
+  .loader[data-stage="ready"] { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .loader-glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 45% at 50% 42%, #2a3d2b 0%, transparent 70%),
+      radial-gradient(ellipse 90% 70% at 50% 110%, #1a2618 0%, transparent 65%);
+    animation: loader-breathe 4.5s ease-in-out infinite;
   }
 
-  .ssr-logo {
-    width: clamp(150px, 24vw, 260px);
-    height: auto;
+  .loader-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: min(100%, 520px);
   }
 
-  .ssr-shell h1 {
-    font: 600 clamp(38px, 6vw, 64px)/1 "Inter", system-ui, sans-serif;
-    letter-spacing: -.06em;
-    margin: 6px 0 0;
-    color: #f4f4f1;
-  }
+  .loader-mark img { width: clamp(170px, 26vw, 260px); height: auto; filter: drop-shadow(0 0 28px #cadca633); }
 
-  .ssr-tagline {
-    max-width: 44ch;
-    font-size: clamp(15px, 2vw, 20px);
-    line-height: 1.45;
-    color: #cadca6;
+  .loader-tagline {
+    margin: 18px 0 0;
+    font: 400 clamp(22px, 3.2vw, 30px)/1.2 "Instrument Serif", Georgia, serif;
+    color: #f1f3ec;
   }
+  .loader-tagline em { color: #cadca6; }
 
-  .ssr-lead {
-    max-width: 58ch;
-    font-size: 14px;
+  .loader-progress {
+    width: min(100%, 280px);
+    height: 2px;
+    margin-top: 30px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: #ffffff14;
+  }
+  .loader-progress span {
+    display: block;
+    height: 100%;
+    width: 18%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #8fae6a, #e3f0c4);
+    box-shadow: 0 0 12px #cadca680;
+    transition: width .9s cubic-bezier(.32,.72,0,1);
+  }
+  .loader[data-stage="terrain"] .loader-progress span { width: 52%; }
+  .loader[data-stage="render"] .loader-progress span { width: 86%; }
+  .loader[data-stage="ready"] .loader-progress span { width: 100%; }
+
+  .loader-step {
+    position: relative;
+    height: 16px;
+    margin: 12px 0 0;
+    font: 500 10.5px/16px "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #9fae8f;
+  }
+  .loader-step span { display: none; }
+  .loader[data-stage="boot"] [data-for="boot"],
+  .loader[data-stage="terrain"] [data-for="terrain"],
+  .loader[data-stage="render"] [data-for="render"],
+  .loader[data-stage="ready"] [data-for="ready"] { display: inline; }
+
+  .loader-lead {
+    max-width: 46ch;
+    margin: 34px 0 0;
+    font-size: 13.5px;
     line-height: 1.65;
-    color: #b9bdb2;
+    color: #a5ab9f;
   }
 
-  .ssr-facts {
+  .loader-facts {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px;
-    list-style: none;
+    gap: 6px;
+    margin: 16px 0 0;
     padding: 0;
-    margin: 6px 0 0;
+    list-style: none;
   }
-
-  .ssr-facts li {
-    padding: 5px 11px;
-    border: 1px solid #ffffff1f;
+  .loader-facts li {
+    padding: 4px 10px;
+    border: 1px solid #ffffff17;
     border-radius: 999px;
-    font: 11px/1.6 ui-monospace, monospace;
-    color: #a9b0a3;
+    font: 10.5px/1.6 "JetBrains Mono", ui-monospace, monospace;
+    color: #8f978a;
   }
 
-  .ssr-meta {
-    margin-top: 10px;
+  .loader-meta {
+    position: absolute;
+    bottom: max(22px, env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    margin: 0;
     font-size: 11px;
-    letter-spacing: .04em;
-    color: #7f8679;
+    letter-spacing: .06em;
+    color: #6f7669;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @keyframes loader-breathe { 50% { opacity: .65; } }
+
+  @media (max-height: 620px) {
+    .loader-lead, .loader-facts { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loader-glow { animation: none; }
+    .loader, .loader-progress span { transition: none; }
   }
 
   .noscript-message {
