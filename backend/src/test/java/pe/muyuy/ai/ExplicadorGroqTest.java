@@ -34,7 +34,7 @@ class ExplicadorGroqTest {
     private final List<Peticion> llamadas = new ArrayList<>();
 
     private ExplicadorGroq con(ClienteGroq cliente, boolean habilitado, String clave) {
-        return new ExplicadorGroq(cliente, cultivos, mapper, habilitado, Optional.ofNullable(clave), "modelo-test", Optional.of("low"));
+        return new ExplicadorGroq(cliente, cultivos, motor, mapper, habilitado, Optional.ofNullable(clave), "modelo-test", Optional.of("low"));
     }
 
     private Zona sierra() { return zonas.porId("huanuco-sierra").orElseThrow(); }
@@ -74,6 +74,7 @@ class ExplicadorGroqTest {
         assertEquals("json_object", p.responseFormat().get("type"));
         String datos = p.messages().get(1).content();
         assertTrue(datos.contains("Sierra de Huanuco"));
+        assertTrue(datos.contains("Siembra en el mes 10.") && datos.contains("secano"), "zona oficial: mes fijo");
         assertTrue(datos.contains("Tarwi") && datos.contains("fija nitrógeno"), "el prompt usa nombres y datos del motor");
         rots.forEach(r -> assertTrue(datos.contains("id: " + r.id())));
         assertTrue(p.messages().get(0).content().contains("no inventes"));
@@ -104,5 +105,16 @@ class ExplicadorGroqTest {
     void promptEnIngles() {
         assertTrue(ExplicadorGroq.sistema("en").contains("simple English"));
         assertTrue(ExplicadorGroq.sistema("es").contains("español sencillo"));
+    }
+
+    @Test
+    void coordenadaLlevaSuPropioMesDeSiembraYRiego() {
+        var z = sierra();
+        var punto = new pe.muyuy.core.model.Zona("celda_x", "Punto", pe.muyuy.core.engine.MotorReal.REGION_COORDENADA,
+                z.lat(), z.lon(), z.elevacionM(), true, List.of(), null);
+        int mes = motor.mesSiembra(punto, cal());
+        String datos = con((a, b) -> { throw new AssertionError(); }, true, "clave-x").datos(rotaciones(), punto, cal());
+        assertTrue(datos.contains("Siembra en el mes " + mes + "."), datos);
+        assertTrue(datos.contains("tiene riego"));
     }
 }

@@ -54,27 +54,27 @@ void main() {
   group('importar: gana la más nueva', () {
     test('instala, registra quién lo compartió', () async {
       final repo = PackageRepository();
-      final file = wrapWithSobre(withVersion(raw, 5), {'compartido_por': 'disp-a'});
+      final file = wrapWithSobre(withVersion(raw, 50), {'compartido_por': 'disp-a'});
       final result = await repo.importJson(file);
       expect(result.outcome, ImportOutcome.installed);
       expect(result.compartidoPor, 'disp-a');
-      expect(result.paquete.packageVersion, 5);
+      expect(result.paquete.packageVersion, 50);
     });
 
     test('descarta una versión más vieja que la instalada', () async {
       final repo = PackageRepository();
-      await repo.importJson(withVersion(raw, 5));
-      final result = await repo.importJson(withVersion(raw, 3));
+      await repo.importJson(withVersion(raw, 50));
+      final result = await repo.importJson(withVersion(raw, 30));
       expect(result.outcome, ImportOutcome.older);
-      expect(result.installedVersion, 5);
+      expect(result.installedVersion, 50);
       final local = await repo.loadLocal('huanuco-sierra');
-      expect(local!.paquete.packageVersion, 5);
+      expect(local!.paquete.packageVersion, 50);
     });
 
     test('misma versión y hash = ya la tenía', () async {
       final repo = PackageRepository();
-      await repo.importJson(withVersion(raw, 5));
-      final result = await repo.importJson(withVersion(raw, 5));
+      await repo.importJson(withVersion(raw, 50));
+      final result = await repo.importJson(withVersion(raw, 50));
       expect(result.outcome, ImportOutcome.same);
     });
 

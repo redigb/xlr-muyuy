@@ -11,6 +11,7 @@ import pe.muyuy.ai.ClienteGroq.Peticion;
 import pe.muyuy.core.Explicador;
 import pe.muyuy.core.ExplicadorPlantilla;
 import pe.muyuy.core.data.RepositorioCultivos;
+import pe.muyuy.core.engine.MotorRotaciones;
 import pe.muyuy.core.model.Calendario;
 import pe.muyuy.core.model.MesClima;
 import pe.muyuy.core.model.Rotacion;
@@ -33,6 +34,7 @@ public class ExplicadorGroq implements Explicador {
 
     private final ClienteGroq groq;
     private final RepositorioCultivos cultivos;
+    private final MotorRotaciones motor;
     private final ObjectMapper mapper;
     private final boolean habilitado;
     private final String clave;
@@ -40,13 +42,14 @@ public class ExplicadorGroq implements Explicador {
     private final String esfuerzo;
     private final Explicador plantilla = new ExplicadorPlantilla();
 
-    public ExplicadorGroq(@RestClient ClienteGroq groq, RepositorioCultivos cultivos, ObjectMapper mapper,
+    public ExplicadorGroq(@RestClient ClienteGroq groq, RepositorioCultivos cultivos, MotorRotaciones motor, ObjectMapper mapper,
                           @ConfigProperty(name = "groq.enabled", defaultValue = "true") boolean habilitado,
                           @ConfigProperty(name = "groq.clave") Optional<String> clave,
                           @ConfigProperty(name = "groq.model", defaultValue = "openai/gpt-oss-120b") String modelo,
                           @ConfigProperty(name = "groq.reasoning-effort") Optional<String> esfuerzo) {
         this.groq = groq;
         this.cultivos = cultivos;
+        this.motor = motor;
         this.mapper = mapper;
         this.clave = clave.orElse("").trim();
         this.habilitado = habilitado && !this.clave.isEmpty();
@@ -107,7 +110,9 @@ public class ExplicadorGroq implements Explicador {
           .append("Lluvia anual: ").append(Math.round(lluvia)).append(" mm. ")
           .append("Meses con riesgo de helada: ").append(heladas.isEmpty() ? "ninguno" : heladas).append(". ")
           .append("Meses secos: ").append(secos.isEmpty() ? "ninguno" : secos).append(". ")
-          .append("Siembra en el mes 10. Puntajes de 0 a 1 (riesgo: 1 = seguro).\n\nRotaciones:\n");
+          .append("Siembra en el mes ").append(motor.mesSiembra(zona, cal)).append(". ")
+          .append(zona.riego() ? "El agricultor tiene riego. " : "Cultivo en secano (solo lluvia). ")
+          .append("Puntajes de 0 a 1 (riesgo: 1 = seguro).\n\nRotaciones:\n");
         for (Rotacion r : rotaciones) {
             var p = r.puntajes();
             String nombres = r.secuencia().stream().map(this::describir).collect(Collectors.joining(" -> "));

@@ -191,7 +191,7 @@ public class ServicioPaquetes {
         Map<String, String> explicacionesPrevias = previo.map(this::explicacionesDe).orElse(Map.of());
 
         List<Rotacion> rotaciones = explicar(motor.recomendar(zona, cal, cultivos.catalogoPara(zona.region())), zona, cal, idioma,
-                explicacionesPrevias);
+                explicacionesPrevias, motor.mesSiembra(zona, cal));
         if (EN.equals(idioma)) {
             rotaciones = rotaciones.stream()
                     .map(r -> r.conValidar(MotorReal.validar(r.puntajes(), cultivos.requerido(r.secuencia().get(1)), EN)))
@@ -236,11 +236,11 @@ public class ServicioPaquetes {
      * 2) Pide el resto al Explicador en UN lote. 3) Lo que falte (o si falla) va con plantilla.
      */
     private List<Rotacion> explicar(List<Rotacion> rotaciones, Zona zona, Calendario cal, String idioma,
-                                    Map<String, String> previas) {
+                                    Map<String, String> previas, int mesSiembra) {
         Map<String, String> textos = new HashMap<>();
         List<Rotacion> pendientes = new java.util.ArrayList<>();
         for (Rotacion r : rotaciones) {
-            String previa = previas.get(huella(r.id(), mapper.valueToTree(r.puntajes())));
+            String previa = previas.get(huella(r.id(), mapper.valueToTree(r.puntajes()), mesSiembra));
             boolean reutilizable = previa != null && !previa.isBlank()
                     && !previa.equals(respaldo.explicar(r, zona, cal, idioma));
             if (reutilizable) textos.put(r.id(), previa); else pendientes.add(r);
@@ -262,8 +262,10 @@ public class ServicioPaquetes {
     private Map<String, String> explicacionesDe(Sellado previo) {
         Map<String, String> out = new HashMap<>();
         try {
-            for (JsonNode r : mapper.readTree(previo.contenido()).at("/paquete/nucleo/rotaciones")) {
-                out.put(huella(r.path("id").asText(), r.path("puntajes")), r.path("explicacion").asText(""));
+            JsonNode nucleo = mapper.readTree(previo.contenido()).at("/paquete/nucleo");
+            int mes = nucleo.path("inicio_siembra_mes").asInt();
+            for (JsonNode r : nucleo.path("rotaciones")) {
+                out.put(huella(r.path("id").asText(), r.path("puntajes"), mes), r.path("explicacion").asText(""));
             }
         } catch (Exception e) {
             LOG.warn("No se pudieron leer las explicaciones previas de " + previo.clave(), e);
@@ -271,7 +273,8 @@ public class ServicioPaquetes {
         return out;
     }
 
-    private static String huella(String id, JsonNode puntajes) { return id + "|" + puntajes; }
+    /** El texto se reutiliza solo si rotación, puntajes y mes de siembra (que el texto menciona) son iguales. */
+    private static String huella(String id, JsonNode puntajes, int mesSiembra) { return id + "|" + puntajes + "|" + mesSiembra; }
 
     private String json(Object o) {
         try { return mapper.writeValueAsString(o); }

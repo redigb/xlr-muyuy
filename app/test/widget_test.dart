@@ -22,8 +22,9 @@ void main() {
     test('lee el paquete envuelto en meta + nucleo', () {
       expect(paquete.zona.id, 'huanuco-sierra');
       expect(paquete.calendario, hasLength(12));
-      expect(paquete.cultivos, hasLength(11));
-      expect(paquete.rotaciones, hasLength(10));
+      // Tamaños según el motor: 6–10 candidatas por cultivo inicial (spec 3.2).
+      expect(paquete.cultivos, isNotEmpty);
+      expect(paquete.rotaciones.length, greaterThanOrEqualTo(6));
       // v2 = la que publica el servidor (los incluidos son copia exacta).
       expect(paquete.meta.version, greaterThanOrEqualTo(2));
       expect(paquete.packageVersion, paquete.meta.version);
@@ -78,7 +79,7 @@ void main() {
       );
       expect(copy.verified, isTrue);
       expect(copy.hash, paquete.hash);
-      expect(copy.rotaciones, hasLength(10));
+      expect(copy.rotaciones, hasLength(paquete.rotaciones.length));
     });
 
     test('shortPackageHash recorta el hash para la UI', () {
