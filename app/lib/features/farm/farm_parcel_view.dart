@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/soil_profiles.dart';
@@ -43,7 +45,6 @@ class _FarmParcelViewState extends State<FarmParcelView>
     vsync: this,
     duration: const Duration(milliseconds: _months * 1100),
   )..addListener(_onSimTick);
-  double _lastSimValue = 0;
   double _frac = 0;
   bool _simDone = false;
   bool _manual = true; // el usuario mueve año/mes: la animación no manda
@@ -56,9 +57,8 @@ class _FarmParcelViewState extends State<FarmParcelView>
     final t = v * _months;
     final m = t.floor().clamp(0, _months - 1);
     setState(() {
-      // La cámara gira despacio mientras corre: movimiento continuo y suave.
-      _angle += (v - _lastSimValue) * _months * 0.1;
-      _lastSimValue = v;
+      // Vaivén suave de la cámara alrededor de la vista inicial (sin vueltas).
+      _angle = _angle0 + 0.4 * math.sin(v * math.pi * 3);
       _year = m ~/ 12;
       _month = m % 12;
       _frac = (t - m).clamp(0.0, 1.0);
@@ -72,7 +72,9 @@ class _FarmParcelViewState extends State<FarmParcelView>
     _simDone = false;
     _sector = null;
     if (restart) {
-      _lastSimValue = 0;
+      _angle = _angle0;
+      _tilt = _tilt0;
+      _zoom = 1;
       _sim.forward(from: 0);
     } else {
       _sim.forward();

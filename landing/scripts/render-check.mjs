@@ -107,7 +107,7 @@ try {
   for (const [label, probe] of [
     ['tarjetas del equipo', 'muyuy-team-grid'],
     ['cifras de impacto', 'muyuy-stat-value'],
-    ['plan de validación', 'muyuy-questions'],
+    ['galería de campo', 'class="muyuy-media-grid"'],
     ['botón de descarga', 'Download Muyuy APK'],
     ['datos reales de la API', 'Sierra de Huanuco'],
     ['selector de zona', 'muyuy-zone-options'],

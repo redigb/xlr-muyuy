@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUpRight, Check, ChevronRight, Copy, Download, Droplets,
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import AppDemo from './AppDemo.jsx';
+import ScannerDemo from './ScannerDemo.jsx';
 import TeamGrid from './TeamGrid.jsx';
 import ImpactSection from './ImpactSection.jsx';
 import FieldValidation from './FieldValidation.jsx';
@@ -747,15 +748,14 @@ export default function LandingUI({
                 </p>
               )}
             </Reveal>
-            {video && <Reveal className={glass + ' muyuy-video-card'}>
-              <div id="video-demo" tabIndex={-1} className="muyuy-video" aria-label="30-second video demo">
-                <iframe src={video} title="Muyuy 30-second demo" loading="lazy" allow="fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
-              </div>
-            </Reveal>}
           </div>
         </section>
 
-        <AppDemo locale={locale} reduced={reduced} />
+        <AppDemo locale={locale} reduced={reduced} videoUrl={video} />
+
+        <section id="scanner-demo" aria-labelledby="scanner-demo-title" className="muyuy-section">
+          <ScannerDemo t={t} glass={glass} reduced={reduced} />
+        </section>
 
         <section id="field-test" tabIndex={-1} aria-labelledby="field-title" className="muyuy-section">
           <Reveal className="muyuy-wide">
@@ -891,7 +891,7 @@ const CRASH_CSS = `
   .muyuy-crash-stack { max-width: min(100%, 780px); margin-top: 18px; padding: 14px; border: 1px solid #ffffff1f; border-radius: 8px; background: #0f1210; color: #f0a5a5; font: 11px/1.6 ui-monospace, monospace; text-align: left; overflow: auto; white-space: pre-wrap; }
 `;
 const STYLES = `
-  .muyuy-landing { position: relative; isolation: isolate; color: #f4f4f1; font: 15px/1.65 var(--font-sans, "Inter"), system-ui, sans-serif; }
+  .muyuy-landing { --muyuy-section-gutter: 6vw; position: relative; isolation: isolate; color: #f4f4f1; font: 15px/1.65 var(--font-sans, "Inter"), system-ui, sans-serif; }
   .muyuy-landing *, .muyuy-drawer * { box-sizing: border-box; }
   .muyuy-landing .pointer-events-none { pointer-events: none; }
   .muyuy-landing .pointer-events-auto { pointer-events: auto; }
@@ -924,7 +924,7 @@ const STYLES = `
   .muyuy-brand img { display: block; width: clamp(90px, 12vw, 133px); height: auto; }
   .muyuy-navigation nav { display: flex; align-items: center; gap: clamp(10px, 2.5vw, 25px); font-size: 12px; }
   .muyuy-navigation nav a { display: inline-flex; align-items: center; gap: 5px; }
-  .muyuy-section { min-height: 110svh; padding: 135px 6vw 100px; display: flex; align-items: center; position: relative; scroll-margin-top: 80px; }
+  .muyuy-section { min-height: 110svh; padding: 135px var(--muyuy-section-gutter) 100px; display: flex; align-items: center; position: relative; scroll-margin-top: 80px; }
   .muyuy-copy { width: min(100%, 530px); }
   .muyuy-landing #explorer { align-items: flex-start; padding-top: clamp(30px, 6svh, 64px); }
   .muyuy-hero .muyuy-copy { width: min(100%, 490px); }
@@ -1061,11 +1061,6 @@ const STYLES = `
   .muyuy-provenance code { color: #b9c4ac; }
   .muyuy-provenance a { color: #cadca6; text-decoration: underline; text-underline-offset: 3px; }
   .muyuy-small { font-size: 11px !important; color: #9fa699 !important; line-height: 1.65; }
-  .muyuy-video-card { padding: 9px; margin-top: 15px; }
-  .muyuy-video { aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; scroll-margin-top: 100px; }
-  .muyuy-video iframe { display: block; width: 100%; height: 100%; border: 0; }
-  .muyuy-video > div { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 9px; padding: 20px; }
-  .muyuy-video p { font-size: 12px; }
   .muyuy-field-content { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; gap: clamp(18px, 3vw, 38px); margin-top: 30px; }
   .muyuy-field-media > figure img { width: 100%; height: auto; aspect-ratio: 3/2; object-fit: cover; border-radius: 10px; }
   .muyuy-field-content figcaption { font-size: 11px; color: #aaa; }
@@ -1126,7 +1121,8 @@ const STYLES = `
     .muyuy-navigation { margin-inline: 12px; padding: 8px 12px; top: 8px; gap: 8px 14px; flex-wrap: wrap; }
     .muyuy-navigation nav { min-width: 0; gap: 6px 10px; font-size: 11px; flex-wrap: wrap; }
     .muyuy-navigation nav > :is(a, button, select) { min-height: 36px; }
-    .muyuy-section { padding: 120px 18px 240px; min-height: 115svh; align-items: start; }
+    .muyuy-landing { --muyuy-section-gutter: 18px; }
+    .muyuy-section { padding: 120px var(--muyuy-section-gutter) 240px; min-height: 115svh; align-items: start; }
     .muyuy-hero { padding-top: 112px; padding-bottom: 46svh; min-height: 100svh; }
     .muyuy-hero .muyuy-location { margin-top: 15px !important; }
     .muyuy-hero .muyuy-actions { margin-top: 16px; }
