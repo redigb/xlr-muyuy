@@ -298,6 +298,8 @@ const COPY: Record<string, Row> = {
   "Driest month": ["Mes más seco", "", ""],
   "Sowing starts": ["Inicio de siembra", "", ""],
   "Muyuy engine": ["Motor Muyuy", "", ""],
+  "Open source": ["Código abierto", "", ""],
+  "Source code on GitHub": ["Código fuente en GitHub", "", ""],
   "Team lead": ["Líder", "", ""],
   "Co-lead": ["Colíder", "", ""],
   "Crops in the global catalog": ["Cultivos en el catálogo global", "", ""],

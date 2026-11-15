@@ -87,6 +87,9 @@ function storyAt(progress) {
 }
 const glass = 'muyuy-glass pointer-events-auto bg-zinc-950/70 backdrop-blur-md border border-white/10';
 const mono = 'font-mono tabular-nums';
+const GithubMark = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" /></svg>
+);
 const brandLogo = import.meta.env.BASE_URL + 'muyuy-logo.png';
 
 function firstFieldScrollOffset(section) {
@@ -507,6 +510,7 @@ export default function LandingUI({
         <nav aria-label="Main navigation">
           <a href="#explorer" onClick={(event) => scrollTo(event, 'explorer')}>{t('Explore')}</a>
           <a href="#download" onClick={(event) => scrollTo(event, 'download')}>{t('Get the app')} <ArrowUpRight size={14} aria-hidden="true" /></a>
+          {github && <a className="muyuy-nav-github" href={github} target="_blank" rel="noopener noreferrer" aria-label={t('Source code on GitHub')}><GithubMark size={16} /> GitHub</a>}
           <button type="button" className="muyuy-motion-switch" aria-pressed={motionEnabled} onClick={() => setMotionEnabled((enabled) => !enabled)}>{t(motionEnabled ? 'Motion on' : 'Motion off')}</button>
           <select className="muyuy-language" aria-label={t('Language')} value={locale} onChange={(event) => setLocale(event.target.value)}>
             {LOCALES.map(([code, name]) => <option key={code} value={code} lang={code}>{name}</option>)}
@@ -518,6 +522,15 @@ export default function LandingUI({
         <section id="hero" tabIndex={-1} aria-labelledby="hero-title" className="muyuy-section muyuy-hero">
           <div className="muyuy-copy">
             <Reveal><p className="muyuy-eyebrow">NASA SPACE APPS CHALLENGE 2026</p></Reveal>
+            {github && (
+              <Reveal delay={.1}>
+                <a className={'muyuy-repo pointer-events-auto ' + mono} href={github} target="_blank" rel="noopener noreferrer">
+                  <GithubMark size={18} />
+                  <span><small>{t('Open source')}</small>{github.replace(/^https?:\/\/(www\.)?github\.com\//, '')}</span>
+                  <ArrowUpRight size={16} aria-hidden="true" />
+                </a>
+              </Reveal>
+            )}
             <h1 id="hero-title" className="tracking-tighter" aria-label="Muyuy">{Array.from('Muyuy.').map((letter, index) => <span aria-hidden="true" key={index} className="muyuy-letter" style={{ '--letter-delay': `${.18 + index * .095}s` }}>{letter}</span>)}</h1>
             <Reveal delay={.67}><p className="muyuy-tagline">{t('NASA data to the last field — even without signal.')}</p></Reveal>
             <Reveal delay={.79}><p className="muyuy-location"><span className="muyuy-dot" /> {t('Uses NASA Earth data')} · {t('Huánuco, Peru')} <span className={mono}>({Number.isFinite(elevation) ? elevation.toLocaleString('en-US') : '—'}m)</span></p></Reveal>
@@ -868,6 +881,12 @@ const STYLES = `
   .muyuy-copy { width: min(100%, 530px); }
   .muyuy-landing #explorer { align-items: flex-start; padding-top: clamp(30px, 6svh, 64px); }
   .muyuy-hero .muyuy-copy { width: min(100%, 490px); }
+  .muyuy-repo { display: inline-flex; align-items: center; gap: 10px; margin-top: 14px; padding: 8px 16px 8px 12px; border: 1px solid #dcecc055; border-radius: 12px; background: #0b0f0ccc; color: #eef2e6; font-size: 14px; font-weight: 600; text-decoration: none; box-shadow: 0 6px 24px #0006; transition: border-color .2s, background .2s, transform .2s; }
+  .muyuy-repo span { display: flex; flex-direction: column; line-height: 1.25; }
+  .muyuy-repo small { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #a9e08c; }
+  .muyuy-repo:hover, .muyuy-repo:focus-visible { border-color: #dcecc0; background: #141a15; transform: translateY(-1px); }
+  .muyuy-nav-github { gap: 6px !important; padding: 5px 11px; border-radius: 8px; background: #dcecc0; color: #0b0f0c !important; font-weight: 600; transition: background .2s; }
+  .muyuy-nav-github:hover, .muyuy-nav-github:focus-visible { background: #eef6dc; }
   .muyuy-landing .muyuy-hero h1 { font-size: clamp(76px, 9.6vw, 158px); }
   .muyuy-hero .muyuy-actions { max-width: 440px; }
   .muyuy-hero .muyuy-actions { pointer-events: none; }
