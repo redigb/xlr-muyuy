@@ -30,7 +30,7 @@ class MotorFlujoTest {
     @Inject Explicador explicador;
 
     private List<Rotacion> candidatas(Zona z) {
-        return motor.recomendar(z, calendarios.deZona(z.id()).orElseThrow(), cultivos.todos());
+        return motor.recomendar(z, calendarios.deZona(z.id()).orElseThrow(), cultivos.catalogoPara(z.region()));
     }
 
     @Test

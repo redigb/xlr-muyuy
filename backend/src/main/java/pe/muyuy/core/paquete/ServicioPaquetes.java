@@ -82,6 +82,8 @@ public class ServicioPaquetes {
     private final FuenteImagen imagenes;
     private final Explicador respaldo = new ExplicadorPlantilla();
     private final Map<String, Sellado> cache = new ConcurrentHashMap<>();
+    /** Cada deploy puede traer otro catálogo o motor: las celdas guardadas antes se recalculan. */
+    private final java.time.OffsetDateTime arranque = java.time.OffsetDateTime.now(ZoneOffset.UTC);
 
     public ServicioPaquetes(RepositorioZonas zonas, RepositorioCalendarios calendarios, RepositorioCultivos cultivos,
                             MotorRotaciones motor, Explicador explicador, ObjectMapper mapper, AgroalDataSource ds,
@@ -131,12 +133,14 @@ public class ServicioPaquetes {
         Sellado enCache = cache.get(origen.base());
         if (enCache != null) return Optional.of(enCache);
         String sql = "select version, hash, contenido from paquetes where origen = ? and celda = ? and idioma = ? "
-                   + "and generado > now() - make_interval(days => ?) order by version desc limit 1";
+                   + "and generado > now() - make_interval(days => ?) and generado >= ? "
+                   + "order by version desc limit 1";
         try (var c = ds.getConnection(); var ps = c.prepareStatement(sql)) {
             ps.setString(1, COORDENADA);
             ps.setString(2, celda);
             ps.setString(3, origen.idioma());
             ps.setInt(4, dias);
+            ps.setObject(5, arranque);
             try (var rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
                 Sellado s = new Sellado(origen.base(), rs.getInt(1), rs.getString(2), rs.getString(3));
@@ -183,7 +187,7 @@ public class ServicioPaquetes {
         Optional<Sellado> previo = ultimo(origen);
         Map<String, String> explicacionesPrevias = previo.map(this::explicacionesDe).orElse(Map.of());
 
-        List<Rotacion> rotaciones = explicar(motor.recomendar(zona, cal, cultivos.todos()), zona, cal, idioma,
+        List<Rotacion> rotaciones = explicar(motor.recomendar(zona, cal, cultivos.catalogoPara(zona.region())), zona, cal, idioma,
                 explicacionesPrevias);
         if (EN.equals(idioma)) {
             rotaciones = rotaciones.stream()

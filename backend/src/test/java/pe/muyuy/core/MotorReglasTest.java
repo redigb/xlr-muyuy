@@ -76,7 +76,7 @@ class MotorReglasTest {
     void candidatasRespetanReglasYPuntajesValidos() {
         for (Zona z : zonas.todas()) {
             var cal = calendarios.deZona(z.id()).orElseThrow();
-            for (Rotacion r : motor.recomendar(z, cal, cultivos.todos())) {
+            for (Rotacion r : motor.recomendar(z, cal, cultivos.catalogoPara(z.region()))) {
                 var p = r.puntajes();
                 for (double v : new double[]{p.agua(), p.suelo(), p.ingresos(), p.riesgo(), p.total()}) {
                     assertTrue(v >= 0 && v <= 1, r.id() + " puntaje fuera de 0..1");

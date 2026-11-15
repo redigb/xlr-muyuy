@@ -67,6 +67,7 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | Catálogo global: +13 cultivos ECOCROP (sorgo, mijo, arroz, soya, maní, caupí, garbanzo, lenteja, camote, girasol, tomate, cebolla, colza). Zonas oficiales solo con su catálogo andino; coordenadas con todo. `MotorGlobalTest` con clima NASA real de Kenia, Punjab y Níger | `feat(data): catalogo global de cultivos para otros paises` |
 | 14/11 | `GET /api/red/publica`: red anónima (alias por consulta, sin demo) + alcance/saltos + serie 30 días | `feat(api): red publica anonima con metricas` |
 | 14/11 | Imagen satelital NASA (Landsat WELD) en `extras` de zonas oficiales; app la muestra plegada en Chacra | `feat(api): imagen satelital en el paquete` |
 | 14/11 | `pipeline-api` + `/api/paquete/coordenada` + paquetes en inglés + `id_local`/`estados` en sync; calendarios reales NASA POWER | `feat(api): paquete por coordenada, ingles y calendarios reales` |

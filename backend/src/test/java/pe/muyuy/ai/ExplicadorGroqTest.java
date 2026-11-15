@@ -39,7 +39,7 @@ class ExplicadorGroqTest {
 
     private Zona sierra() { return zonas.porId("huanuco-sierra").orElseThrow(); }
     private Calendario cal() { return calendarios.deZona("huanuco-sierra").orElseThrow(); }
-    private List<Rotacion> rotaciones() { return motor.recomendar(sierra(), cal(), cultivos.todos()); }
+    private List<Rotacion> rotaciones() { return motor.recomendar(sierra(), cal(), cultivos.catalogoPara(sierra().region())); }
 
     /** Lo que viaja a Groq: snake_case y reasoning_effort solo si está configurado. */
     @Test

@@ -32,6 +32,29 @@ String cropEmoji(String id) {
     case 'maiz_amilaceo':
     case 'maiz_duro':
       return '🌽';
+    case 'sorgo':
+    case 'mijo':
+    case 'arroz':
+      return '🌾';
+    case 'soya':
+    case 'caupi':
+    case 'garbanzo':
+    case 'lenteja':
+    case 'frijol':
+      return '🫘';
+    case 'mani':
+      return '🥜';
+    case 'camote':
+    case 'yuca':
+      return '🍠';
+    case 'girasol':
+      return '🌻';
+    case 'tomate':
+      return '🍅';
+    case 'cebolla':
+      return '🧅';
+    case 'colza':
+      return '🌼';
     case 'oca':
       return '🟠';
     case 'olluco':

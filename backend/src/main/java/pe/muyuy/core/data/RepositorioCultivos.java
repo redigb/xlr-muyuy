@@ -27,6 +27,17 @@ public class RepositorioCultivos {
         return porId(id).orElseThrow(() -> new IllegalArgumentException("Cultivo desconocido: " + id));
     }
 
+    /**
+     * Catálogo con el que el motor arma las rotaciones. Zonas oficiales (sierra | valle | selva): solo lo que
+     * se siembra ahí (validado con MIDAGRI) + descanso. Coordenadas y "global": TODO el catálogo, el clima filtra.
+     */
+    public List<Cultivo> catalogoPara(String region) {
+        if (region == null || "global".equals(region) || "coordenada".equals(region)) return todos();
+        return cultivos.values().stream()
+                .filter(c -> c.esDescanso() || c.zonas().contains(region))
+                .toList();
+    }
+
     /** Cultivos (sin descanso) declarados para la region: sierra | valle | selva | global (= todos). */
     public List<Cultivo> deRegion(String region) {
         return cultivos.values().stream()
