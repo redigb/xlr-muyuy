@@ -5,6 +5,7 @@ import 'package:muyuy/features/farm/rotation_sim.dart';
 import 'package:muyuy/l10n/strings.dart';
 import 'package:muyuy/models/models.dart';
 import 'package:muyuy/state/app_state.dart';
+import 'package:muyuy/utils/formatters.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
@@ -69,5 +70,44 @@ void main() {
     expect(find.byKey(const ValueKey('sim-summary')), findsOneWidget);
     expect(find.textContaining('harvests'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  test('riesgo: la helada no cuenta para cultivos que la toleran', () {
+    Cultivo crop(String id, String helada, String agua) => Cultivo.fromJson({
+      'id': id,
+      'nombre': id,
+      'familia': id,
+      'tolera_helada': helada,
+      'agua': agua,
+      'ciclo_meses': 6,
+    });
+    final crops = {
+      'tarwi': crop('tarwi', 'alta', 'baja'),
+      'papa': crop('papa', 'baja', 'media'),
+    };
+    final hardy = RotationSim.run(
+      ['tarwi', 'tarwi', 'tarwi'],
+      cultivo: (id) => crops[id],
+      climate: (_) => MesEstado.helada,
+    );
+    final tender = RotationSim.run(
+      ['papa', 'papa', 'papa'],
+      cultivo: (id) => crops[id],
+      climate: (_) => MesEstado.helada,
+    );
+    expect(hardy.riskMonths, 0);
+    expect(tender.riskMonths, 18);
+  });
+
+  test('traduce nombres de cultivo del backend (el más largo primero)', () {
+    final out = localizeCropNames(
+      'Ask before planting Papa. Water for Avena forrajera.',
+      const [
+        (id: 'papa', nombre: 'Papa'),
+        (id: 'avena_forrajera', nombre: 'Avena forrajera'),
+      ],
+      (id) => {'papa': 'Potato', 'avena_forrajera': 'Forage oats'}[id]!,
+    );
+    expect(out, 'Ask before planting Potato. Water for Forage oats.');
   });
 }

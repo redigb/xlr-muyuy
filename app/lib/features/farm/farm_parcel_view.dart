@@ -553,6 +553,8 @@ class _SectorTile extends StatelessWidget {
         ? context.tr('farm.parcel.fallow')
         : sector.harvested
         ? context.tr('farm.parcel.harvested')
+        : sector.growth >= 0.99
+        ? context.tr('farm.parcel.ready')
         : context.tr('farm.parcel.growing', {
             'pct': (sector.growth * 100).round(),
           });

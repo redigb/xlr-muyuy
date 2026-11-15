@@ -779,9 +779,12 @@ class _AlertsCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    context.tr('home.alerts.confirm', {
-                      'n': alerta.confirmaciones,
-                    }),
+                    context.tr(
+                      alerta.confirmaciones == 1
+                          ? 'home.alerts.confirmOne'
+                          : 'home.alerts.confirm',
+                      {'n': alerta.confirmaciones},
+                    ),
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ],

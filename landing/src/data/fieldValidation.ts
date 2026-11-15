@@ -66,6 +66,16 @@ export const VALIDATION_QUESTIONS: ValidationQuestion[] = [
   },
 ];
 
-export const FIELD_MEDIA: FieldMedia[] = [];
+/** Fotos reales de la prueba de campo (15/11/2026): hojas y suelo para probar AgroVision y SoilVision. */
+export const FIELD_MEDIA: FieldMedia[] = [
+  { id: 'campo-01', kind: 'photo', src: '/field-photos/campo-01-hoja-manchas-haz.webp', alt: 'Avocado leaf with dark and yellow spots on the upper side, held by hand' },
+  { id: 'campo-02', kind: 'photo', src: '/field-photos/campo-02-arbol-palta.webp', alt: 'Young avocado tree in the plot where the photos were taken' },
+  { id: 'campo-03', kind: 'photo', src: '/field-photos/campo-03-hoja-enves.webp', alt: 'Underside of an avocado leaf, photographed in natural light' },
+  { id: 'campo-04', kind: 'photo', src: '/field-photos/campo-04-hoja-manchas-amarillas.webp', alt: 'Avocado leaf with yellow mottling, still on the branch' },
+  { id: 'campo-05', kind: 'photo', src: '/field-photos/campo-05-brote-dano.webp', alt: 'Avocado shoot with dry, damaged leaves' },
+  { id: 'campo-06', kind: 'photo', src: '/field-photos/campo-06-hoja-enves-2.webp', alt: 'Underside of a second avocado leaf, held by hand' },
+  { id: 'campo-07', kind: 'photo', src: '/field-photos/campo-07-muestra-suelo.webp', alt: 'Patch of bare soil cleared for a soil photo' },
+  { id: 'campo-08', kind: 'photo', src: '/field-photos/campo-08-hoja-lesiones.webp', alt: 'Avocado leaf with pale lesions next to the irrigation hose' },
+];
 
 export const TESTIMONIALS: Testimonial[] = [];

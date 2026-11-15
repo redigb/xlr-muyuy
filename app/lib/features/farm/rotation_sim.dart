@@ -55,6 +55,17 @@ class RotationSim {
     return e;
   }
 
+  /// ¿Este clima daña a este cultivo? Helada: si no la tolera bien.
+  /// Seco: si pide mucha o media agua. Sin datos del cultivo: sí.
+  static bool sensitive(String crop, Cultivo? c, MesEstado state) {
+    if (c == null) return state != MesEstado.bueno;
+    return switch (state) {
+      MesEstado.helada => c.toleraHelada != 'alta',
+      MesEstado.seco => c.agua != 'baja',
+      MesEstado.bueno => false,
+    };
+  }
+
   static RotationSim run(
     List<String> sequence, {
     Cultivo? Function(String id)? cultivo,
@@ -87,13 +98,14 @@ class RotationSim {
         final cal = (sowMonth - 1 + m) % 12 + 1;
         final state = climate?.call(cal) ?? MesEstado.bueno;
         if (state == MesEstado.bueno) continue;
-        final growing = [for (var s = 0; s < 3; s++) crops[(s + y) % 3]]
+        final hit = [for (var s = 0; s < 3; s++) crops[(s + y) % 3]]
             .any((crop) {
               if (crop == 'descanso') return false;
-              final cycle = (cultivo?.call(crop)?.cicloMeses ?? 5).clamp(1, 12);
-              return m < cycle;
+              final c = cultivo?.call(crop);
+              final cycle = (c?.cicloMeses ?? 5).clamp(1, 12);
+              return m < cycle && sensitive(crop, c, state);
             });
-        if (growing) risk++;
+        if (hit) risk++;
       }
     }
     return RotationSim._(soil, harvests, risk);

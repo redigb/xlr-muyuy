@@ -16,6 +16,26 @@ String monthShortName(BuildContext c, int month) =>
 
 String cropName(BuildContext c, String id) => _trOr(c, 'crop.$id', id);
 
+/// El backend escribe nombres de cultivo en español ("…antes de sembrar Papa").
+/// Los cambia por el nombre en el idioma de la app (los más largos primero).
+String localizeCropNames(
+  String text,
+  Iterable<({String id, String nombre})> crops,
+  String Function(String id) nameOf,
+) {
+  final sorted = [...crops]
+    ..sort((a, b) => b.nombre.length.compareTo(a.nombre.length));
+  var out = text;
+  for (final c in sorted) {
+    if (c.nombre.isEmpty) continue;
+    final local = nameOf(c.id);
+    if (local != c.nombre && out.contains(c.nombre)) {
+      out = out.replaceAll(c.nombre, local);
+    }
+  }
+  return out;
+}
+
 String prettyZoneName(String name) {
   return name
       .replaceAll('Huanuco', 'Huánuco')

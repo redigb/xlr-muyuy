@@ -210,6 +210,7 @@ export default function LandingUI({
   const [progress, setProgress] = useState(0);
   const [fieldJourney, setFieldJourney] = useState(null);
   const [explorerEntered, setExplorerEntered] = useState(false);
+  const [explorerPassed, setExplorerPassed] = useState(false);
   const [wideFieldView, setWideFieldView] = useState(false);
   const [wideIslandView, setWideIslandView] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -349,7 +350,7 @@ export default function LandingUI({
   // Tres "ranuras" fijas: se montan una vez y solo cambian contenido, posición y
   // visibilidad. Montar/desmontar las etiquetas Html de drei al scrollear hacía
   // que alguna no apareciera hasta volver a pasar por el hero.
-  const showHotspots = wideScreen && fieldJourney === null && Boolean(activeZone);
+  const showHotspots = wideScreen && fieldJourney === null && !explorerPassed && Boolean(activeZone);
   const monthLabel = monthNames[month - 1];
   // Se montan una sola vez, cuando el terreno ya pintó: montarlas antes dejaba
   // vacía la primera, y remontarlas rompía el árbol de React (removeChild).
@@ -367,6 +368,22 @@ export default function LandingUI({
   // La clave cambia una sola vez, cuando el terreno ya pintó: Html de drei a
   // veces deja vacía la primera etiqueta montada antes del primer frame.
   ).map((spot, index) => ({ ...spot, id: 'slot-' + index, hidden: !showHotspots }));
+  // Fotos reales de la prueba de campo dentro del recorrido 3D: dos por parada
+  // (campo, problema, cómo funciona), junto al campo que la cámara está mirando.
+  const photoBase = import.meta.env.BASE_URL + 'field-photos/';
+  const fieldPhotos = !terrainReady ? undefined : [
+    { id: 'tree', at: 0, x: -2.35, z: 2.05, file: 'campo-02-arbol-palta.webp', caption: t('Avocado tree in the test plot') },
+    { id: 'leaf', at: 0, x: -1.3, z: 1.6, file: 'campo-01-hoja-manchas-haz.webp', caption: t('Spotted leaf, upper side') },
+    { id: 'shoot', at: 1, x: -.8, z: 2.05, file: 'campo-05-brote-dano.webp', caption: t('Shoot with dry, damaged leaves') },
+    { id: 'mottle', at: 1, x: .25, z: 1.6, file: 'campo-04-hoja-manchas-amarillas.webp', caption: t('Yellow mottling on the branch') },
+    { id: 'soil', at: 2, x: 1.05, z: 2.05, file: 'campo-07-muestra-suelo.webp', caption: t('Soil photo for SoilVision') },
+    { id: 'scan', at: 2, x: 2.1, z: 1.6, file: 'campo-03-hoja-enves.webp', caption: t('Leaf photo for AgroVision') },
+  ].map(({ at, file, ...photo }) => ({
+    ...photo,
+    src: photoBase + file,
+    label: t('Real field photo'),
+    hidden: !wideScreen || fieldJourney === null || Math.abs(fieldJourney - at) > .45,
+  }));
   const pickZone = (id) => { setZoneId(id); setManualMonth(null); setManualLayer(null); };
   const busyLocating = locating === 'locating' || locating === 'computing';
   const useMyLocation = async () => {
@@ -421,6 +438,7 @@ export default function LandingUI({
           : 1 + Math.max(0, Math.min(1, (cameraLine - starts[1]) / Math.max(1, distance)));
         const passedFields = explorer.getBoundingClientRect().top + explorerCopy.offsetTop <= window.innerHeight * .86;
         setExplorerEntered(passedFields);
+        setExplorerPassed(explorer.getBoundingClientRect().bottom < window.innerHeight * .45);
         const inFields = starts[0] <= window.innerHeight * .82 && !passedFields;
         setFieldJourney(inFields ? route : null);
         if (!inFields) setWideFieldView(false);
@@ -503,7 +521,7 @@ export default function LandingUI({
         <MuyuyTerrain fixed editorialLayout motionEnabled={motionEnabled} climate={climate} month={month} data={terrainData}
           fieldJourney={fieldJourney} onEnterFields={enterFields} wideFieldView={wideFieldView} onZoomOut={zoomOut}
           wideIslandView={wideIslandView} onWidenIslandView={widenIslandView}
-          scrollProgress={progress} showControls={false} onReady={markTerrainReady} hotspots={hotspots}
+          scrollProgress={progress} showControls={false} onReady={markTerrainReady} hotspots={hotspots} fieldPhotos={fieldPhotos}
           className="pointer-events-auto" style={{ background: 'transparent' }} />
       </Suspense>
       <div className="muyuy-vignette" aria-hidden="true" />

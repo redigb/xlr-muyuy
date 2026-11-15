@@ -589,7 +589,12 @@ class _RotationCard extends StatelessWidget {
                       if (rotation.validarConExperto.isNotEmpty) ...[
                         const SizedBox(height: AppSpacing.xs),
                         Text(
-                          rotation.validarConExperto,
+                          localizeCropNames(rotation.validarConExperto, [
+                            for (final c
+                                in AppScope.of(context).paquete?.cultivos ??
+                                    const <Cultivo>[])
+                              (id: c.id, nombre: c.nombre),
+                          ], (id) => cropName(context, id)),
                           style: textTheme.bodySmall?.copyWith(
                             color: const Color(0xFF713F12),
                           ),

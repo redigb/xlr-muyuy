@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowDown, CalendarDays, House, Layers3, Share2, Sprout } from 'lucide-react';
+import { ArrowDown, CalendarDays, House, Layers3, ScanLine, Share2, Sprout } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { translate } from '../i18n/copy.ts';
 
 const screens = [
   { id: 'home', Icon: House, label: 'Home', title: 'Take the calendar offline', description: 'Save the Huánuco package for offline use.' },
-  { id: 'farm', Icon: Sprout, label: 'My farm', title: 'Set up your farm', description: 'Choose irrigation and two priorities.' },
+  { id: 'farm', Icon: Sprout, label: 'My farm', title: 'Watch your farm grow in 3D', description: 'Simulate three years of the recommended rotation, month by month.' },
   { id: 'calendar', Icon: CalendarDays, label: 'Calendar', title: 'Read the season', description: 'Check frost, rainfall and water balance by month.' },
   { id: 'rotations', Icon: Layers3, label: 'Rotations', title: 'Compare your options', description: 'Compare three rotations and their confidence levels.' },
+  { id: 'scan', Icon: ScanLine, label: 'AgroVision', title: 'Scan a leaf', description: 'Check a leaf for pests and diseases with the camera, fully offline.' },
   { id: 'share', Icon: Share2, label: 'Share', title: 'Send the regional package', description: 'Use the QR to identify it and the JSON file to send it.' },
 ];
-const screenUrl = (id) => import.meta.env.BASE_URL + 'app-demo/' + id + '.png';
+const screenUrl = (id) => import.meta.env.BASE_URL + 'app-demo/' + id + '.webp';
 
 function scrollLine(stage) {
   const style = getComputedStyle(stage);
@@ -77,7 +78,7 @@ export default function AppDemo({ locale, reduced }) {
             <div className="muyuy-demo-screen" aria-hidden="true">
               <div className="muyuy-demo-track" ref={screenTrack}>
                 {screens.map(({ id }) => (
-                  <img key={id} src={screenUrl(id)} alt="" width="424" height="940" loading="lazy" decoding="async" />
+                  <img key={id} src={screenUrl(id)} alt="" width="720" height="1512" loading="lazy" decoding="async" />
                 ))}
               </div>
             </div>
@@ -119,10 +120,10 @@ const css = `
   .muyuy-demo-intro svg { flex: none; color: #abe3b2; }
   .muyuy-demo-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; column-gap: clamp(16px, 4vw, 64px); margin-top: 18px; }
   .muyuy-demo-stage { position: sticky; top: var(--demo-sticky); z-index: 1; display: grid; justify-items: center; gap: 12px; }
-  .muyuy-demo-device { display: block; height: var(--demo-phone-height); width: min(100%, var(--demo-phone-height) * .472); box-sizing: border-box; border: 1px solid #9bc7a1; border-radius: clamp(20px, 3vw, 40px); padding: clamp(4px, .65vw, 8px); background: #061610; box-shadow: 0 18px 52px #0008, 0 0 44px #7bea9421, inset 0 0 0 2px #506557; cursor: zoom-in; pointer-events: auto; }
+  .muyuy-demo-device { display: block; height: var(--demo-phone-height); width: min(100%, var(--demo-phone-height) * .476 + 8px); box-sizing: border-box; border: 1px solid #9bc7a1; border-radius: clamp(20px, 3vw, 40px); padding: clamp(4px, .65vw, 8px); background: #061610; box-shadow: 0 18px 52px #0008, 0 0 44px #7bea9421, inset 0 0 0 2px #506557; cursor: zoom-in; pointer-events: auto; }
   .muyuy-demo-screen { height: 100%; overflow: hidden; border-radius: calc(clamp(20px, 3vw, 40px) - 5px); background: #e9faf2; }
   .muyuy-demo-track { height: 100%; }
-  .muyuy-demo-screen img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  .muyuy-demo-screen img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
   .muyuy-demo-controls { display: flex; padding: 3px; gap: 3px; border: 1px solid #a5d7af40; border-radius: 18px; background: #101812e8; pointer-events: auto; }
   .muyuy-demo-controls button { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; color: #bdd5c4; cursor: pointer; }
   .muyuy-demo-controls button:hover { background: #296044; }

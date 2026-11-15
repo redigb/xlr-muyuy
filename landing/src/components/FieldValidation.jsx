@@ -67,7 +67,7 @@ export default function FieldValidation({ t, glass, locale, videoUrl }) {
 
           <section className="muyuy-field-media" aria-labelledby="field-media-title">
             <h3 id="field-media-title" className="muyuy-field-subtitle">
-              {t('Field photo and video slot')}
+              {media.length > 0 ? t('Field photos · real tests') : t('Field photo and video slot')}
             </h3>
             {videoUrl ? (
               <div className="muyuy-field-embed">
@@ -82,20 +82,27 @@ export default function FieldValidation({ t, glass, locale, videoUrl }) {
                 <p className="muyuy-small">{t('Example video made from app screenshots')}</p>
               </div>
             ) : media.length > 0 ? (
-              <ul className="muyuy-media-grid">
-                {media.map((item) => (
-                  <li key={item.id}>
-                    <figure>
-                      {item.kind === 'video' ? (
-                        <video src={asset(item.src)} controls playsInline preload="metadata" aria-label={item.alt} />
-                      ) : (
-                        <img src={asset(item.src)} alt={item.alt} loading="lazy" decoding="async" />
-                      )}
-                      {item.credit && <figcaption>{item.credit}</figcaption>}
-                    </figure>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="muyuy-media-grid">
+                  {media.map((item) => (
+                    <li key={item.id}>
+                      <figure>
+                        {item.kind === 'video' ? (
+                          <video src={asset(item.src)} controls playsInline preload="metadata" aria-label={item.alt} />
+                        ) : (
+                          <a href={asset(item.src)} target="_blank" rel="noopener noreferrer" title={t('Open photo')}>
+                            <img src={asset(item.src)} alt={item.alt} width="720" height="1280" loading="lazy" decoding="async" />
+                          </a>
+                        )}
+                        {item.credit && <figcaption>{item.credit}</figcaption>}
+                      </figure>
+                    </li>
+                  ))}
+                </ul>
+                <p className="muyuy-small muyuy-media-note">
+                  {t('Leaves and soil photographed in the field to test AgroVision and SoilVision with real images, not stock photos.')}
+                </p>
+              </>
             ) : (
               <div className="muyuy-media-empty" role="note">
                 <Camera size={22} aria-hidden="true" />
@@ -156,9 +163,15 @@ const css = `
   .muyuy-media-empty p, .muyuy-testimonial-empty p { font-size: 11.5px !important; line-height: 1.6; color: #9aa392 !important; }
   .muyuy-media-empty svg, .muyuy-testimonial-empty svg { flex: none; }
   .muyuy-testimonial-title { margin-top: 26px; }
-  .muyuy-media-grid { list-style: none; padding: 0; margin: 16px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .muyuy-media-grid figure { margin: 0; }
-  .muyuy-media-grid :is(img, video) { display: block; width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 10px; border: 1px solid #bcddbf45; }
+  .muyuy-media-grid { list-style: none; padding: 0; margin: 16px 0 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .muyuy-media-grid figure { margin: 0; height: 100%; }
+  .muyuy-media-grid a { display: block; height: 100%; overflow: hidden; border-radius: 10px; border: 1px solid #bcddbf45; background: #0b0f0c; cursor: zoom-in; }
+  .muyuy-media-grid :is(img, video) { display: block; width: 100%; height: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; }
+  .muyuy-media-grid a img { border-radius: 0; filter: saturate(1.05) contrast(1.03); transition: transform .5s cubic-bezier(.32,.72,0,1); }
+  .muyuy-media-grid a:hover img, .muyuy-media-grid a:focus-visible img { transform: scale(1.04); }
+  .muyuy-media-grid a:focus-visible { outline: 2px solid #d9facb; outline-offset: 2px; }
+  .muyuy-media-note { margin-top: 10px !important; }
+  @media (prefers-reduced-motion: reduce) { .muyuy-media-grid img { transition: none; } }
   .muyuy-media-grid figcaption { margin-top: 6px; font-size: 10.5px; color: #868d80; }
   .muyuy-testimonials { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 10px; }
   .muyuy-testimonials blockquote { margin: 0; padding: 18px 20px; border-left: 2px solid #cadca6; background: #0b0f0ca6; border-radius: 0 10px 10px 0; }
