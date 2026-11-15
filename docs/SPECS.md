@@ -27,7 +27,7 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 | # | Pieza | Estado | Prueba / criterio |
 |---|---|---|---|
 | 1 | Esqueleto (Quarkus 3.40, Java 25, YAML dev/test/prod, CI/CD) | ✅ | `ApiBasicaTest`, `PerfilTestTest`, `PerfilProdTest` |
-| 2 | Calendarios NASA corregidos por altitud (4 zonas) | 🟡 inventados | llegan de Datos ~14:00 · `anios >= 30` |
+| 2 | Calendarios NASA corregidos por altitud (4 zonas) | ✅ reales (POWER 1985-2024, −6.5 °C/km, ET0 Hargreaves, helada ≤ 2 °C) · falta deploy | `pipeline/test_calendario.py` |
 | 3 | `cultivos_andinos.json` (ECOCROP, con `ktmp` y `fuente`) + `reglas.json` | 🟡 borrador v1 | cargan y son válidos |
 | 4 | Motor v2: **todas las candidatas** + `esApto` | ✅ | `MotorFlujoTest`, `MotorReglasTest` · spec `specs/001-motor-candidatas` |
 | 5 | Paquete: `meta` (versión, hash SHA-256, vigencias) + `nucleo` | ✅ | `PaqueteApiTest`, `SelloTest` · spec `specs/002-paquete-api` |
@@ -39,11 +39,13 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 | # | Pieza | Estado |
 |---|---|---|
 | 9 | PostgreSQL + `/api/dispositivos` + `/api/sync` (idempotente) + puntaje automático + alertas en el paquete | ✅ `SyncApiTest`, `PuntajeYLimiteTest` · spec `specs/004-comunidad-sync` |
-| 10 | `pipeline-api` (FastAPI) + `/api/paquete/coordenada` + catálogo global + inicio de siembra calculado | ⬜ |
+| 10 | `pipeline-api` (FastAPI) + `/api/paquete/coordenada` + catálogo global + inicio de siembra calculado | ✅ `CoordenadaApiTest`, `InicioSiembraTest`, `pipeline/test_servicio.py` |
+| 10b | Paquetes en inglés (`?lang=en`) · `id_local` en `/api/dispositivos` · `estados` en `/api/sync` | ✅ `CoordenadaApiTest`, `SyncApiTest` |
+| 10c | Imagen satelital en `extras` (Worldview, Landsat WELD sin nubes, ~100 KB, solo zonas oficiales) | ✅ `PaqueteApiTest` (fuente falsa) |
 | 11 | Evaluación de aptitud contra MIDAGRI (métrica 2) | ⬜ |
 
 ### 🟢 P2: si sobra tiempo
-`/api/red/publica` · precalcular ubicaciones de los jueces · backtesting · explicaciones en inglés
+~~`/api/red/publica`~~ ✅ (`RedApiTest`, `ServicioRedTest`) · ~~explicaciones en inglés~~ ✅ · precalcular ubicaciones de los jueces · backtesting
 
 ## Pruebas del motor (v2)
 - [x] Nunca recomienda papa → papa (salvo `es_practica_comun`)
@@ -65,6 +67,9 @@ El servidor **prepara paquetes** (NASA + motor + Groq, con versión y hash) → 
 
 | Fecha | Avance | Commit |
 |---|---|---|
+| 14/11 | `GET /api/red/publica`: red anónima (alias por consulta, sin demo) + alcance/saltos + serie 30 días | `feat(api): red publica anonima con metricas` |
+| 14/11 | Imagen satelital NASA (Landsat WELD) en `extras` de zonas oficiales; app la muestra plegada en Chacra | `feat(api): imagen satelital en el paquete` |
+| 14/11 | `pipeline-api` + `/api/paquete/coordenada` + paquetes en inglés + `id_local`/`estados` en sync; calendarios reales NASA POWER | `feat(api): paquete por coordenada, ingles y calendarios reales` |
 | 14/11 | Monorepo: app Flutter en `app/` (sin builds ni `local.properties`; modelo TFLite solo en `assets/`) + `app-ci.yml` (analyze + test) | `feat(app): app flutter offline` |
 | 14/11 | Monorepo: landing (Astro, pnpm con scripts bloqueados + minimumReleaseAge) en `landing/`; workflows con filtro por carpeta (`landing-ci.yml` aparte, el deploy a Oracle solo si cambia backend/data/infra) | `chore: monorepo con landing y ci por carpeta` |
 | 14/11 | Evaluación de modelos Groq con prompt y paquetes reales (6 configuraciones) → `gpt-oss-120b` + `reasoning_effort: low`; 41 pruebas | `feat(ai): reasoning_effort low y evaluacion de modelos groq` |

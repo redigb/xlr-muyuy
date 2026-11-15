@@ -87,6 +87,7 @@ a fixed template is used. The model was chosen with an evaluation on real packag
 | [@LeoLucasC](https://github.com/LeoLucasC) | Flutter app |
 | [@ClemDYhoy](https://github.com/ClemDYhoy) | Landing page and 3D terrain |
 | [@LuisFc11](https://github.com/LuisFc11) | NASA API research |
+| [@xander-18](https://github.com/xander-18) | Team member |
 
 ## License
 
