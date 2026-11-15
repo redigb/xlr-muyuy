@@ -42,6 +42,7 @@ class PaqueteApiTest {
         for (String zona : ZONAS) {
             String cuerpo = given().get("/api/paquete/" + zona).then().statusCode(200)
                     .body("paquete.meta.formato", equalTo(2))
+                    .body("paquete.meta.textos", equalTo(2))
                     .body("paquete.meta.origen", equalTo("zona_oficial"))
                     .body("paquete.meta.zona", equalTo(zona))
                     .body("paquete.meta.validada_localmente", equalTo(!zona.equals("global-demo")))

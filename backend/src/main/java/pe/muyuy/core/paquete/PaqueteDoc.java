@@ -35,7 +35,9 @@ public record PaqueteDoc(Paquete paquete) {
             @Schema(description = "'sha256:' + SHA-256 of the canonical JSON of {extras, nucleo} (sorted keys, no whitespace, UTF-8). "
                     + "If the app computes a different value, it rejects the package") String hash,
             @Schema(description = "Validity of each section (calendario, condiciones, alertas) for the green/yellow/red indicator") Map<String, Seccion> secciones,
-            @Schema(description = "Names of the parts present in extras") List<String> extras) {}
+            @Schema(description = "Names of the parts present in extras") List<String> extras,
+            @Schema(description = "Version of the explanation prompt. When it changes, the server rewrites the explanations "
+                    + "instead of reusing the previous ones") int textos) {}
 
     @Schema(description = "Section validity: never show stale data as fresh")
     public record Seccion(

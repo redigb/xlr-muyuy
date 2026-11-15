@@ -52,6 +52,12 @@ public class ServicioPaquetes {
     public static final Set<String> IDIOMAS = Set.of(ES, EN);
     static final String ZONA_OFICIAL = "zona_oficial";
     static final String COORDENADA = "coordenada";
+    /**
+     * Versión del prompt de las explicaciones. Subirla cuando cambie lo que el texto dice (p. ej. el mes de siembra):
+     * los textos de paquetes con otra versión se vuelven a redactar en vez de reutilizarse.
+     * 2 = mes de siembra calculado + riego/secano en el prompt.
+     */
+    static final int VERSION_TEXTOS = 2;
 
     /** Paquete ya sellado. base = "huanuco-sierra", "huanuco-sierra|en" o "-9.5_-76.0|en". */
     public record Sellado(String zonaId, int version, String hash, String contenido) {
@@ -222,7 +228,7 @@ public class ServicioPaquetes {
         boolean validada = !origen.esCoordenada() && !"global".equals(zona.region());
         Meta meta = new Meta(2, origen.tipo(), origen.zonaId(), origen.celda(), validada, idioma,
                 version, Instant.now().truncatedTo(ChronoUnit.SECONDS).toString(), hash, secciones,
-                extras.isEmpty() ? List.of() : List.of("imagen"));
+                extras.isEmpty() ? List.of() : List.of("imagen"), VERSION_TEXTOS);
 
         Sellado sellado = new Sellado(origen.base(), version, hash,
                 json(new PaqueteDoc(new Paquete(meta, nucleo, extras))));
@@ -262,7 +268,9 @@ public class ServicioPaquetes {
     private Map<String, String> explicacionesDe(Sellado previo) {
         Map<String, String> out = new HashMap<>();
         try {
-            JsonNode nucleo = mapper.readTree(previo.contenido()).at("/paquete/nucleo");
+            JsonNode doc = mapper.readTree(previo.contenido()).path("paquete");
+            if (doc.at("/meta/textos").asInt(1) != VERSION_TEXTOS) return out;   // prompt viejo: se redacta de nuevo
+            JsonNode nucleo = doc.path("nucleo");
             int mes = nucleo.path("inicio_siembra_mes").asInt();
             for (JsonNode r : nucleo.path("rotaciones")) {
                 out.put(huella(r.path("id").asText(), r.path("puntajes"), mes), r.path("explicacion").asText(""));
