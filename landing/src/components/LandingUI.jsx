@@ -310,6 +310,39 @@ export default function LandingUI({
     ? topRotation.secuencia.map((id) => activeZone.nombres?.[id] ?? id).join(' → ') + ' · ' + topRotation.puntajes.total.toFixed(2)
     : null;
   const topExplanation = topRotation?.explicacion ?? null;
+
+  // Datos reales sobre la isla: el 3D no es decorado, lo dibuja el paquete.
+  // Hero → extremos del año; explorador → lecturas del mes elegido. Durante el
+  // recorrido por los campos se ocultan para no tapar los cultivos.
+  const [wideScreen, setWideScreen] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 900px)');
+    const sync = () => setWideScreen(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
+  const SOURCE = 'NASA POWER 1985–2024';
+  const signed = (mm) => (mm > 0 ? '+' : '') + Math.round(mm) + ' mm';
+  // Tres "ranuras" fijas: se montan una vez y solo cambian contenido, posición y
+  // visibilidad. Montar/desmontar las etiquetas Html de drei al scrollear hacía
+  // que alguna no apareciera hasta volver a pasar por el hero.
+  const showHotspots = wideScreen && fieldJourney === null && Boolean(activeZone);
+  const monthLabel = monthNames[month - 1];
+  const hotspots = !activeZone ? undefined : (explorerEntered
+    ? [
+        { x: -1.25, z: 2.7, label: t('Frost probability') + ' · ' + monthLabel, value: frostValid ? Math.round(probability * 100) + '%' : '—', source: SOURCE },
+        { x: 2.05, z: 1.05, label: t('Water balance') + ' · ' + monthLabel, value: Number.isFinite(water) ? signed(water) : '—', source: SOURCE },
+        { x: -1.6, z: .2, label: t('Rainfall') + ' · ' + monthLabel, value: Number.isFinite(rain) ? Math.round(rain) + ' mm' : '—', source: SOURCE },
+      ]
+    : [
+        { x: 1.3, z: -.2, label: t('Frost peak') + ' · ' + monthNames[frostPeak.mes - 1], value: Math.round(frostPeak.prob_helada * 100) + '%', source: SOURCE },
+        { x: 2.05, z: 1.05, label: t('Driest month') + ' · ' + monthNames[driest.mes - 1], value: signed(driest.balance_hidrico_mm), source: SOURCE },
+        { x: .2, z: 2.4, label: t('Sowing starts'), value: monthNames[sowingMonth - 1], source: t('Muyuy engine') + ' · ' + activeZone.elevacion_m + ' m' },
+      ]
+  // La clave cambia una sola vez, cuando el terreno ya pintó: Html de drei a
+  // veces deja vacía la primera etiqueta montada antes del primer frame.
+  ).map((spot, index) => ({ ...spot, id: 'slot-' + index + (terrainReady ? '-ready' : ''), hidden: !showHotspots }));
   const pickZone = (id) => { setZoneId(id); setManualMonth(null); setManualLayer(null); };
   const busyLocating = locating === 'locating' || locating === 'computing';
   const useMyLocation = async () => {
@@ -446,7 +479,7 @@ export default function LandingUI({
         <MuyuyTerrain fixed editorialLayout motionEnabled={motionEnabled} climate={climate} month={month} data={terrainData}
           fieldJourney={fieldJourney} onEnterFields={enterFields} wideFieldView={wideFieldView} onZoomOut={zoomOut}
           wideIslandView={wideIslandView} onWidenIslandView={widenIslandView}
-          scrollProgress={progress} showControls={false} onReady={markTerrainReady}
+          scrollProgress={progress} showControls={false} onReady={markTerrainReady} hotspots={hotspots}
           className="pointer-events-auto" style={{ background: 'transparent' }} />
       </Suspense>
       <div className="muyuy-vignette" aria-hidden="true" />
@@ -554,7 +587,7 @@ export default function LandingUI({
 
               {zones.length > 1 && (
                 <fieldset className="muyuy-zone-field">
-                  <legend>{t('Pilot zone')} · Huánuco</legend>
+                  <legend>{t('Pilot zone')} · Huánuco, Peru</legend>
                   <div className="muyuy-zone-options">
                     {zones.map((candidate) => (
                       <button type="button" key={candidate.id} aria-pressed={candidate.id === activeZone?.id}

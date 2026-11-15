@@ -1131,10 +1131,10 @@ function Frost({ active, reduced }) {
   );
 }
 
-function Hotspot({ x, z, label, value, detail = false, compact = false }) {
+function Hotspot({ x, z, label, value, source, hidden = false, detail = false, compact = false }) {
   const height = compact ? .34 : .65;
   return (
-    <group position={[x, elevation(x, z) + .06, z]}>
+    <group position={[x, elevation(x, z) + .06, z]} visible={!hidden}>
       <mesh position={[0, height * .42, 0]}>
         <cylinderGeometry args={[.008, .008, height * .84, 6]} />
         <meshBasicMaterial color="#e6f4c6" />
@@ -1143,10 +1143,11 @@ function Hotspot({ x, z, label, value, detail = false, compact = false }) {
         <sphereGeometry args={[.065, 10, 8]} />
         <meshBasicMaterial color="#e6f4c6" />
       </mesh>
-      <Html position={[0, height, 0]} center distanceFactor={compact ? undefined : 12} occlude={!detail} zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
+      <Html position={[0, height, 0]} center distanceFactor={compact ? undefined : 12} occlude={!detail} zIndexRange={[20, 0]} style={{ pointerEvents: 'none', opacity: hidden ? 0 : 1, transition: 'opacity .35s' }}>
         <div style={{ color: '#f1f6e9', background: '#09090bdb', backdropFilter: 'blur(12px)', border: '1px solid #ffffff1a', borderRadius: 9, padding: '9px 12px', minWidth: 135, font: '12px ui-monospace, monospace', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
           <span style={{ display: 'block', color: '#bccfb8', fontSize: 10, marginBottom: 3 }}>{label}</span>
-          <strong>{value}</strong>
+          <strong style={{ fontSize: 14 }}>{value}</strong>
+          {source && <span style={{ display: 'block', color: '#8f978a', fontSize: 9, marginTop: 4, letterSpacing: '.04em' }}>{source}</span>}
         </div>
       </Html>
     </group>
@@ -1230,7 +1231,7 @@ function Vegetation({ region, treeRegion, aridity, snow, reduced }) {
     </group>
   );
 }
-function Diorama({ progress, mode, climate, month, data, reduced, zoom, editorialLayout, fieldJourney, onEnterFields, wideFieldView, onZoomOut, wideIslandView, onWidenIslandView, onIslandInteract }) {
+function Diorama({ hotspots, progress, mode, climate, month, data, reduced, zoom, editorialLayout, fieldJourney, onEnterFields, wideFieldView, onZoomOut, wideIslandView, onWidenIslandView, onIslandInteract }) {
   // El aspecto del terreno lo manda la zona + el mes (datos reales).
   const biome = BIOMES[climate?.region] ?? DEFAULT_BIOME;
   const frost = clamp(climate?.frost ?? (mode === 'helada' ? .65 : .08), 0, 1);
@@ -1449,6 +1450,7 @@ function Diorama({ progress, mode, climate, month, data, reduced, zoom, editoria
           <SummitClouds reduced={reduced} winter={snow > .45} />
           {!onEnterFields && <Hotspot x={-1.1} z={-.9} label="Zone elevation" value={altitude} />}
           {!onEnterFields && !inspect && (!editorialLayout || snow > .45 || aridity > .62) && <Hotspot x={2.2} z={1.45} label={snow > .45 ? 'Frost probability · ' + monthLabel : aridity > .62 ? 'Water deficit · ' + monthLabel : 'Procedural relief'} value={snow > .45 ? frostValue : aridity > .62 ? waterValue : 'Andes · Huánuco'} />}
+          {hotspots?.map((spot) => <Hotspot key={spot.id} detail x={spot.x} z={spot.z} label={spot.label} value={spot.value} source={spot.source} hidden={spot.hidden} />)}
           {inspect && !onEnterFields && <>
             <Hotspot detail x={-1.25} z={2.7} label={'Frost · ' + monthLabel} value={frostValue} />
             <Hotspot detail x={2.05} z={1.05} label={'Water balance · ' + monthLabel} value={waterValue} />
@@ -1517,6 +1519,8 @@ export default function MuyuyTerrain({
   onWidenIslandView,
   onIslandInteract,
   onReady,
+  /** Etiquetas de datos reales ancladas a la isla: [{ id, x, z, label, value, source }]. */
+  hotspots,
   className = '',
   style,
 }) {
@@ -1553,7 +1557,7 @@ export default function MuyuyTerrain({
         <div className={onEnterFields ? 'muyuy-viewport muyuy-field-viewport' : 'muyuy-viewport'} style={editorialLayout ? undefined : { width: '100%', height: '100%' }}>
         <Canvas shadows className="muyuy-canvas" camera={{ position: [10, 8.5, 12], fov: 39, near: .1, far: 80 }} dpr={[1, 1.5]}
           gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }} style={{ touchAction: 'pan-y' }}>
-          <Diorama progress={progress} mode={activeMode} climate={climate} month={month} data={data} reduced={reduced} zoom={zoom} editorialLayout={editorialLayout} fieldJourney={fieldJourney} onEnterFields={onEnterFields} wideFieldView={wideFieldView} onZoomOut={onZoomOut} wideIslandView={wideIslandView} onWidenIslandView={onWidenIslandView} onIslandInteract={onIslandInteract} />
+          <Diorama hotspots={hotspots} progress={progress} mode={activeMode} climate={climate} month={month} data={data} reduced={reduced} zoom={zoom} editorialLayout={editorialLayout} fieldJourney={fieldJourney} onEnterFields={onEnterFields} wideFieldView={wideFieldView} onZoomOut={onZoomOut} wideIslandView={wideIslandView} onWidenIslandView={onWidenIslandView} onIslandInteract={onIslandInteract} />
           <FirstFrames onReady={onReady} />
         </Canvas>
         </div>
