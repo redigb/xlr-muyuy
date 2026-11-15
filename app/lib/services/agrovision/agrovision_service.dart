@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -19,7 +17,27 @@ const leafLabels = [
   'agro.leaf.9',
 ];
 
-Future<({int index, double score})> analyzeLeaf(Uint8List photo) async {
+/// Debajo de este puntaje la lectura se muestra como no concluyente.
+const double leafThreshold = 0.70;
+
+class LeafPrediction {
+  const LeafPrediction({required this.index, required this.probabilities});
+
+  final int index;
+  final List<double> probabilities;
+
+  double get confidence => probabilities[index];
+  bool get conclusive => confidence >= leafThreshold;
+
+  /// Índices ordenados de mayor a menor probabilidad.
+  List<int> get ranked {
+    final order = List<int>.generate(probabilities.length, (index) => index);
+    order.sort((a, b) => probabilities[b].compareTo(probabilities[a]));
+    return order;
+  }
+}
+
+Future<LeafPrediction> analyzeLeaf(Uint8List photo) async {
   final model = await rootBundle.load('model/agrovision_rgb.tflite');
   final scores = await compute(_classify, (
     model.buffer.asUint8List(model.offsetInBytes, model.lengthInBytes),
@@ -29,7 +47,7 @@ Future<({int index, double score})> analyzeLeaf(Uint8List photo) async {
   for (var index = 1; index < scores.length; index++) {
     if (scores[index] > scores[best]) best = index;
   }
-  return (index: best, score: scores[best]);
+  return LeafPrediction(index: best, probabilities: scores);
 }
 
 List<double> _classify((Uint8List, Uint8List) request) =>
