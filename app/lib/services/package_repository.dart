@@ -176,10 +176,9 @@ class PackageRepository {
     final paqueteRaw = rawTopLevelMember(rawJson, 'paquete');
     final clean = paqueteRaw == null
         ? paquete
-        : Paquete.fromJson(
-            {'paquete': jsonDecode(paqueteRaw)},
-            rawJson: '{"paquete":$paqueteRaw}',
-          );
+        : Paquete.fromJson({
+            'paquete': jsonDecode(paqueteRaw),
+          }, rawJson: '{"paquete":$paqueteRaw}');
     await _save(clean);
     return ImportResult(
       paquete: clean,
@@ -196,6 +195,14 @@ class PackageRepository {
   Future<List<String>> readPrioridades() => _store.readPrioridades();
 
   Future<bool?> readRiego(String zonaId) => _store.readRiego(zonaId);
+
+  /// Rotación que el agricultor eligió en esta zona (null = la mejor según prioridades).
+  Future<String?> readRotacionId(String zonaId) =>
+      _store.readRotacionId(zonaId);
+
+  Future<void> saveRotacionId(String zonaId, String rotacionId) {
+    return _store.writeRotacionId(zonaId, rotacionId);
+  }
 
   Future<String> readCultivoId() async => await _store.readCultivoId() ?? '';
 

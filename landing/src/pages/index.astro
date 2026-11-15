@@ -11,7 +11,7 @@ const release = {
   fieldVideoUrl: import.meta.env.PUBLIC_MUYUY_FIELD_VIDEO_EMBED_URL ?? '',
   apkUrl: import.meta.env.PUBLIC_MUYUY_APK_URL ?? '',
   apkSha256: import.meta.env.PUBLIC_MUYUY_APK_SHA256 ?? 'PENDING_BUILD_HASH_2026...',
-  githubUrl: import.meta.env.PUBLIC_MUYUY_GITHUB_URL ?? '',
+  githubUrl: import.meta.env.PUBLIC_MUYUY_GITHUB_URL || 'https://github.com/redigb/xlr-muyuy',
 };
 
 // Accept a YouTube watch/share link or an existing HTTPS embed URL.

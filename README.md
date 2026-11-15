@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  🚀 <b>Landing:</b> <a href="https://landing-nine-sigma-82.vercel.app/">landing-nine-sigma-82.vercel.app</a><br>
   🌐 <b>Live API:</b> <a href="https://muyuy-bk.rdev7.net.pe/q/swagger-ui">muyuy-bk.rdev7.net.pe/q/swagger-ui</a>
 </p>
 

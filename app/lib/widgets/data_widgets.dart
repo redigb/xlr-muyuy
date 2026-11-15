@@ -4,6 +4,7 @@ import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../utils/formatters.dart';
+import 'crop_icon.dart';
 
 class ScoreBar extends StatelessWidget {
   const ScoreBar({
@@ -182,7 +183,7 @@ class CropChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(cropEmoji(id), style: TextStyle(fontSize: compact ? 13 : 15)),
+          CropIcon(id, size: compact ? 16 : 20),
           const SizedBox(width: 4),
           Text(
             cropName(context, id),

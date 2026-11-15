@@ -14,61 +14,6 @@ String monthName(BuildContext c, int month) =>
 String monthShortName(BuildContext c, int month) =>
     (month < 1 || month > 12) ? '' : c.tr('mshort.$month');
 
-String cropEmoji(String id) {
-  switch (id) {
-    case 'papa':
-      return '🥔';
-    case 'haba':
-    case 'arveja':
-      return '🫘';
-    case 'avena_forrajera':
-    case 'cebada':
-    case 'trigo':
-      return '🌾';
-    case 'tarwi':
-      return '🌱';
-    case 'quinua':
-      return '🌾';
-    case 'maiz':
-    case 'maiz_amilaceo':
-    case 'maiz_duro':
-      return '🌽';
-    case 'sorgo':
-    case 'mijo':
-    case 'arroz':
-      return '🌾';
-    case 'soya':
-    case 'caupi':
-    case 'garbanzo':
-    case 'lenteja':
-    case 'frijol':
-      return '🫘';
-    case 'mani':
-      return '🥜';
-    case 'camote':
-    case 'yuca':
-      return '🍠';
-    case 'girasol':
-      return '🌻';
-    case 'tomate':
-      return '🍅';
-    case 'cebolla':
-      return '🧅';
-    case 'colza':
-      return '🌼';
-    case 'oca':
-      return '🟠';
-    case 'olluco':
-      return '🟡';
-    case 'pasto':
-      return '🌿';
-    case 'descanso':
-      return '💤';
-    default:
-      return '🌱';
-  }
-}
-
 String cropName(BuildContext c, String id) => _trOr(c, 'crop.$id', id);
 
 String prettyZoneName(String name) {
@@ -95,11 +40,9 @@ String eventEmoji(String tipo) {
   }
 }
 
-String eventLabel(BuildContext c, String tipo) =>
-    _trOr(c, 'event.$tipo', tipo);
+String eventLabel(BuildContext c, String tipo) => _trOr(c, 'event.$tipo', tipo);
 
-String factorLabel(BuildContext c, String key) =>
-    _trOr(c, 'factor.$key', key);
+String factorLabel(BuildContext c, String key) => _trOr(c, 'factor.$key', key);
 
 String confidenceLabel(BuildContext c, String value) =>
     _trOr(c, 'conf.$value', value);

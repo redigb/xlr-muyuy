@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/soil_profiles.dart';
+import '../../l10n/strings.dart';
 import '../../models/soil_analysis.dart';
 import '../../services/soil/soil_vision_service.dart';
 import '../../state/app_state.dart';
@@ -76,7 +77,7 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
     } on SoilVisionException catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error.message;
+        _error = context.tr(error.message);
         _busy = false;
       });
     } catch (_) {
@@ -186,7 +187,10 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
                 _PredictionCard(prediction: _result!.prediction!),
                 const SizedBox(height: 12),
                 _AgronomyAdviceCard(
-                  profile: soilProfileFor(_result!.prediction!.index),
+                  profile: soilProfileFor(
+                    _result!.prediction!.index,
+                    AppScope.of(context).lang,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _CorrectionCard(
@@ -197,7 +201,7 @@ class _SoilVisionScreenState extends State<SoilVisionScreen> {
               ] else if (_result!.message != null) ...[
                 const SizedBox(height: 12),
                 InfoBanner(
-                  message: _result!.message!,
+                  message: context.tr(_result!.message!),
                   icon: Icons.info_outline_rounded,
                   color: AppColors.tecnologia,
                   background: AppColors.heladaSoft,
@@ -591,7 +595,7 @@ class _CheckRow extends StatelessWidget {
                   Icon(_icon, size: 13, color: AppColors.inkFaint),
                   const SizedBox(width: 5),
                   Text(
-                    check.label,
+                    context.tr(check.label),
                     style: const TextStyle(
                       fontFamily: AppFonts.body,
                       fontWeight: FontWeight.w600,
@@ -613,7 +617,10 @@ class _CheckRow extends StatelessWidget {
               ),
               if (!check.passed) ...[
                 const SizedBox(height: 2),
-                Text(check.hint, style: Theme.of(context).textTheme.labelSmall),
+                Text(
+                  context.tr(check.hint),
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
               ],
             ],
           ),
@@ -663,13 +670,17 @@ class _PredictionCard extends StatelessWidget {
                   children: [
                     Text(
                       conclusive
-                          ? prediction.labelEs
+                          ? prediction.labelIn(AppScope.of(context).lang)
                           : context.tr('soil.inconclusive'),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(
                       conclusive
-                          ? prediction.label
+                          ? prediction.labelIn(
+                              AppScope.of(context).lang == AppLang.en
+                                  ? AppLang.es
+                                  : AppLang.en,
+                            )
                           : context.tr('soil.lowConf'),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
@@ -693,7 +704,10 @@ class _PredictionCard extends StatelessWidget {
             children: [
               for (var i = 0; i < prediction.probabilities.length; i++) ...[
                 _ProbabilityBar(
-                  label: SoilVisionService.labelsEs[i],
+                  label: SoilVisionService.labelFor(
+                    i,
+                    AppScope.of(context).lang,
+                  ),
                   value: prediction.probabilities[i],
                   highlight: i == prediction.index,
                 ),
@@ -878,7 +892,10 @@ class _CorrectionCard extends StatelessWidget {
             children: [
               for (var i = 0; i < SoilVisionService.labelsEs.length; i++)
                 _CorrectionChip(
-                  label: SoilVisionService.labelsEs[i],
+                  label: SoilVisionService.labelFor(
+                    i,
+                    AppScope.of(context).lang,
+                  ),
                   selected: chosen == i,
                   suggested: chosen == null && prediction.index == i,
                   onTap: () => onSelect(i),

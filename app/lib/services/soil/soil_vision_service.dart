@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+import '../../l10n/strings.dart';
 import 'soil_model_stub.dart' if (dart.library.io) 'soil_model_io.dart';
 
 class SoilVisionException implements Exception {
@@ -52,6 +53,7 @@ class SoilPrediction {
   bool get conclusive => confidence >= SoilVisionService.threshold;
   String get label => SoilVisionService.labels[index];
   String get labelEs => SoilVisionService.labelsEs[index];
+  String labelIn(AppLang lang) => SoilVisionService.labelFor(index, lang);
 }
 
 class SoilAnalysisResult {
@@ -88,15 +90,16 @@ class SoilVisionService {
     'Suelo rojo',
   ];
 
+  static String labelFor(int index, AppLang lang) =>
+      lang == AppLang.en ? labels[index] : labelsEs[index];
+
   final SoilModelRunner _runner = SoilModelRunner();
   bool _loaded = false;
 
   Future<SoilAnalysisResult> analyze(Uint8List bytes) async {
     final decoded = img.decodeImage(bytes);
     if (decoded == null) {
-      throw const SoilVisionException(
-        'No se pudo leer la imagen. Prueba con otra foto.',
-      );
+      throw const SoilVisionException('soil.msg.unreadable');
     }
 
     final oriented = img.bakeOrientation(decoded);
@@ -104,20 +107,12 @@ class SoilVisionService {
     if (!quality.ok) {
       return SoilAnalysisResult(
         quality: quality,
-        message:
-            'La foto no pasó los controles. Corrige lo indicado y vuelve a '
-            'intentar; así la lectura tiene sentido.',
+        message: 'soil.msg.qualityFail',
       );
     }
 
     if (!SoilModelRunner.available) {
-      return SoilAnalysisResult(
-        quality: quality,
-        message:
-            'La inferencia local está disponible en el APK Android. '
-            'En web puedes revisar la calidad de la foto, pero el modelo '
-            'no corre en el navegador.',
-      );
+      return SoilAnalysisResult(quality: quality, message: 'soil.msg.webOnly');
     }
 
     try {
@@ -138,7 +133,7 @@ class SoilVisionService {
       if (rawForward == null || rawForward.length != labels.length) {
         return SoilAnalysisResult(
           quality: quality,
-          message: 'El modelo no devolvió una predicción válida.',
+          message: 'soil.msg.invalid',
         );
       }
 
@@ -167,12 +162,7 @@ class SoilVisionService {
         ),
       );
     } catch (_) {
-      return SoilAnalysisResult(
-        quality: quality,
-        message:
-            'No se pudo ejecutar el modelo en este dispositivo. '
-            'Vuelve a intentar o usa el APK Android.',
-      );
+      return SoilAnalysisResult(quality: quality, message: 'soil.msg.runFail');
     }
   }
 
@@ -182,10 +172,10 @@ class SoilVisionService {
     checks.add(
       SoilCheck(
         id: 'resolution',
-        label: 'Resolución',
+        label: 'soil.check.resolution',
         passed: minSide >= inputSize,
         value: '${source.width}×${source.height} px',
-        hint: 'La foto debe tener al menos 224 px por lado.',
+        hint: 'soil.check.resolution.hint',
       ),
     );
 
@@ -221,10 +211,10 @@ class SoilVisionService {
     checks.add(
       SoilCheck(
         id: 'light',
-        label: 'Luz',
+        label: 'soil.check.light',
         passed: meanLuminance >= 35 && meanLuminance <= 225,
         value: '${meanLuminance.round()} / 255',
-        hint: 'Busca luz natural y evita sombras o fotos quemadas.',
+        hint: 'soil.check.light.hint',
       ),
     );
 
@@ -251,10 +241,10 @@ class SoilVisionService {
     checks.add(
       SoilCheck(
         id: 'focus',
-        label: 'Nitidez',
+        label: 'soil.check.focus',
         passed: variance >= 30,
         value: variance.round().toString(),
-        hint: 'Sostén el teléfono firme y enfoca la tierra.',
+        hint: 'soil.check.focus.hint',
       ),
     );
 
@@ -263,10 +253,10 @@ class SoilVisionService {
     checks.add(
       SoilCheck(
         id: 'color',
-        label: 'Color',
+        label: 'soil.check.color',
         passed: meanSaturation >= 0.02 && blownFraction <= 0.20,
-        value: '${(meanSaturation * 100).round()}% saturación',
-        hint: 'Evita reflejos fuertes, paredes o fotos en blanco y negro.',
+        value: '${(meanSaturation * 100).round()}%',
+        hint: 'soil.check.color.hint',
       ),
     );
 

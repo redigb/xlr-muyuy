@@ -8,11 +8,13 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../utils/formatters.dart';
+import '../../widgets/crop_icon.dart';
 import '../../widgets/data_widgets.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/page_layout.dart';
 import '../../widgets/soft_card.dart';
 import '../../widgets/status_widgets.dart';
+import '../agrovision/agrovision_screen.dart';
 import '../soil/soil_vision_screen.dart';
 import 'farm_parcel_view.dart';
 
@@ -39,6 +41,13 @@ class FarmScreen extends StatelessWidget {
         const SizedBox(height: AppSpacing.base),
         const ZoneWarning(),
         const FarmParcelView(),
+        const SizedBox(height: AppSpacing.base),
+        _ToolsSection(
+          onLeaf: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const AgroVisionScreen()),
+          ),
+          onSoil: () => _openSoilVision(context, state),
+        ),
         const SizedBox(height: AppSpacing.base),
         if (paquete == null || zona == null)
           EmptyCard(
@@ -233,7 +242,7 @@ class _CropChoice extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(cropEmoji(id), style: const TextStyle(fontSize: 18)),
+              CropIcon(id, size: 24),
               const SizedBox(width: 8),
               Text(
                 cropName(context, id),
@@ -265,7 +274,7 @@ class _SoilCard extends StatelessWidget {
     final record = this.record;
     final profile = record == null
         ? null
-        : soilProfileFor(record.effectiveIndex);
+        : soilProfileFor(record.effectiveIndex, AppScope.of(context).lang);
     return SoftCard(
       padding: const EdgeInsets.all(AppSpacing.base),
       onTap: onOpen,
@@ -324,7 +333,8 @@ class _CurrentRotationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rotacion = state.rotacionActual;
+    final chosen = state.rotacionElegidaPorUsuario;
+    final rotacion = chosen ? state.rotacionElegida : state.rotacionActual;
     final paquete = state.paquete;
     if (rotacion == null || paquete == null) return const SizedBox.shrink();
 
@@ -344,7 +354,9 @@ class _CurrentRotationCard extends StatelessWidget {
             children: [
               Text(
                 context.tr(
-                  rotacion.esPracticaComun
+                  chosen
+                      ? 'farm.rot.kickerChosen'
+                      : rotacion.esPracticaComun
                       ? 'farm.rot.kickerCommon'
                       : 'farm.rot.kickerCurrent',
                 ),
@@ -588,6 +600,112 @@ class _PriorityTile extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelMedium
                       ?.copyWith(color: AppColors.verdePrincipal),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Herramientas con la cámara: revisar hojas (AgroVision) y analizar la tierra.
+class _ToolsSection extends StatelessWidget {
+  const _ToolsSection({required this.onLeaf, required this.onSoil});
+
+  final VoidCallback onLeaf;
+  final VoidCallback onSoil;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(title: context.tr('farm.tools.t')),
+        const SizedBox(height: AppSpacing.md),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _ToolTile(
+                  key: const ValueKey('tool-leaf'),
+                  icon: Icons.eco_rounded,
+                  color: AppColors.verdeSecundario,
+                  title: context.tr('farm.tools.leaf'),
+                  subtitle: context.tr('farm.tools.leafS'),
+                  onTap: onLeaf,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _ToolTile(
+                  key: const ValueKey('tool-soil'),
+                  icon: Icons.landscape_rounded,
+                  color: const Color(0xFF8B6544),
+                  title: context.tr('farm.tools.soil'),
+                  subtitle: context.tr('farm.tools.soilS'),
+                  onTap: onSoil,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ToolTile extends StatelessWidget {
+  const _ToolTile({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return SoftCard(
+      padding: EdgeInsets.zero,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: color.withValues(alpha: 0.14),
+                      child: Icon(icon, color: color, size: 20),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      Icons.photo_camera_rounded,
+                      size: 16,
+                      color: theme.bodySmall?.color,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(title, style: theme.titleSmall),
+                const SizedBox(height: 2),
+                Text(subtitle, style: theme.bodySmall),
               ],
             ),
           ),

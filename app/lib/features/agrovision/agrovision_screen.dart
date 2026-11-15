@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../services/agrovision/agrovision_service.dart';
+import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/gradient_button.dart';
@@ -50,18 +51,14 @@ class _AgroVisionScreenState extends State<AgroVisionScreen> {
       if (mounted) setState(() => _result = result);
     } on PlatformException {
       if (!mounted) return;
-      setState(() => _error = 'No se pudo abrir la cámara o la galería.');
+      setState(() => _error = context.tr('agro.err.camera'));
     } on FormatException {
       if (!mounted) return;
-      setState(
-        () => _error = 'No se pudo leer la imagen. Prueba con otra foto.',
-      );
+      setState(() => _error = context.tr('agro.err.unreadable'));
     } catch (error, stackTrace) {
       debugPrint('AgroVision: $error\n$stackTrace');
       if (!mounted) return;
-      setState(
-        () => _error = 'No se pudo completar el análisis. Intenta otra vez.',
-      );
+      setState(() => _error = context.tr('agro.err.failed'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -79,26 +76,26 @@ class _AgroVisionScreenState extends State<AgroVisionScreen> {
       body: PageBody(
         children: [
           Text(
-            'Analiza una hoja',
+            context.tr('agro.title'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             supported
-                ? 'Usa una foto nítida de una sola hoja con buena luz. El análisis se hace sin conexión.'
-                : 'Abre MUYUY en Android para analizar hojas.',
+                ? context.tr('agro.intro')
+                : context.tr('agro.androidOnly'),
           ),
           if (supported) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'El modelo actual clasifica hojas de tomate.',
+              context.tr('agro.tomatoOnly'),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
           if (supported) ...[
             const SizedBox(height: AppSpacing.base),
             GradientButton(
-              label: 'Tomar foto',
+              label: context.tr('agro.takePhoto'),
               icon: Icons.photo_camera_outlined,
               onPressed: _busy ? null : () => _pick(ImageSource.camera),
             ),
@@ -106,7 +103,7 @@ class _AgroVisionScreenState extends State<AgroVisionScreen> {
             OutlinedButton.icon(
               onPressed: _busy ? null : () => _pick(ImageSource.gallery),
               icon: const Icon(Icons.photo_library_outlined),
-              label: const Text('Elegir de galería'),
+              label: Text(context.tr('agro.gallery')),
             ),
           ],
           if (photo != null) ...[
@@ -117,14 +114,16 @@ class _AgroVisionScreenState extends State<AgroVisionScreen> {
                 photo,
                 height: 240,
                 fit: BoxFit.contain,
-                semanticLabel: 'Foto de la hoja seleccionada',
+                semanticLabel: context.tr('agro.photoLabel'),
                 errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
           ],
           if (_busy) ...[
             const SizedBox(height: AppSpacing.base),
-            const LinearProgressIndicator(semanticsLabel: 'Procesando foto'),
+            LinearProgressIndicator(
+              semanticsLabel: context.tr('agro.processing'),
+            ),
           ],
           if (_error case final error?) ...[
             const SizedBox(height: AppSpacing.base),
@@ -137,15 +136,17 @@ class _AgroVisionScreenState extends State<AgroVisionScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Clasificación sugerida'),
+                  Text(context.tr('agro.result')),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    leafLabels[result.index],
+                    context.tr(leafLabels[result.index]),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'Puntuación del modelo: ${(result.score * 100).toStringAsFixed(1)} %',
+                    context.tr('agro.score', {
+                      'pct': (result.score * 100).toStringAsFixed(1),
+                    }),
                   ),
                 ],
               ),

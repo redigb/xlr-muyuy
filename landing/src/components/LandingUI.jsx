@@ -2,7 +2,7 @@ import React, { createContext, lazy, Suspense, useCallback, useContext, useEffec
 import { motion, MotionConfig } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
-import { ArrowDown, ArrowUpRight, Check, ChevronRight, Copy, Download, Droplets, Globe2, Layers3, LoaderCircle, LocateFixed, Play, Radio, ShieldCheck, Snowflake, Sprout, X, ZoomOut } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Check, ChevronRight, Copy, Download, Droplets, Globe2, Layers3, LoaderCircle, LocateFixed, Play, Radio, ShieldCheck, Snowflake, Sprout, Volume2, VolumeX, X, ZoomOut } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import AppDemo from './AppDemo.jsx';
@@ -10,6 +10,7 @@ import TeamGrid from './TeamGrid.jsx';
 import ImpactSection from './ImpactSection.jsx';
 import FieldValidation from './FieldValidation.jsx';
 import LiveStatus from './LiveStatus.jsx';
+import { createAmbient } from './ambientSound.js';
 import { currentPosition, fetchLiveZone } from '../data/liveZone.js';
 import { TEAM } from '../data/team.ts';
 import { DEFAULT_LOCALE, LOCALES, months, translate } from '../i18n/copy.ts';
@@ -213,6 +214,24 @@ export default function LandingUI({
   const [wideIslandView, setWideIslandView] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [motionEnabled, setMotionEnabled] = useState(true);
+  // Sonido de ambiente: apagado por defecto, generado en el navegador (0 KB).
+  const [soundOn, setSoundOn] = useState(false);
+  const ambient = useRef(null);
+  const toggleSound = () => {
+    if (!ambient.current) ambient.current = createAmbient();
+    if (!ambient.current) return;
+    if (soundOn) ambient.current.pause(); else ambient.current.play();
+    setSoundOn(!soundOn);
+  };
+  useEffect(() => {
+    if (!soundOn) return undefined;
+    const onVisibility = () => (document.hidden ? ambient.current?.pause() : ambient.current?.play());
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [soundOn]);
+  useEffect(() => () => ambient.current?.close(), []);
+  // El río suena más cuando la cámara baja a los campos.
+  useEffect(() => { if (soundOn) ambient.current?.setRiver(fieldJourney !== null ? 1 : 0); }, [soundOn, fieldJourney]);
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const [terrainReady, setTerrainReady] = useState(false);
   const markTerrainReady = useCallback(() => setTerrainReady(true), []);
@@ -332,7 +351,9 @@ export default function LandingUI({
   // que alguna no apareciera hasta volver a pasar por el hero.
   const showHotspots = wideScreen && fieldJourney === null && Boolean(activeZone);
   const monthLabel = monthNames[month - 1];
-  const hotspots = !activeZone ? undefined : (explorerEntered
+  // Se montan una sola vez, cuando el terreno ya pintó: montarlas antes dejaba
+  // vacía la primera, y remontarlas rompía el árbol de React (removeChild).
+  const hotspots = !activeZone || !terrainReady ? undefined : (explorerEntered
     ? [
         { x: -1.25, z: 2.7, label: t('Frost probability') + ' · ' + monthLabel, value: frostValid ? Math.round(probability * 100) + '%' : '—', source: SOURCE },
         { x: 2.05, z: 1.05, label: t('Water balance') + ' · ' + monthLabel, value: Number.isFinite(water) ? signed(water) : '—', source: SOURCE },
@@ -345,7 +366,7 @@ export default function LandingUI({
       ]
   // La clave cambia una sola vez, cuando el terreno ya pintó: Html de drei a
   // veces deja vacía la primera etiqueta montada antes del primer frame.
-  ).map((spot, index) => ({ ...spot, id: 'slot-' + index + (terrainReady ? '-ready' : ''), hidden: !showHotspots }));
+  ).map((spot, index) => ({ ...spot, id: 'slot-' + index, hidden: !showHotspots }));
   const pickZone = (id) => { setZoneId(id); setManualMonth(null); setManualLayer(null); };
   const busyLocating = locating === 'locating' || locating === 'computing';
   const useMyLocation = async () => {
@@ -511,6 +532,12 @@ export default function LandingUI({
           <a href="#explorer" onClick={(event) => scrollTo(event, 'explorer')}>{t('Explore')}</a>
           <a href="#download" onClick={(event) => scrollTo(event, 'download')}>{t('Get the app')} <ArrowUpRight size={14} aria-hidden="true" /></a>
           {github && <a className="muyuy-nav-github" href={github} target="_blank" rel="noopener noreferrer" aria-label={t('Source code on GitHub')}><GithubMark size={16} /> GitHub</a>}
+          <button type="button" className="muyuy-motion-switch muyuy-sound-switch" aria-pressed={soundOn} onClick={toggleSound}
+            aria-label={t(soundOn ? 'Mute the ambient sound' : 'Play a soft Andean ambient sound')} title={t(soundOn ? 'Mute the ambient sound' : 'Play a soft Andean ambient sound')}>
+            {soundOn ? <Volume2 size={14} aria-hidden="true" /> : <VolumeX size={14} aria-hidden="true" />}
+            <span className="muyuy-sound-label" aria-hidden="true">{t('Sound')}</span>
+            <span className="muyuy-sound-bars" aria-hidden="true"><i /><i /><i /></span>
+          </button>
           <button type="button" className="muyuy-motion-switch" aria-pressed={motionEnabled} onClick={() => setMotionEnabled((enabled) => !enabled)}>{t(motionEnabled ? 'Motion on' : 'Motion off')}</button>
           <select className="muyuy-language" aria-label={t('Language')} value={locale} onChange={(event) => setLocale(event.target.value)}>
             {LOCALES.map(([code, name]) => <option key={code} value={code} lang={code}>{name}</option>)}
@@ -885,6 +912,17 @@ const STYLES = `
   .muyuy-repo span { display: flex; flex-direction: column; line-height: 1.25; }
   .muyuy-repo small { font-size: 10px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: #a9e08c; }
   .muyuy-repo:hover, .muyuy-repo:focus-visible { border-color: #dcecc0; background: #141a15; transform: translateY(-1px); }
+  .muyuy-sound-switch { display: inline-flex; align-items: center; gap: 6px; }
+  .muyuy-sound-switch[aria-pressed=true] { border-color: #a9e08c66; color: #a9e08c; }
+  .muyuy-sound-switch[aria-pressed=false] .muyuy-sound-bars { display: none; }
+  @media (max-width: 760px) { .muyuy-sound-label { display: none; } }
+  .muyuy-sound-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 10px; }
+  .muyuy-sound-bars i { width: 2px; height: 3px; border-radius: 1px; background: currentColor; opacity: .5; }
+  .muyuy-sound-switch[aria-pressed=true] .muyuy-sound-bars i { opacity: 1; animation: muyuy-sound-bar 1.4s ease-in-out infinite; }
+  .muyuy-sound-switch[aria-pressed=true] .muyuy-sound-bars i:nth-child(2) { animation-delay: .25s; }
+  .muyuy-sound-switch[aria-pressed=true] .muyuy-sound-bars i:nth-child(3) { animation-delay: .5s; }
+  @keyframes muyuy-sound-bar { 50% { height: 10px; } }
+  @media (prefers-reduced-motion: reduce) { .muyuy-sound-bars i { animation: none !important; height: 7px !important; } }
   .muyuy-nav-github { gap: 6px !important; padding: 5px 11px; border-radius: 8px; background: #dcecc0; color: #0b0f0c !important; font-weight: 600; transition: background .2s; }
   .muyuy-nav-github:hover, .muyuy-nav-github:focus-visible { background: #eef6dc; }
   .muyuy-landing .muyuy-hero h1 { font-size: clamp(76px, 9.6vw, 158px); }

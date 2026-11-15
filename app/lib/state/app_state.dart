@@ -65,6 +65,7 @@ class AppState extends ChangeNotifier {
 
   Set<String> _prioridades = {'riesgo', 'ingresos'};
   bool _riego = false;
+  String? _rotacionElegidaId;
 
   // ---------------------------------------------------------------- getters
 
@@ -154,6 +155,36 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  /// Rotación que el agricultor eligió (si sigue siendo candidata de su cultivo
+  /// actual); si no eligió, la mejor según sus prioridades.
+  Rotacion? get rotacionElegida {
+    final todas = rotacionesTodas;
+    for (final r in todas) {
+      if (r.id == _rotacionElegidaId) return r;
+    }
+    return todas.isEmpty ? null : todas.first;
+  }
+
+  /// true si [rotacionElegida] la escogió el agricultor (y no es solo la mejor).
+  bool get rotacionElegidaPorUsuario =>
+      rotacionesTodas.any((r) => r.id == _rotacionElegidaId);
+
+  /// Si la rotación elegida ya no es candidata (otro cultivo actual), vuelve a la mejor y avisa.
+  void _checkRotacionElegida() {
+    final id = _rotacionElegidaId;
+    if (id == null || rotacionesTodas.any((r) => r.id == id)) return;
+    _rotacionElegidaId = null;
+    _notice = t('rot.reset');
+  }
+
+  void elegirRotacion(String rotacionId) {
+    if (_rotacionElegidaId == rotacionId) return;
+    _rotacionElegidaId = rotacionId;
+    notifyListeners();
+    final zonaId = _zona?.id;
+    if (zonaId != null) unawaited(_repo.saveRotacionId(zonaId, rotacionId));
+  }
+
   /// Todas las candidatas del cultivo actual, ordenadas por prioridades.
   List<Rotacion> get rotacionesTodas {
     final data = _paquete;
@@ -168,10 +199,7 @@ class AppState extends ChangeNotifier {
     final todas = rotacionesTodas;
     final actual = rotacionActual;
     if (actual == null) return todas.take(3).toList();
-    return [
-      actual,
-      ...todas.where((item) => item.id != actual.id).take(2),
-    ];
+    return [actual, ...todas.where((item) => item.id != actual.id).take(2)];
   }
 
   double puntaje(Rotacion rotacion) => rotacion.puntajeFinal(_prioridades);
@@ -204,7 +232,9 @@ class AppState extends ChangeNotifier {
       _reportes = await _repo.readReportes();
     } finally {
       final falta = minSplash - reloj.elapsed;
-      if (kReleaseMode && falta > Duration.zero) await Future<void>.delayed(falta);
+      if (kReleaseMode && falta > Duration.zero) {
+        await Future<void>.delayed(falta);
+      }
       _initializing = false;
       notifyListeners();
     }
@@ -310,6 +340,7 @@ class AppState extends ChangeNotifier {
   void setRiego(bool value) {
     if (_riego == value) return;
     _riego = value;
+    _checkRotacionElegida();
     notifyListeners();
     final zonaId = _zona?.id;
     if (zonaId != null) unawaited(_repo.saveRiego(zonaId, value));
@@ -331,6 +362,7 @@ class AppState extends ChangeNotifier {
       if (_paquete?.clave != actual.clave || _riego != riego) return;
       _installActive(nuevo, PackageOrigin.location);
       _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
+      _checkRotacionElegida();
       notifyListeners();
     } catch (_) {
       // Sin señal o servidor caído: se queda el paquete actual.
@@ -340,6 +372,7 @@ class AppState extends ChangeNotifier {
   void setCultivoInicial(String cultivoId) {
     if (_cultivoInicial == cultivoId) return;
     _cultivoInicial = cultivoId;
+    _checkRotacionElegida();
     notifyListeners();
     unawaited(_repo.saveCultivoId(cultivoId));
   }
@@ -386,13 +419,16 @@ class AppState extends ChangeNotifier {
       _installActive(paquete, PackageOrigin.location);
       await _repo.saveZonaId(paquete.clave);
       _riego = await _repo.readRiego(paquete.clave) ?? paquete.zona.riego;
+      _rotacionElegidaId = await _repo.readRotacionId(paquete.clave);
       _lastSoil = await _repo.readSoil(paquete.clave);
       _resolveInitialCrop(null);
       _apiHealthy = true;
       _locationStatus = LocationStatus.done;
       _notice = paquete.esCoordenada
           ? t('location.ok')
-          : t('location.official', {'zona': _zona?.nombre ?? paquete.zona.nombre});
+          : t('location.official', {
+              'zona': _zona?.nombre ?? paquete.zona.nombre,
+            });
       notifyListeners();
     } catch (_) {
       await _fallbackToHuanuco('location.fallback.failed');
@@ -592,6 +628,7 @@ class AppState extends ChangeNotifier {
         );
         await _repo.saveZonaId(imported.clave);
         _riego = await _repo.readRiego(imported.clave) ?? zona.riego;
+        _rotacionElegidaId = await _repo.readRotacionId(imported.clave);
         _lastSoil = await _repo.readSoil(imported.clave);
         _resolveInitialCrop(_cultivoInicial, keepCurrent: true);
         _notice = t('import.ok', {'version': imported.packageVersion});
@@ -681,6 +718,7 @@ class AppState extends ChangeNotifier {
     }
     final id = _zona!.id;
     _riego = await _repo.readRiego(id) ?? _zona!.riego;
+    _rotacionElegidaId = await _repo.readRotacionId(id);
     _lastSoil = await _repo.readSoil(id);
   }
 
@@ -736,9 +774,7 @@ class AppState extends ChangeNotifier {
       for (final reporte in _reportes)
         if (byId[reporte.idLocal] case final detalle?)
           reporte.withEstado(
-            detalle.aceptada
-                ? _normalizeEstado(detalle.estado)
-                : 'rechazada',
+            detalle.aceptada ? _normalizeEstado(detalle.estado) : 'rechazada',
             puntaje: detalle.puntaje,
           )
         else if (!reporte.enviado)

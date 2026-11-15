@@ -39,7 +39,7 @@ const base = () => (process.env.BASE_URL ?? '/').replace(/\/?$/, '/');
  * Se puede sobreescribir sin tocar código con la variable de entorno
  * PUBLIC_SITE_URL — útil para previews de cada PR.
  */
-const SITE = process.env.PUBLIC_SITE_URL ?? 'https://vercel.app';
+const SITE = process.env.PUBLIC_SITE_URL ?? 'https://landing-nine-sigma-82.vercel.app';
 
 // https://docs.astro.build/en/reference/configuration-reference/
 export default defineConfig({

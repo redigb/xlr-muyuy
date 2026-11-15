@@ -5,17 +5,18 @@ import 'package:flutter/services.dart';
 
 import 'leaf_model_stub.dart' if (dart.library.io) 'leaf_model_io.dart';
 
+/// Claves de traducción de las 10 clases (orden de salida del modelo).
 const leafLabels = [
-  'Mancha bacteriana',
-  'Tizón temprano',
-  'Tizón tardío',
-  'Moho de la hoja',
-  'Mancha foliar por septoria',
-  'Araña roja de dos manchas',
-  'Mancha diana',
-  'Virus del rizado amarillo del tomate',
-  'Virus del mosaico del tomate',
-  'Hoja sana',
+  'agro.leaf.0',
+  'agro.leaf.1',
+  'agro.leaf.2',
+  'agro.leaf.3',
+  'agro.leaf.4',
+  'agro.leaf.5',
+  'agro.leaf.6',
+  'agro.leaf.7',
+  'agro.leaf.8',
+  'agro.leaf.9',
 ];
 
 Future<({int index, double score})> analyzeLeaf(Uint8List photo) async {

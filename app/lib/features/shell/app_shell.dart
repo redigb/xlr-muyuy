@@ -6,6 +6,7 @@ import '../farm/farm_screen.dart';
 import '../home/home_screen.dart';
 import '../options/options_screen.dart';
 import '../share/share_screen.dart';
+import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_nav_bar.dart';
 
@@ -17,13 +18,28 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  late final PageController _controller;
+  late PageController _controller;
   int _index = 0;
+
+  bool _started = false;
 
   @override
   void initState() {
     super.initState();
     _controller = PageController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    // Con una rotación elegida, la app abre directo en Finca (su chacra 3D).
+    if (AppScope.of(context).rotacionElegidaPorUsuario) {
+      _index = 1;
+      _controller.dispose();
+      _controller = PageController(initialPage: 1);
+    }
   }
 
   @override

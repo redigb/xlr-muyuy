@@ -41,7 +41,7 @@ class _OptionsScreenState extends State<OptionsScreen> {
     final hasSoil =
         lastSoil != null && lastSoil.zonaId == (state.zona?.id ?? '');
     final soilProfile = hasSoil
-        ? soilProfileFor(lastSoil.effectiveIndex)
+        ? soilProfileFor(lastSoil.effectiveIndex, state.lang)
         : null;
 
     return PageBody(
@@ -90,6 +90,10 @@ class _OptionsScreenState extends State<OptionsScreen> {
                     score: state.puntaje(visible[i]),
                     isBest: visible[i].id == all.first.id,
                     isCurrent: visible[i].id == currentId,
+                    isChosen:
+                        state.rotacionElegidaPorUsuario &&
+                        visible[i].id == state.rotacionElegida?.id,
+                    onChoose: () => _choose(context, state, visible[i]),
                     soilNote: soilProfile != null
                         ? _soilNote(context, soilProfile, visible[i], paquete)
                         : null,
@@ -143,6 +147,21 @@ class _OptionsScreenState extends State<OptionsScreen> {
       'label': profile.label,
       'fit': confidenceLabel(context, level),
     });
+  }
+
+  void _choose(BuildContext context, AppState state, Rotacion rotation) {
+    state.elegirRotacion(rotation.id);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(context.tr('rot.saved')),
+          action: SnackBarAction(
+            label: context.tr('rot.seeFarm'),
+            onPressed: () => widget.onNavigate(1),
+          ),
+        ),
+      );
   }
 
   void _openSoil(BuildContext context, AppState state) {
@@ -349,6 +368,8 @@ class _RotationCard extends StatelessWidget {
     required this.score,
     required this.isBest,
     required this.isCurrent,
+    required this.isChosen,
+    required this.onChoose,
     required this.expanded,
     required this.onToggle,
     this.soilNote,
@@ -359,6 +380,8 @@ class _RotationCard extends StatelessWidget {
   final double score;
   final bool isBest;
   final bool isCurrent;
+  final bool isChosen;
+  final VoidCallback onChoose;
   final bool expanded;
   final VoidCallback onToggle;
   final String? soilNote;
@@ -370,7 +393,9 @@ class _RotationCard extends StatelessWidget {
 
     return SoftCard(
       padding: const EdgeInsets.all(AppSpacing.base),
-      borderColor: isBest
+      borderColor: isChosen
+          ? AppColors.verdePrincipal
+          : isBest
           ? AppColors.verdeSecundario.withValues(alpha: 0.7)
           : AppColors.line,
       child: Column(
@@ -383,13 +408,21 @@ class _RotationCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (isCurrent)
+                    if (isCurrent || isChosen)
                       Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                         child: Wrap(
                           spacing: 6,
                           runSpacing: 6,
                           children: [
+                            if (isChosen)
+                              Pill(
+                                label: context.tr('rot.chosen'),
+                                icon: Icons.check_circle_rounded,
+                                color: AppColors.white,
+                                background: AppColors.verdePrincipal,
+                                compact: true,
+                              ),
                             if (isCurrent)
                               Pill(
                                 label: context.tr('opt.current'),
@@ -416,6 +449,17 @@ class _RotationCard extends StatelessWidget {
               _ScoreRing(value: score),
             ],
           ),
+          if (!isChosen) ...[
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.tonalIcon(
+                onPressed: onChoose,
+                icon: const Icon(Icons.check_rounded),
+                label: Text(context.tr('rot.choose')),
+              ),
+            ),
+          ],
           if (soilNote != null) ...[
             const SizedBox(height: AppSpacing.md),
             Row(

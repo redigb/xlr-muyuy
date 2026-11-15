@@ -30,7 +30,8 @@ class ShareService {
           files: [XFile(bundle.filePath!, mimeType: 'application/json')],
           subject: subject,
           title: subject,
-          text: text,
+          // share_plus rechaza text vacío ("cannot be empty"): solo si hay.
+          text: text.isEmpty ? null : text,
         ),
       );
       return ShareOutcome.shared;

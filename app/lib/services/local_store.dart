@@ -11,6 +11,7 @@ class LocalStore {
   static const _prioridadesKey = 'muyuy.prioridades';
   static const _riegoKey = 'muyuy.riego';
   static const _cultivoKey = 'muyuy.cultivo';
+  static const _rotacionKey = 'muyuy.rotacion';
   static const _paqueteKey = 'muyuy.paquete.';
   static const _deviceKey = 'muyuy.dispositivo';
   static const _localIdKey = 'muyuy.id_local';
@@ -39,10 +40,18 @@ class LocalStore {
   }
 
   /// `null` si el usuario nunca lo eligió (se usa el valor de la zona).
-  Future<bool?> readRiego(String zonaId) => _prefs.getBool('$_riegoKey.$zonaId');
+  Future<bool?> readRiego(String zonaId) =>
+      _prefs.getBool('$_riegoKey.$zonaId');
 
   Future<void> writeRiego(String zonaId, bool value) {
     return _prefs.setBool('$_riegoKey.$zonaId', value);
+  }
+
+  Future<String?> readRotacionId(String zonaId) =>
+      _prefs.getString('$_rotacionKey.$zonaId');
+
+  Future<void> writeRotacionId(String zonaId, String rotacionId) {
+    return _prefs.setString('$_rotacionKey.$zonaId', rotacionId);
   }
 
   Future<String?> readCultivoId() => _prefs.getString(_cultivoKey);

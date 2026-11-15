@@ -114,7 +114,8 @@ class _ShareScreenState extends State<ShareScreen> {
           outcome == ShareOutcome.shared ? 'share.shared' : 'share.copied',
         ),
       );
-    } catch (_) {
+    } catch (error, stack) {
+      debugPrint('share failed: $error\n$stack');
       if (!context.mounted) return;
       _showSnack(context, context.tr('share.shareFail'));
     } finally {
