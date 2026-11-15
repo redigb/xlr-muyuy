@@ -11,6 +11,40 @@ const BOTTOM = -1.82;
 const SIZE = 8;
 const SEGMENTS = 64;
 const clamp = THREE.MathUtils.clamp;
+
+/**
+ * Bioma por zona piloto. Los valores salen de la climatología real de cada
+ * paquete (lluvia anual vs ET0): la selva de Tingo María recibe ~1094 mm y el
+ * valle del Huallaga ~614 mm con más demanda evaporativa, por eso el valle es
+ * el más árido y la selva el más verde.
+ */
+/** Paleta de copas por estación: verde fresco, otoño cálido, invierno frío. */
+const CANOPY_PALETTE = {
+  spring: new THREE.Color('#4CAF50'),
+  summer: new THREE.Color('#2E7D32'),
+  autumn: new THREE.Color('#E67E22'),
+  autumnDeep: new THREE.Color('#D35400'),
+  winter: new THREE.Color('#8FA399'),
+  snow: new THREE.Color('#CFD8DC'),
+};
+
+function canopyColor(aridity, snow, target) {
+  const dry = clamp((aridity - .2) / .6, 0, 1);
+  const cold = clamp((snow - .2) / .55, 0, 1);
+  target.copy(CANOPY_PALETTE.spring).lerp(CANOPY_PALETTE.summer, .5);
+  target.lerp(CANOPY_PALETTE.autumn, dry * .55);
+  target.lerp(CANOPY_PALETTE.autumnDeep, dry * .45);
+  target.lerp(CANOPY_PALETTE.winter, cold * .8);
+  target.lerp(CANOPY_PALETTE.snow, cold * .35);
+  return target;
+}
+const BIOMES = {
+  sierra: { low: '#8a8f6d', high: '#c6cca4', summit: '#a7a493', rock: '#7c796b', snow: .82, snowLine: .52, aridity: .40, trees: 8, trunk: '#6b5f49', canopy: '#95a97c', conifer: true },
+  valle: { low: '#8a8f4c', high: '#cdd189', summit: '#8b8264', rock: '#7b735d', snow: .10, snowLine: 1.95, aridity: .62, trees: 16, trunk: '#7a6848', canopy: '#a8b962', conifer: false },
+  story: { low: '#4f8c46', high: '#93c26d', summit: '#8b917a', rock: '#6f6a57', snow: .95, snowLine: .48, aridity: .20, trees: 26, trunk: '#6a563c', canopy: '#63a457', conifer: false },
+  selva: { low: '#2f6b35', high: '#63a34c', summit: '#3f6b40', rock: '#5a5f4a', snow: 0, snowLine: 9, aridity: .18, trees: 40, trunk: '#5c4931', canopy: '#54a154', conifer: false },
+};
+const DEFAULT_BIOME = BIOMES.sierra;
 const FIELD_CENTERS = [-2.45, -.9, .95];
 const CHANNEL_Z = 2.88;
 const RESERVOIR = [-2.71, 2.76];
@@ -23,8 +57,11 @@ const ISLAND_EDGES = [
   (t) => [-4, 4 - 8 * t],
 ];
 
+const BACK_FIELDS = FIELD_CENTERS.slice(0, 2);
+
 function isFarmSoil(x, z) {
-  return z >= .94 && z <= 2.63 && FIELD_CENTERS.some((center) => Math.abs(x - center) < .57);
+  if (z >= .94 && z <= 2.63 && FIELD_CENTERS.some((center) => Math.abs(x - center) < .57)) return true;
+  return z >= -2.74 && z <= -1.12 && BACK_FIELDS.some((center) => Math.abs(x - center) < .5);
 }
 
 function hillside(x, z) {
@@ -48,24 +85,41 @@ function elevation(x, z) {
 
 function surfaceGrain(shader) {
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vGrainPosition;')
+    .replace('#include <common>', '#include <common>\nvarying vec3 vGrainPosition;\nvarying vec3 vGrainNormal;')
+    .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvGrainNormal = objectNormal;')
     .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGrainPosition = position;');
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vGrainPosition;')
+    .replace('#include <common>', '#include <common>\nvarying vec3 vGrainPosition;\nvarying vec3 vGrainNormal;')
     .replace('#include <color_fragment>', `#include <color_fragment>
       vec3 p = vGrainPosition;
       float grain = sin(p.x * 167.0 + p.z * 191.0) * cos(p.y * 119.0 - p.z * 157.0);
       grain *= 1.0 - smoothstep(0.08, 0.75, length(fwidth(p)) * 160.0);
       float band = sin(p.x * 48.0 + p.y * 17.0 + sin(p.z * 31.0)) * 0.045;
-      diffuseColor.rgb *= 0.99 + grain * 0.12 + band;
+      float slope = 1.0 - clamp(normalize(vGrainNormal).y, 0.0, 1.0);
+      float strata = sin(p.y * 92.0 + sin(p.x * 26.0) * 0.7) * 0.016;
+      diffuseColor.rgb *= 1.0 + grain * 0.13 + band + strata;
+      diffuseColor.rgb *= 1.0 - slope * 0.28;
+      diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.08, 1.02, 0.9), slope * 0.5);
     `);
 }
+
+/**
+ * Cultivos por zona: sierra papa/mashua/oca (bajos), valle maíz/choclo (medios),
+ * selva plátano/yuca (altos). Cambian color, altura y fruto.
+ */
+const CROP_SETS = {
+  sierra: { leaf: ['#6f8f4a', '#48683a', '#8a9b52'], produce: ['#c9a75f', '#b5924b', '#9a8a4e'], stalk: .82, produceScale: 1 },
+  valle: { leaf: ['#9ab84f', '#6c8f3c', '#b7c25c'], produce: ['#d8b34a', '#e0c257', '#c9a13e'], stalk: 1.16, produceScale: 1.22 },
+  selva: { leaf: ['#3f8f43', '#2f6f38', '#5aa74d'], produce: ['#e2c14f', '#c9a83c', '#e8d06a'], stalk: 1.3, produceScale: 1.34 },
+  story: { leaf: ['#7fae55', '#5d8a41', '#a3c169'], produce: ['#cfae55', '#b8924a', '#d9c46b'], stalk: 1, produceScale: 1 },
+};
 
 function growthStage(column, month) {
   return Math.min(2, Math.floor((column + (month - 1) % 3) / 3));
 }
 
-function Crops({ mode, data, month, reduced }) {
+function Crops({ mode, data, month, reduced, region }) {
+  const crop = CROP_SETS[region] ?? CROP_SETS.story;
   const leaves = useRef();
   const stalks = useRef();
   const produce = useRef();
@@ -83,6 +137,15 @@ function Crops({ mode, data, month, reduced }) {
         }
       }
     }
+    for (const [field, center] of BACK_FIELDS.entries()) {
+      for (let row = 0; row < 4; row++) {
+        for (let column = 0; column < 7; column++) {
+          const x = center + (row - 1.5) * .22;
+          const z = -2.52 + column * .19;
+          if (Math.hypot(x, z) < 3.2) entries.push({ x, z, field: field === 0 ? 1 : 0, column, back: true });
+        }
+      }
+    }
     return entries;
   }, []);
   useLayoutEffect(() => {
@@ -91,7 +154,7 @@ function Crops({ mode, data, month, reduced }) {
     plants.forEach(({ x, z, field, column }, index) => {
       const stage = growthStage(column, month);
       const stageSize = [.38, .76, 1][stage];
-      const height = ((field === 1 ? .32 : field === 2 ? .06 : .14) + (index % 5) * .014) * stageSize;
+      const height = ((field === 1 ? .32 : field === 2 ? .06 : .14) + (index % 5) * .014) * stageSize * crop.stalk;
       const vigor = (.81 + .23 * Math.sin(index * 2.41) ** 2) * stageSize;
       const y = elevation(x, z);
       marker.position.set(x, y + height * .5, z);
@@ -108,13 +171,13 @@ function Crops({ mode, data, month, reduced }) {
         marker.updateMatrix();
         const leafIndex = index * 5 + leaf;
         leaves.current.setMatrixAt(leafIndex, marker.matrix);
-        leaves.current.setColorAt(leafIndex, color.set(['#87ac52', '#517e39', '#a0a250'][stage]).multiplyScalar(.85 + ((index + leaf) % 3) * .13));
+        leaves.current.setColorAt(leafIndex, color.set(crop.leaf[stage]).multiplyScalar(.85 + ((index + leaf) % 3) * .13));
       }
     });
     stalks.current.instanceMatrix.needsUpdate = true;
     leaves.current.instanceMatrix.needsUpdate = true;
     leaves.current.instanceColor.needsUpdate = true;
-  }, [plants, month]);
+  }, [plants, month, crop]);
   const growing = useMemo(() => plants.filter(({ field }, index) => field !== 2 && index % 2 === 0), [plants]);
   useLayoutEffect(() => {
     const marker = new THREE.Object3D();
@@ -127,10 +190,10 @@ function Crops({ mode, data, month, reduced }) {
       marker.position.set(patchX, bean ? elevation(x, z) + (stage === 2 ? .22 : .145) + index % 3 * .018 : elevation(patchX, z + .032) + .015, z + .032);
       marker.rotation.set(.22, index * 1.2, side * .33);
       const maturity = stage === 2 ? 1.25 : stage === 1 && bean ? .55 : 0;
-      marker.scale.set(...(bean ? [.016, .055, .017] : [.035, .024, .028])).multiplyScalar(maturity);
+      marker.scale.set(...(bean ? [.016, .055, .017] : [.035, .024, .028])).multiplyScalar(maturity * crop.produceScale);
       marker.updateMatrix();
       produce.current.setMatrixAt(index, marker.matrix);
-      produce.current.setColorAt(index, colors.set(bean ? stage === 2 ? '#c3af57' : '#78a44c' : index % 3 ? '#c59060' : '#98556e'));
+      produce.current.setColorAt(index, colors.set(bean && stage < 2 ? crop.leaf[2] : crop.produce[stage]));
     });
     produce.current.instanceMatrix.needsUpdate = true;
     produce.current.instanceColor.needsUpdate = true;
@@ -348,6 +411,21 @@ function Irrigation({ terrain, mode, data, reduced }) {
   }, [terrain]);
   const dry = mode === 'agua' && data?.balance_hidrico_mm < 0;
   return <group>
+    {/* Naciente: el agua brota de una boca en el cerro. */}
+    <group position={[-1.77, elevation(-1.77, -1.72), -1.72]}>
+      <mesh castShadow position={[-.1, .1, -.16]} rotation={[.22, .4, .18]} scale={[1.3, 1, .9]}>
+        <dodecahedronGeometry args={[.26, 0]} /><meshStandardMaterial color="#4b473e" roughness={1} flatShading />
+      </mesh>
+      <mesh castShadow position={[.19, .07, -.2]} rotation={[.1, 1.1, -.2]} scale={[1, .78, .9]}>
+        <dodecahedronGeometry args={[.19, 0]} /><meshStandardMaterial color="#555044" roughness={1} flatShading />
+      </mesh>
+      <mesh castShadow position={[.04, .16, -.34]} rotation={[.3, .2, .1]} scale={[1.1, .7, .8]}>
+        <dodecahedronGeometry args={[.16, 0]} /><meshStandardMaterial color="#423f37" roughness={1} flatShading />
+      </mesh>
+      <mesh position={[.03, .06, -.24]} scale={[.62, .5, .5]}>
+        <sphereGeometry args={[.16, 10, 8]} /><meshStandardMaterial color="#0b100e" roughness={1} />
+      </mesh>
+    </group>
     <WaterRibbon curve={stream} width={.18} bankHeight={bankHeight} dry={dry} reduced={reduced} />
     <WaterRibbon curve={outlet} width={.142} bankHeight={bankHeight} fallStart={fallStart} dry={dry} reduced={reduced} />
     {[[-1.76, -1.79, .16], [-1.87, -1.68, .11], [-1.66, -1.67, .09]].map(([x, z, size]) => (
@@ -357,9 +435,15 @@ function Irrigation({ terrain, mode, data, reduced }) {
       </mesh>
     ))}
     <group position={[RESERVOIR[0], elevation(...RESERVOIR), RESERVOIR[1]]}>
+      <mesh position={[0, .012, 0]} receiveShadow><boxGeometry args={[.86, .05, .86]} /><meshStandardMaterial color="#4c4a41" roughness={1} /></mesh>
       <mesh position={[0, .055, 0]} castShadow><cylinderGeometry args={[.31, .29, .18, 12]} /><meshStandardMaterial color="#57564b" roughness={1} /></mesh>
       <ReservoirWater reduced={reduced} />
       <mesh position={[0, .15, 0]} rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[.283, .037, 5, 12]} /><meshStandardMaterial color="#807c68" roughness={1} /></mesh>
+      <mesh castShadow position={[.3, .09, .17]} rotation={[0, .62, 0]}><boxGeometry args={[.16, .07, .045]} /><meshStandardMaterial color="#6b6455" roughness={1} /></mesh>
+      <group position={[-.42, .05, .26]} rotation={[0, .6, 0]}>
+        <mesh castShadow position={[0, .055, 0]}><cylinderGeometry args={[.058, .046, .11, 10]} /><meshStandardMaterial color="#8a7a55" roughness={1} /></mesh>
+        <mesh position={[0, .118, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[.045, .007, 4, 10]} /><meshStandardMaterial color="#5f5340" /></mesh>
+      </group>
     </group>
   </group>;
 }
@@ -378,6 +462,8 @@ function CloudCluster({ position, scale = 1, rotation, winter }) {
   </group>;
 }
 
+/** Nubes bajas alrededor de la isla. Las rocas sueltas del borde se eliminaron:
+ *  el acantilado continuo de `buildTerrain` es el que sostiene la isla. */
 function IslandEdge({ reduced, winter }) {
   const clouds = useRef();
   const stoneMeshes = useRef([]);
@@ -459,51 +545,109 @@ function IslandEdge({ reduced, winter }) {
   </>;
 }
 
+function islandEdgeAt(angle) {
+  const [x, z] = islandPoint(Math.cos(angle) * 4, Math.sin(angle) * 4);
+  const radius = Math.hypot(x, z) || 1;
+  return { x, z, radius };
+}
+
+const rockGap = (a, b) => (a.size + b.size) * 2.7 + .24;
+
+/**
+ * Rocas flotantes: todas fuera del contorno (edge + margen + radio) y sin
+ * solaparse entre sí (Poisson en 3D). Debajo del filo, nunca sobre el césped.
+ */
 function FloatingRocks({ reduced }) {
+  const debrisSpots = useMemo(() => {
+    const accepted = [];
+    const random = (seed) => {
+      const value = Math.sin(seed * 12.9898 + seed * seed * 0.0071) * 43758.5453;
+      return value - Math.floor(value);
+    };
+    for (let attempt = 0; attempt < 420 && accepted.length < 26; attempt++) {
+      const angle = random(attempt + 1) * Math.PI * 2;
+      const size = .05 + random(attempt + 2.3) * .075;
+      const edge = islandEdgeAt(angle);
+      const margin = .34 + size * 3.1;
+      const distance = edge.radius + margin;
+      const x = (edge.x / edge.radius) * distance;
+      const z = (edge.z / edge.radius) * distance;
+      const y = -.62 - random(attempt + 4.7) * 1.9;
+      const candidate = { x, y, z, size, angle, phase: random(attempt + 6.1) * Math.PI * 2 };
+      if (accepted.some((rock) => Math.hypot(x - rock.x, y - rock.y, z - rock.z) < rockGap(rock, candidate))) continue;
+      accepted.push(candidate);
+    }
+    return accepted;
+  }, []);
+
+  const boulders = useMemo(() => {
+    return [3.34, -.32, 2.28, .79].map((angle, index) => {
+      const edge = islandEdgeAt(angle);
+      const size = .52 - index * .06;
+      const distance = edge.radius + .5 + size * 1.9;
+      return {
+        x: (edge.x / edge.radius) * distance,
+        z: (edge.z / edge.radius) * distance,
+        y: -1.45 - index * .47,
+        size,
+        index,
+      };
+    });
+  }, []);
+
   const rocks = useRef();
-  const fragments = useMemo(() => Array.from({ length: 31 }, (_, index) => {
-    const angle = index * 2.39996;
-    const [x, z] = islandPoint(Math.cos(angle) * 4, Math.sin(angle) * 4);
-    const spread = 1.03 + (index % 6) * .028;
-    const size = .055 + (index % 5) * .027;
-    return { x: x * spread, z: z * spread, depth: -0.49 - (index % 8) * .21, size, angle };
-  }), []);
   const debris = useRef();
   const marker = useMemo(() => new THREE.Object3D(), []);
   useFrame(({ clock }) => {
-    rocks.current.children.forEach((rock, index) => {
-      rock.position.y = -1.45 - index * .47 + (reduced ? 0 : Math.sin(clock.elapsedTime * .55 + index * 2) * .13);
+    rocks.current?.children.forEach((rock, index) => {
+      rock.position.y = boulders[index].y + (reduced ? 0 : Math.sin(clock.elapsedTime * .55 + index * 2) * .11);
     });
+    if (!debris.current) return;
     const time = reduced ? 0 : clock.elapsedTime;
-    fragments.forEach(({ x, z, depth, size, angle }, index) => {
-      const cycle = (time * .075 + (index * .413) % 1) % 1;
-      const drift = THREE.MathUtils.smoothstep(cycle, 0, 1);
-      marker.position.set(x * (1 + drift * .12), depth - drift * .54, z * (1 + drift * .12));
-      marker.rotation.set(angle + time * .18, angle - time * .13, angle * .6);
-      marker.scale.set(size, size * 1.45, size * .82).multiplyScalar(.08 + .92 * Math.sin(cycle * Math.PI) ** .42);
+    debrisSpots.forEach((spot, index) => {
+      const bob = reduced ? 0 : Math.sin(time * .5 + spot.phase) * .09;
+      const orbit = reduced ? 0 : Math.sin(time * .22 + spot.phase) * .012;
+      marker.position.set(spot.x * (1 + orbit), spot.y + bob, spot.z * (1 + orbit));
+      marker.rotation.set(spot.angle + time * .12, spot.angle - time * .09, spot.angle * .6);
+      marker.scale.set(spot.size, spot.size * 1.45, spot.size * .82);
       marker.updateMatrix();
       debris.current.setMatrixAt(index, marker.matrix);
     });
     debris.current.instanceMatrix.needsUpdate = true;
   });
   return <>
-  <instancedMesh ref={debris} args={[undefined, undefined, fragments.length]} frustumCulled={false}>
-    <dodecahedronGeometry args={[1, 0]} /><meshStandardMaterial color="#6b6151" roughness={1} flatShading />
-  </instancedMesh>
-  <group ref={rocks}>
-    {[[-4.25, -.8], [4.08, -1.37], [-2.45, 3.48], [2.82, 2.95]].map(([x, z], i) => (
-      <mesh key={x} position={[x * ISLAND_WIDTH_SCALE, -1.45 - i * .47, z * ISLAND_WIDTH_SCALE]} rotation={[.14, i * 1.7, -.17]} scale={[.52 - i * .06, .8 - i * .09, .46 - i * .055]}>
-        <dodecahedronGeometry args={[1, 0]} /><meshStandardMaterial color={i % 2 ? '#494b49' : '#62635a'} flatShading roughness={1} />
-      </mesh>
-    ))}
-  </group>
+    <instancedMesh ref={debris} args={[undefined, undefined, debrisSpots.length]} castShadow frustumCulled={false}>
+      <dodecahedronGeometry args={[1, 0]} /><meshStandardMaterial color="#6b6151" roughness={1} flatShading />
+    </instancedMesh>
+    <group ref={rocks}>
+      {boulders.map(({ x, y, z, size, index }) => (
+        <mesh key={index} position={[x, y, z]} rotation={[.14, index * 1.7, -.17]} scale={[size, size * 1.54, size * .88]}>
+          <dodecahedronGeometry args={[1, 0]} />
+          <meshStandardMaterial color={index % 2 ? '#494b49' : '#62635a'} flatShading roughness={1} />
+        </mesh>
+      ))}
+    </group>
+    <group>
+      {Array.from({ length: 11 }, (_, index) => {
+        const angle = index * 2.39996 + .35;
+        const radius = 1.15 + (index % 4) * .28;
+        const x = Math.cos(angle) * radius * 1.55;
+        const z = Math.sin(angle) * radius * 1.55;
+        const length = .42 + (index % 4) * .26;
+        return <mesh key={'root' + index} castShadow
+          position={[x, -2.02 - (index % 3) * .12 - length * .28, z]}
+          rotation={[Math.PI + Math.sin(index * 1.7) * .16, angle, Math.cos(index * .9) * .16]}>
+          <coneGeometry args={[.052 + (index % 3) * .018, length, 5]} />
+          <meshStandardMaterial color={index % 2 ? '#3a2d21' : '#4b3a29'} roughness={1} flatShading />
+        </mesh>;
+      })}
+    </group>
   </>;
 }
-
-function SeasonalEquipment({ month, reduced, working }) {
+function SeasonalEquipment({ month, reduced, working, task }) {
   const spray = useRef();
-  const winter = month >= 6 && month <= 8;
-  const spring = month >= 9 && month <= 11;
+  const winter = task ? task === 'spraying' : month >= 6 && month <= 8;
+  const spring = task ? task === 'tending' : month >= 9 && month <= 11;
   const summer = month === 12 || month <= 2;
   const droplets = useMemo(() => new Float32Array(36 * 3), []);
   useFrame(({ clock }) => {
@@ -569,13 +713,24 @@ function SummitClouds({ reduced, winter }) {
   </group>;
 }
 
-function Farmer({ x, z, color, month, reduced }) {
+function Farmer({ x, z, color, month, reduced, task, stationary = false }) {
   const body = useRef();
   const legs = useRef([]);
   const arms = useRef([]);
   const working = useRef(false);
   const workBlend = useRef(0);
   useFrame(({ clock }, delta) => {
+    if (stationary) {
+      const effort = reduced ? .5 : Math.sin(clock.elapsedTime * 2.4 + x) * .5 + .5;
+      body.current.position.set(x, elevation(x, z), z);
+      body.current.rotation.y = Math.PI + x * .22;
+      body.current.rotation.x = .28 + effort * .09;
+      legs.current.forEach((leg, i) => { if (leg) leg.rotation.x = i ? -.16 : .16; });
+      arms.current.forEach((arm, i) => { if (arm) arm.rotation.x = i ? -.52 + effort * .26 : -.34 + effort * .12; });
+      working.current = true;
+      workBlend.current = 1;
+      return;
+    }
     const time = reduced ? 0 : clock.elapsedTime + (x < 0 ? 0 : 2.6);
     const cycle = time % 9;
     const angle = (Math.floor(time / 9) + THREE.MathUtils.smoothstep(cycle, 0, 5.9)) * Math.PI * 2;
@@ -619,7 +774,7 @@ function Farmer({ x, z, color, month, reduced }) {
     {[-.019, .019].map((side) => <mesh key={side} position={[side, .372, .046]}><sphereGeometry args={[.006, 5, 4]} /><meshBasicMaterial color="#31291f" /></mesh>)}
     <mesh castShadow position={[0, .414, 0]}><cylinderGeometry args={[.081, .091, .012, 12]} /><meshStandardMaterial color="#b59a67" roughness={1} /></mesh>
     <mesh castShadow position={[0, .435, 0]}><cylinderGeometry args={[.039, .051, .035, 10]} /><meshStandardMaterial color="#c2a471" roughness={1} /></mesh>
-    <SeasonalEquipment month={month} reduced={reduced} working={working} />
+    <SeasonalEquipment month={month} reduced={reduced} working={working} task={task} />
   </group>;
 }
 
@@ -689,7 +844,73 @@ function ThatchedHouse({ x, z, scale, index }) {
   </group>;
 }
 
-function FarmDetails({ terrain, mode, data, month, reduced }) {
+/** Llama de pie, low-poly. */
+function Llama({ x, z, scale = 1, rotation = 0, tone = '#c8b393' }) {
+  const y = elevation(x, z);
+  return <group position={[x, y, z]} rotation={[0, rotation, 0]} scale={scale}>
+    <mesh castShadow position={[0, .3, 0]} rotation={[0, 0, Math.PI / 2]} scale={[1, 1, .82]}>
+      <cylinderGeometry args={[.085, .085, .3, 8]} /><meshStandardMaterial color={tone} roughness={.95} flatShading />
+    </mesh>
+    <mesh castShadow position={[.15, .46, 0]} rotation={[0, 0, -.22]}>
+      <cylinderGeometry args={[.038, .05, .26, 7]} /><meshStandardMaterial color={tone} roughness={.95} />
+    </mesh>
+    <mesh castShadow position={[.19, .6, 0]} scale={[1.25, .85, .8]}>
+      <icosahedronGeometry args={[.058, 1]} /><meshStandardMaterial color={tone} roughness={.95} flatShading />
+    </mesh>
+    {[[.09, -.09], [.09, .09], [-.09, -.09], [-.09, .09]].map(([dx, dz]) => (
+      <mesh key={dx + ':' + dz} position={[dx, .12, dz]}><cylinderGeometry args={[.019, .015, .24, 5]} /><meshStandardMaterial color="#8d7a5e" /></mesh>
+    ))}
+    {[-.028, .028].map((dz) => <mesh key={dz} position={[.19, .66, dz]} rotation={[0, 0, -.12]}><coneGeometry args={[.016, .05, 5]} /><meshStandardMaterial color="#b7a281" /></mesh>)}
+  </group>;
+}
+
+/** Gallinas sueltas cerca de las casas. */
+function Chickens({ spots }) {
+  return <>
+    {spots.map(([x, z, rotation], index) => {
+      const y = elevation(x, z);
+      const tone = ['#f2ece0', '#c08a4a', '#e6dcc8', '#8d5c3a'][index % 4];
+      return <group key={x + ':' + z} position={[x, y, z]} rotation={[0, rotation, 0]} scale={.9 + (index % 3) * .12}>
+        <mesh castShadow position={[0, .05, 0]} scale={[1.15, .9, .9]}><icosahedronGeometry args={[.042, 1]} /><meshStandardMaterial color={tone} roughness={.95} flatShading /></mesh>
+        <mesh castShadow position={[.045, .085, 0]}><sphereGeometry args={[.024, 7, 5]} /><meshStandardMaterial color={tone} roughness={.9} /></mesh>
+        <mesh position={[.062, .1, 0]} rotation={[0, 0, -.4]}><coneGeometry args={[.008, .022, 4]} /><meshStandardMaterial color="#d9a13c" /></mesh>
+      </group>;
+    })}
+  </>;
+}
+
+/** Árboles del fondo: material compartido y estacional. */
+const GROVE_SPOTS = [
+  [-3.03, -1.23], [-3.29, -.71], [-3.43, -.27], [3.42, -1.37], [-3.52, 1.12], [-3.58, 1.62],
+  [.62, -3.02], [-2.5, -2.83], [-1.8, -3.08], [-1.1, -3.43], [-.42, -3.24], [-.18, -3.04], [2.47, -2.86],
+];
+
+function Grove({ aridity, snow, reduced }) {
+  const target = useMemo(() => new THREE.Color(), []);
+  const material = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#4CAF50', roughness: 1, metalness: 0, flatShading: true }),
+    []
+  );
+  useEffect(() => () => material.dispose(), [material]);
+  useFrame((_, delta) => {
+    canopyColor(aridity, snow, target);
+    material.color.lerp(target, reduced ? 1 : 1 - Math.exp(-Math.min(delta, .05) * 2.4));
+  });
+  return <>
+    {GROVE_SPOTS.map(([x, z], index) => {
+      const scale = .75 + (index % 4) * .14;
+      return <group key={x} position={[x, elevation(x, z), z]} scale={scale}>
+        <mesh castShadow position={[0, .18, 0]}>
+          <cylinderGeometry args={[.035, .057, .37, 5]} /><meshStandardMaterial color="#6a563c" />
+        </mesh>
+        <mesh castShadow position={[0, .48, 0]} scale={[.8 + (index % 3) * .12, 1.1 + (index % 4) * .15, .83]} material={material}>
+          <icosahedronGeometry args={[.26, 1]} />
+        </mesh>
+      </group>;
+    })}
+  </>;
+}
+function FarmDetails({ terrain, mode, data, month, reduced, region, aridity, snow }) {
   const trail = useMemo(() => {
     const vertices = [];
     const colors = [];
@@ -727,8 +948,13 @@ function FarmDetails({ terrain, mode, data, month, reduced }) {
   return (
     <>
       <Irrigation terrain={terrain} mode={mode} data={data} reduced={reduced} />
-      <Farmer x={-1.69} z={1.94} color="#ae6c42" month={month} reduced={reduced} />
-      <Farmer x={.08} z={1.92} color="#526584" month={month} reduced={reduced} />
+      <Farmer x={-2.56} z={1.36} color="#ae6c42" month={month} reduced={reduced} task="tending" stationary />
+      <Farmer x={-.84} z={2.02} color="#526584" month={month} reduced={reduced} task="spraying" stationary />
+      <Farmer x={.94} z={1.44} color="#6d7d43" month={month} reduced={reduced} task="watering" stationary />
+      <Farmer x={-1.86} z={-1.78} color="#8a5a3c" month={month} reduced={reduced} />
+      <Llama x={-1.55} z={-2.7} rotation={1.9} scale={1.05} />
+      <Llama x={-1.95} z={-2.42} rotation={-.8} scale={.95} tone='#a9885f' />
+      <Chickens spots={[[2.44, .95, .4], [2.62, 1.08, 2.1], [2.34, 1.16, 1.2], [1.02, -2.5, .8], [1.18, -2.34, 2.6]]} />
       <AnimalPens />
       <mesh geometry={trail} receiveShadow>
         <meshStandardMaterial onBeforeCompile={surfaceGrain} vertexColors roughness={1} side={THREE.DoubleSide} />
@@ -741,13 +967,7 @@ function FarmDetails({ terrain, mode, data, month, reduced }) {
           <dodecahedronGeometry args={[.095, 0]} /><meshStandardMaterial color={index % 2 ? '#817768' : '#665f54'} roughness={1} />
         </mesh>;
       })}
-      {[[-3.03, -1.23], [-3.29, -.71], [-3.43, -.27], [3.42, -1.37], [-3.52, 1.12], [-3.58, 1.62], [.62, -3.02], [-2.5, -2.83], [-1.8, -3.08], [-1.1, -3.43], [-.42, -3.24], [1.01, -2.98], [2.47, -2.86]].map(([x, z], index) => {
-        const scale = .75 + (index % 4) * .14;
-        return <group key={x} position={[x, elevation(x, z), z]} scale={scale}>
-          <mesh castShadow position={[0, .18, 0]}><cylinderGeometry args={[.035, .057, .37, 5]} /><meshStandardMaterial color="#60462e" /></mesh>
-          <mesh castShadow position={[0, .48, 0]} scale={[.8 + (index % 3) * .12, 1.1 + (index % 4) * .15, .83]}><icosahedronGeometry args={[.26, 1]} /><meshStandardMaterial color={['#34543b', '#4c693e', '#607d43', '#3e604c'][index % 4]} roughness={1} flatShading /></mesh>
-        </group>;
-      })}
+      <Grove aridity={aridity} snow={snow} reduced={reduced} />
       {[[-1.35, -.97], [-.67, -.57], [-.32, -.97], [.45, -1.15], [.58, -.73], [-.93, -.3], [-1.7, -2.04], [-1.28, -2.34], [-.81, -2.67], [.23, -2.88], [1.51, -2.31], [2, -2.11]].map(([x, z], index) => (
         <mesh castShadow key={x} position={[x, elevation(x, z) + .046, z]} rotation={[.2, index * 1.4, 0]} scale={[1.4, .65, .9]}>
           <dodecahedronGeometry args={[.13 + index % 3 * .045, 0]} /><meshStandardMaterial color={index % 2 ? '#837d69' : '#686757'} roughness={1} flatShading />
@@ -933,7 +1153,97 @@ function Hotspot({ x, z, label, value, detail = false, compact = false }) {
   );
 }
 
-function Diorama({ progress, mode, month, data, reduced, zoom, editorialLayout, fieldJourney, onEnterFields, wideFieldView, onZoomOut, wideIslandView, onWidenIslandView, onIslandInteract }) {
+function Vegetation({ region, treeRegion, aridity, snow, reduced }) {
+  // Posiciones fijas por bioma: al scrollear no aparece ni desaparece un árbol.
+  const biome = BIOMES[treeRegion] ?? BIOMES[region] ?? DEFAULT_BIOME;
+  const trunks = useRef();
+  const canopies = useRef();
+  const sway = useRef(0);
+  const target = useMemo(() => new THREE.Color(), []);
+  const canopyMaterial = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#4CAF50', roughness: .9, metalness: 0, flatShading: true }),
+    []
+  );
+  useEffect(() => () => canopyMaterial.dispose(), [canopyMaterial]);
+
+  const trees = useMemo(() => {
+    const random = (n) => { const value = Math.sin(n * 12.9898) * 43758.5453; return value - Math.floor(value); };
+    const planted = [];
+    for (let i = 0; i < 260 && planted.length < biome.trees; i++) {
+      const x = (random(i + 1) - .5) * 6.6;
+      const z = (random(i + 7.3) - .5) * 6.6;
+      if (Math.hypot(x, z) > 3.45) continue;
+      if (isFarmSoil(x, z)) continue;
+      if (z > CHANNEL_Z - .34) continue;
+      if (Math.hypot(x - RESERVOIR[0], z - RESERVOIR[1]) < .66) continue;
+      if (HOMES.some(([homeX, homeZ, scale]) => Math.hypot(x - homeX, z - homeZ) < .62 * scale + .2)) continue;
+      if (SHEEP_PENS.some(({ bounds: [left, right, back, front] }) => x > left - .18 && x < right + .18 && z > back - .18 && z < front + .18)) continue;
+      const y = elevation(x, z);
+      if (y > biome.snowLine + .95) continue;
+      planted.push({ x, z, y, scale: .68 + random(i + 3.1) * .62, yaw: random(i + 5.7) * Math.PI * 2 });
+    }
+    return planted;
+  }, [biome]);
+
+  useLayoutEffect(() => {
+    if (!trunks.current || !canopies.current) return;
+    const marker = new THREE.Object3D();
+    trees.forEach((tree, index) => {
+      const shape = biome.conifer ? [.74, 1.5, .74] : [1.16, .86, 1.16];
+      const growth = .94 + .08 * Math.sin(index * 1.7);
+      marker.position.set(tree.x, tree.y + .16 * tree.scale, tree.z);
+      marker.rotation.set(0, tree.yaw, 0);
+      marker.scale.setScalar(tree.scale * growth);
+      marker.updateMatrix();
+      trunks.current.setMatrixAt(index, marker.matrix);
+      marker.position.y = tree.y + (biome.conifer ? .44 : .36) * tree.scale;
+      marker.scale.set(shape[0], shape[1], shape[2]).multiplyScalar(tree.scale * growth);
+      marker.updateMatrix();
+      canopies.current.setMatrixAt(index, marker.matrix);
+    });
+    trunks.current.instanceMatrix.needsUpdate = true;
+    canopies.current.instanceMatrix.needsUpdate = true;
+  }, [trees, biome]);
+
+  useFrame(({ clock }, delta) => {
+    if (!canopies.current) return;
+    canopyColor(aridity, snow, target);
+    const dt = Math.min(delta, .05);
+    canopyMaterial.color.lerp(target, reduced ? 1 : 1 - Math.exp(-dt * 2.4));
+    if (reduced) return;
+    sway.current += dt;
+    const breeze = Math.sin(sway.current * .9) * .012;
+    canopies.current.rotation.z = breeze;
+    canopies.current.rotation.x = breeze * .45;
+  });
+
+  if (!trees.length) return null;
+  return (
+    <group>
+      <instancedMesh ref={trunks} args={[undefined, undefined, trees.length]} castShadow receiveShadow frustumCulled={false}>
+        <cylinderGeometry args={[.016, .026, .34, 6]} />
+        <meshStandardMaterial color={biome.trunk} roughness={.92} flatShading />
+      </instancedMesh>
+      <instancedMesh ref={canopies} args={[undefined, undefined, trees.length]} material={canopyMaterial} castShadow receiveShadow frustumCulled={false}>
+        <icosahedronGeometry args={[.19, 1]} />
+      </instancedMesh>
+    </group>
+  );
+}
+function Diorama({ progress, mode, climate, month, data, reduced, zoom, editorialLayout, fieldJourney, onEnterFields, wideFieldView, onZoomOut, wideIslandView, onWidenIslandView, onIslandInteract }) {
+  // El aspecto del terreno lo manda la zona + el mes (datos reales).
+  const biome = BIOMES[climate?.region] ?? DEFAULT_BIOME;
+  const frost = clamp(climate?.frost ?? (mode === 'helada' ? .65 : .08), 0, 1);
+  const et = Number.isFinite(climate?.et) && climate.et > 0 ? climate.et : 100;
+  const balance = Number.isFinite(climate?.water) ? climate.water : -30;
+  const deficit = clamp(Math.max(0, -balance) / et, 0, 1);
+  const aridity = Number.isFinite(climate?.aridity)
+    ? clamp(climate.aridity, 0, 1)
+    : clamp(biome.aridity + .35 * (deficit - .5), 0, 1);
+  const snow = Number.isFinite(climate?.snow)
+    ? clamp(climate.snow, 0, 1)
+    : clamp(biome.snow * (.45 + .55 * frost), 0, 1);
+  const visualMode = aridity > .62 ? 'agua' : snow > .45 ? 'helada' : 'normal';
   const [inspect, setInspect] = useState(false);
   const inspection = useRef(false);
   const group = useRef();
@@ -1013,16 +1323,13 @@ function Diorama({ progress, mode, month, data, reduced, zoom, editorialLayout, 
   const palette = useMemo(() => {
     const values = new Float32Array(top.attributes.position.count * 3);
     const color = new THREE.Color();
-    const low = new THREE.Color('#6e9145');
-    const high = new THREE.Color('#bdd27a');
-    const summit = new THREE.Color('#706e58');
-    const blue = new THREE.Color('#3b82f6');
-    const snow = new THREE.Color('#d3edff');
-    const dry = new THREE.Color('#f97316');
-    const wet = new THREE.Color('#22c55e');
+    const low = new THREE.Color(biome.low);
+    const high = new THREE.Color(biome.high);
+    const summit = new THREE.Color(biome.summit);
+    const snowColor = new THREE.Color('#e8f4ff');
+    const aridColor = new THREE.Color('#bf8b46');
+    const lushColor = new THREE.Color('#2c7538');
     const dirt = new THREE.Color('#694a32');
-    const frost = Number.isFinite(data?.prob_helada) ? clamp(data.prob_helada, 0, 1) : .65;
-    const water = Number.isFinite(data?.balance_hidrico_mm) ? data.balance_hidrico_mm : -30;
     for (let i = 0; i < top.attributes.position.count; i++) {
       const height = top.attributes.position.getY(i);
       const x = top.attributes.position.getX(i);
@@ -1031,21 +1338,22 @@ function Diorama({ progress, mode, month, data, reduced, zoom, editorialLayout, 
       color.copy(low).lerp(high, clamp(height / 3.5 + band, 0, 1));
       const field = (Math.floor((x + 4) / 1.2) + Math.floor((z + 4) / .8)) % 3;
       if (height < 1.4) color.multiplyScalar([.73, 1.07, .89][field]);
+      color.lerp(aridColor, aridity * clamp(1 - height / 2.9, 0, 1) * .62);
+      if (biome.aridity < .3) color.lerp(lushColor, (1 - aridity) * clamp(1 - height / 2.6, 0, 1) * .45);
       color.lerp(summit, clamp((height - 1.65) / 1.9, 0, .85));
-      if (mode === 'helada') color.lerp(blue, .2 + frost * .6).lerp(snow, clamp((height - .65) / 2.4, 0, 1) * frost);
-      if (mode === 'agua') color.lerp(water < 0 ? dry : wet, clamp(Math.abs(water) / 65, .25, .9));
+      color.lerp(snowColor, snow * clamp((height - biome.snowLine) / Math.max(.35, 3 - biome.snowLine), 0, 1));
       if (isFarmSoil(x, z)) {
         const furrow = .79 + .2 * Math.cos((x + 2.45) * 29.9) ** 2;
         color.copy(dirt).multiplyScalar(furrow);
-        if (mode === 'helada') color.lerp(snow, .2 + frost * .3);
-        if (mode === 'agua' && water < 0) color.lerp(dry, .16);
+        color.lerp(snowColor, snow * .55);
+        color.lerp(aridColor, aridity * .3);
       }
       const grain = .91 + Math.sin(x * 29 + z * 13) * Math.cos(z * 31 - x * 10) * .065 + Math.sin(x * 12 - z * 11) * .055;
       color.multiplyScalar(grain);
       color.toArray(values, i * 3);
     }
     return values;
-  }, [top, mode, data?.prob_helada, data?.balance_hidrico_mm]);
+  }, [top, biome, aridity, snow]);
   const initialized = useRef(false);
   useEffect(() => {
     if (!initialized.current) {
@@ -1133,6 +1441,7 @@ function Diorama({ progress, mode, month, data, reduced, zoom, editorialLayout, 
   });
   const frostValue = Number.isFinite(data?.prob_helada) ? Math.round(clamp(data.prob_helada, 0, 1) * 100) + '%' : 'Data pending';
   const waterValue = Number.isFinite(data?.balance_hidrico_mm) ? data.balance_hidrico_mm + ' mm' : 'Data pending';
+  const droughtValue = Number.isFinite(data?.sequia) ? Math.round(clamp(data.sequia, 0, 1) * 100) + '% deficit' : 'Data pending';
   const altitude = Number.isFinite(data?.elevacion_m) ? data.elevacion_m.toLocaleString('en-US') + ' m' : '3,200 m · pilot';
   const validMonth = Number.isInteger(month) && month >= 1 && month <= 12;
   const monthLabel = validMonth ? new Intl.DateTimeFormat('en', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, month - 1, 1))) : '';
@@ -1153,18 +1462,20 @@ function Diorama({ progress, mode, month, data, reduced, zoom, editorialLayout, 
           <mesh ref={rock} geometry={walls} receiveShadow>
             <meshStandardMaterial onBeforeCompile={surfaceGrain} vertexColors roughness={1} side={THREE.DoubleSide} />
           </mesh>
-          <Frost active={mode === 'helada' || (month >= 6 && month <= 8 && mode !== 'agua')} reduced={reduced} />
-          <Crops mode={mode} data={data} month={month} reduced={reduced} />
-          <FarmDetails terrain={top} mode={mode} data={data} month={month} reduced={reduced} />
+          <Frost active={snow > .3} reduced={reduced} />
+          <Crops mode={visualMode} data={data} month={month} reduced={reduced} region={climate?.region} />
+          <FarmDetails terrain={top} mode={visualMode} data={data} month={month} reduced={reduced} region={climate?.region} aridity={aridity} snow={snow} />
+          <Vegetation region={climate?.region} treeRegion={climate?.treeRegion} aridity={aridity} snow={snow} reduced={reduced} />
           <FloatingRocks reduced={reduced} />
-          <IslandEdge reduced={reduced} winter={mode === 'helada'} />
-          <SummitRocks winter={mode === 'helada'} />
-          <SummitClouds reduced={reduced} winter={mode === 'helada'} />
+          <IslandEdge reduced={reduced} winter={snow > .45} />
+          <SummitRocks winter={snow > .45} />
+          <SummitClouds reduced={reduced} winter={snow > .45} />
           {!onEnterFields && <Hotspot x={-1.1} z={-.9} label="Zone elevation" value={altitude} />}
-          {!onEnterFields && !inspect && (!editorialLayout || mode !== 'normal') && <Hotspot x={2.2} z={1.45} label={mode === 'helada' ? 'Frost probability · ' + monthLabel : mode === 'agua' ? 'Water balance · ' + monthLabel : 'Procedural relief'} value={mode === 'helada' ? frostValue : mode === 'agua' ? waterValue : 'Andes · Huánuco'} />}
+          {!onEnterFields && !inspect && (!editorialLayout || snow > .45 || aridity > .62) && <Hotspot x={2.2} z={1.45} label={snow > .45 ? 'Frost probability · ' + monthLabel : aridity > .62 ? 'Water deficit · ' + monthLabel : 'Procedural relief'} value={snow > .45 ? frostValue : aridity > .62 ? waterValue : 'Andes · Huánuco'} />}
           {inspect && !onEnterFields && <>
             <Hotspot detail x={-1.25} z={2.7} label={'Frost · ' + monthLabel} value={frostValue} />
             <Hotspot detail x={2.05} z={1.05} label={'Water balance · ' + monthLabel} value={waterValue} />
+            <Hotspot detail x={.1} z={-.4} label={'Drought risk · ' + monthLabel} value={droughtValue} />
           </>}
         </group>
       </group>
@@ -1196,6 +1507,7 @@ class TerrainBoundary extends Component {
  */
 export default function MuyuyTerrain({
   mode,
+  climate,
   onModeChange,
   scrollProgress,
   scrollTarget,
@@ -1248,7 +1560,7 @@ export default function MuyuyTerrain({
         <div className={onEnterFields ? 'muyuy-viewport muyuy-field-viewport' : 'muyuy-viewport'} style={editorialLayout ? undefined : { width: '100%', height: '100%' }}>
         <Canvas shadows className="muyuy-canvas" camera={{ position: [10, 8.5, 12], fov: 39, near: .1, far: 80 }} dpr={[1, 1.5]}
           gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }} style={{ touchAction: 'pan-y' }}>
-          <Diorama progress={progress} mode={activeMode} month={month} data={data} reduced={reduced} zoom={zoom} editorialLayout={editorialLayout} fieldJourney={fieldJourney} onEnterFields={onEnterFields} wideFieldView={wideFieldView} onZoomOut={onZoomOut} wideIslandView={wideIslandView} onWidenIslandView={onWidenIslandView} onIslandInteract={onIslandInteract} />
+          <Diorama progress={progress} mode={activeMode} climate={climate} month={month} data={data} reduced={reduced} zoom={zoom} editorialLayout={editorialLayout} fieldJourney={fieldJourney} onEnterFields={onEnterFields} wideFieldView={wideFieldView} onZoomOut={onZoomOut} wideIslandView={wideIslandView} onWidenIslandView={onWidenIslandView} onIslandInteract={onIslandInteract} />
         </Canvas>
         </div>
       </TerrainBoundary>

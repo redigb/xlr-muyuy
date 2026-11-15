@@ -1,13 +1,27 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, lazy, Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { motion, MotionConfig } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
 import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronRight, Copy, Download, Droplets, Globe2, Layers3, Play, Radio, ShieldCheck, Snowflake, Sprout, X, ZoomIn, ZoomOut } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import MuyuyTerrain from './MuyuyTerrain.jsx';
 import AppDemo from './AppDemo.jsx';
-import { locales, months, translate } from './muyuyCopy.js';
+import TeamGrid from './TeamGrid.jsx';
+import ImpactSection from './ImpactSection.jsx';
+import FieldValidation from './FieldValidation.jsx';
+import { TEAM } from '../data/team.ts';
+import { DEFAULT_LOCALE, LOCALES, months, translate } from '../i18n/copy.ts';
+
+// three.js pesa ~600 kB: el terreno entra en un chunk aparte y se descarga
+// después del primer pintado. El gradiente atmosférico cubre la espera.
+// El .catch es la red de seguridad: si el chunk no llega (red, cache, deploy a
+// medias), la pagina se queda sin 3D pero sigue funcionando.
+const MuyuyTerrain = lazy(() =>
+  import('./MuyuyTerrain.jsx').catch((error) => {
+    console.error('[Muyuy] no se pudo cargar el terreno 3D', error);
+    return { default: () => null };
+  })
+);
 
 const EASE = [.32, .72, 0, 1];
 const MotionEnabled = createContext(true);
@@ -22,20 +36,39 @@ const EXAMPLE_CALENDAR = [
   [.06, 34], [.04, 39], [.06, 27], [.13, 2], [.29, -19], [.56, -38],
   [.66, -49], [.50, -40], [.29, -24], [.17, -8], [.10, 14], [.07, 28],
 ].map(([prob_helada, balance_hidrico_mm], index) => ({ mes: index + 1, prob_helada, balance_hidrico_mm }));
-const TEAM_ROLES = [
-  ['Earth data & agronomy', 'Climate indicators, crop requirements and rotation logic.'],
-  ['Mobile & infrastructure', 'Regional data packages, offline access and device sharing.'],
-  ['Design & visualization', 'Terrain, interaction and explanations for the field.'],
+/**
+ * Capítulos de la historia que se ve ANTES del explorador. El scroll interpola
+ * entre ellos con una curva suave, así el terreno nunca salta: verde → nevado →
+ * deshielo → seco → verde otra vez.
+ *
+ * Cada capítulo fija nieve y aridez explícitas (0–1); `frost` solo alimenta las
+ * etiquetas. Ajustá los `at` para mover los capítulos en la página.
+ */
+const STORY_CHAPTERS = [
+  { at: 0, snow: 0, aridity: .16, frost: .02 },      // hero: verde
+  { at: .09, snow: 0, aridity: .20, frost: .03 },    // se sostiene el verde
+  { at: .21, snow: .92, aridity: .24, frost: .95 },  // helada: todo nevado
+  { at: .33, snow: .55, aridity: .38, frost: .55 },  // deshielo
+  { at: .46, snow: 0, aridity: .92, frost: .10 },    // estación seca
+  { at: .58, snow: 0, aridity: .16, frost: .02 },    // vuelve el verde
+  { at: 1, snow: 0, aridity: .16, frost: .02 },      // se mantiene hasta el explorador
 ];
+const smoothstep = (value) => value * value * (3 - 2 * value);
+function storyAt(progress) {
+  const at = Math.min(1, Math.max(0, Number.isFinite(progress) ? progress : 0));
+  for (let index = 0; index < STORY_CHAPTERS.length - 1; index++) {
+    const from = STORY_CHAPTERS[index];
+    const to = STORY_CHAPTERS[index + 1];
+    if (at > to.at) continue;
+    const t = smoothstep((at - from.at) / Math.max(1e-6, to.at - from.at));
+    const mix = (a, b) => a + (b - a) * t;
+    return { snow: mix(from.snow, to.snow), aridity: mix(from.aridity, to.aridity), frost: mix(from.frost, to.frost) };
+  }
+  return STORY_CHAPTERS[STORY_CHAPTERS.length - 1];
+}
 const glass = 'muyuy-glass pointer-events-auto bg-zinc-950/70 backdrop-blur-md border border-white/10';
 const mono = 'font-mono tabular-nums';
 const brandLogo = import.meta.env.BASE_URL + 'muyuy-logo.png';
-const fieldPreview = import.meta.env.BASE_URL + 'app-demo/field-preview';
-const fieldPhotos = [
-  ['harvest', 387, 516, 'Two farmers sorting fava beans'],
-  ['maize', 414, 276, 'Farmers working among rows of maize'],
-  ['growers', 365, 547, 'A group of growers in a field'],
-];
 
 function firstFieldScrollOffset(section) {
   const copy = section.firstElementChild;
@@ -49,6 +82,42 @@ function safeUrl(value) {
   try { return new URL(value).protocol === 'https:' ? value : undefined; } catch { return undefined; }
 }
 
+/**
+ * Red de seguridad de la isla.
+ *
+ * Si el render falla, la pagina NO se queda en negro: mantiene la marca, un
+ * boton de recarga y —solo en desarrollo— el stack del error, para que el fallo
+ * sea diagnosticable en pantalla en lugar de invisible.
+ */
+class IslandBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error, info) {
+    console.error('[Muyuy] error al renderizar la landing', error, info);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="muyuy-crash" role="alert">
+        <img src={brandLogo} alt="Muyuy" width="1370" height="436" />
+        <h1>Muyuy</h1>
+        <p>NASA data to the last field — even without signal.</p>
+        <p className="muyuy-crash-note">The interactive view could not start. Reload the page to try again.</p>
+        <button type="button" onClick={() => window.location.reload()}>Reload</button>
+        {import.meta.env.DEV && <pre className="muyuy-crash-stack">{String((this.state.error && this.state.error.stack) || this.state.error)}</pre>}
+        <style>{CRASH_CSS}</style>
+      </div>
+    );
+  }
+}
 function Reveal({ children, className = '', delay = 0, active }) {
   const enabled = useContext(MotionEnabled);
   const [entered, setEntered] = useState(false);
@@ -83,22 +152,27 @@ async function copyText(value, success) {
  * calendar entries: { mes: 1..12, prob_helada: 0..1, balance_hidrico_mm }.
  * Supply consented field media, a video embed URL, APK URL and the real checksum.
  */
+/** Etiquetas cortas por región; el nombre largo de la zona viene de la API. */
+const REGIONS = { sierra: 'Highlands', valle: 'Valley', selva: 'Jungle' };
+
 export default function LandingUI({
-  calendar = EXAMPLE_CALENDAR,
-  exampleData = calendar === EXAMPLE_CALENDAR,
-  elevation = 3200,
+  /** Zonas reales del paquete regional (scripts/sync-data.mjs). */
+  zones = [],
+  calendar: fallbackCalendar = EXAMPLE_CALENDAR,
+  elevation: fallbackElevation = 3200,
   apkUrl,
   apkSha256 = PENDING_HASH,
   videoEmbedUrl,
   fieldVideoEmbedUrl,
   githubUrl,
-  fieldPhotoUrl,
-  fieldPhotoAlt = 'Consented field validation in Huánuco',
-  fieldQuote,
-  fieldPhotoCredit,
-  team = TEAM_ROLES,
+  apiBase = 'https://muyuy-bk.rdev7.net.pe',
 }) {
   const wrapper = useRef(null);
+  const [zoneId, setZoneId] = useState(zones[0]?.id ?? null);
+  const activeZone = zones.find((candidate) => candidate.id === zoneId) ?? zones[0] ?? null;
+  const calendar = activeZone?.calendar ?? fallbackCalendar;
+  const elevation = activeZone?.elevacion_m ?? fallbackElevation;
+  const exampleData = calendar === EXAMPLE_CALENDAR;
   const [manualMonth, setManualMonth] = useState(null);
   const [manualLayer, setManualLayer] = useState(null);
   const [storyLayer, setStoryLayer] = useState('normal');
@@ -109,7 +183,7 @@ export default function LandingUI({
   const [wideIslandView, setWideIslandView] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [motionEnabled, setMotionEnabled] = useState(true);
-  const [locale, setLocale] = useState('en');
+  const [locale, setLocale] = useState(DEFAULT_LOCALE);
   const t = (key) => translate(key, locale);
   const monthNames = months[locale];
   useEffect(() => {
@@ -117,21 +191,82 @@ export default function LandingUI({
   }, [locale]);
   const reduced = !motionEnabled;
   const layer = manualLayer ?? storyLayer;
-  const month = manualMonth ?? (storyLayer === 'helada' ? 6 : storyLayer === 'agua' ? 8 : 3);
+  // Los tres capítulos del relato se anclan a los extremos REALES del paquete:
+  // mes de siembra, mes de mayor helada y mes de peor balance hídrico.
+  const frostPeak = calendar.reduce((best, entry) => (entry.prob_helada > best.prob_helada ? entry : best), calendar[0]);
+  const driest = calendar.reduce((worst, entry) => (entry.balance_hidrico_mm < worst.balance_hidrico_mm ? entry : worst), calendar[0]);
+  const sowingMonth = activeZone?.inicioSiembra ?? 10;
+  const storyMonth = storyLayer === 'helada' ? frostPeak.mes : storyLayer === 'agua' ? driest.mes : sowingMonth;
+  const month = manualMonth ?? storyMonth;
   const selectedMonth = Array.isArray(calendar) ? calendar.find((entry) => entry?.mes === month) : undefined;
   const probability = selectedMonth?.prob_helada;
   const water = selectedMonth?.balance_hidrico_mm;
+  const rain = selectedMonth?.lluvia_mm;
   const frostValid = Number.isFinite(probability) && probability >= 0 && probability <= 1;
-  const terrainData = {
-    elevacion_m: Number.isFinite(elevation) ? elevation : undefined,
-    prob_helada: frostValid ? probability : undefined,
-    balance_hidrico_mm: Number.isFinite(water) ? water : undefined,
-  };
+  // Riesgo de sequía derivado del paquete: fracción de la demanda hídrica
+  // (ET0) que la lluvia no cubre. No es un campo de la API, se calcula y se
+  // muestra como indicador derivado.
+  const drought = Number.isFinite(selectedMonth?.balance_hidrico_mm) && Number.isFinite(selectedMonth?.et_mm)
+    ? Math.min(1, Math.max(0, -selectedMonth.balance_hidrico_mm / Math.max(1, selectedMonth.et_mm)))
+    : null;
+  // Antes de llegar al explorador el terreno narra las estaciones solo; al
+  // entrar, manda la zona piloto y el mes elegidos con datos reales.
+  const chapter = storyAt(progress);
+  const climate = explorerEntered
+    ? {
+        region: activeZone?.region ?? 'sierra',
+        treeRegion: activeZone?.region ?? 'sierra',
+        elevation,
+        frost: frostValid ? probability : null,
+        water: Number.isFinite(water) ? water : null,
+        rain: Number.isFinite(rain) ? rain : null,
+        et: Number.isFinite(selectedMonth?.et_mm) ? selectedMonth.et_mm : null,
+        drought,
+      }
+    : {
+        region: 'story',
+        treeRegion: activeZone?.region ?? 'sierra',
+        elevation,
+        frost: chapter.frost,
+        water: null,
+        rain: null,
+        et: null,
+        drought: chapter.aridity,
+        snow: chapter.snow,
+        aridity: chapter.aridity,
+      };
+  const terrainData = explorerEntered
+    ? {
+        elevacion_m: Number.isFinite(elevation) ? elevation : undefined,
+        prob_helada: frostValid ? probability : undefined,
+        balance_hidrico_mm: Number.isFinite(water) ? water : undefined,
+        sequia: drought ?? undefined,
+      }
+    : {
+        elevacion_m: Number.isFinite(elevation) ? elevation : undefined,
+        prob_helada: chapter.frost,
+        sequia: chapter.aridity,
+      };
+
   const apk = safeUrl(apkUrl);
   const video = safeUrl(videoEmbedUrl);
   const fieldVideo = safeUrl(fieldVideoEmbedUrl);
+  const provenance = activeZone && {
+    zona: activeZone.nombre,
+    region: activeZone.region,
+    altitud: activeZone.elevacion_m,
+    version: activeZone.version,
+    hash: activeZone.hash,
+    fuente: activeZone.fuenteClima,
+    url: activeZone.apiUrl,
+    siembra: activeZone.inicioSiembra,
+  };
+  // Rotación mejor puntuada por el motor, con nombres legibles de cultivo.
+  const topRotation = activeZone?.rotaciones?.[0];
+  const rotationLine = topRotation
+    ? topRotation.secuencia.map((id) => activeZone.nombres?.[id] ?? id).join(' → ') + ' · ' + topRotation.puntajes.total.toFixed(2)
+    : null;
   const github = safeUrl(githubUrl);
-  const fieldPhoto = safeUrl(fieldPhotoUrl);
   const checksum = typeof apkSha256 === 'string' ? apkSha256.trim() : PENDING_HASH;
   const verifiedHash = /^[a-f0-9]{64}$/i.test(checksum);
   const downloadReady = Boolean(apk && verifiedHash);
@@ -235,6 +370,7 @@ export default function LandingUI({
     : { href: '#' + guideDestination, onClick: (event) => scrollTo(event, guideDestination) };
 
   return (
+    <IslandBoundary>
     <MotionConfig reducedMotion={motionEnabled ? 'never' : 'always'}>
     <MotionEnabled.Provider value={motionEnabled}>
     <div ref={wrapper} className="muyuy-landing pointer-events-none" data-motion={motionEnabled ? 'on' : 'off'} data-wide-field={wideFieldView} data-layer={layer} data-summer={month === 12 || month <= 2} data-winter={month >= 6 && month <= 8}>
@@ -246,11 +382,13 @@ export default function LandingUI({
         <div className="muyuy-sun" />
         <div className="muyuy-snow" />
       </div>
-      <MuyuyTerrain fixed editorialLayout motionEnabled={motionEnabled} mode={layer} month={month} data={terrainData}
-        fieldJourney={fieldJourney} onEnterFields={enterFields} wideFieldView={wideFieldView} onZoomOut={zoomOut}
-        wideIslandView={wideIslandView} onWidenIslandView={widenIslandView}
-        scrollProgress={progress} showControls={false}
-        className="pointer-events-auto" style={{ background: 'transparent' }} />
+      <Suspense fallback={<span className="muyuy-terrain-loading" aria-hidden="true" />}>
+        <MuyuyTerrain fixed editorialLayout motionEnabled={motionEnabled} climate={climate} month={month} data={terrainData}
+          fieldJourney={fieldJourney} onEnterFields={enterFields} wideFieldView={wideFieldView} onZoomOut={zoomOut}
+          wideIslandView={wideIslandView} onWidenIslandView={widenIslandView}
+          scrollProgress={progress} showControls={false}
+          className="pointer-events-auto" style={{ background: 'transparent' }} />
+      </Suspense>
       <div className="muyuy-vignette" aria-hidden="true" />
       {progress < .63 && (storyLayer !== 'agua' || fieldJourney !== null) && (
         <div className="muyuy-gesture" aria-live="polite">
@@ -278,7 +416,7 @@ export default function LandingUI({
           <a href="#download" onClick={(event) => scrollTo(event, 'download')}>{t('Get the app')} <ArrowUpRight size={14} aria-hidden="true" /></a>
           <button type="button" className="muyuy-motion-switch" aria-pressed={motionEnabled} onClick={() => setMotionEnabled((enabled) => !enabled)}>{t(motionEnabled ? 'Motion on' : 'Motion off')}</button>
           <select className="muyuy-language" aria-label={t('Language')} value={locale} onChange={(event) => setLocale(event.target.value)}>
-            {locales.map(([code, name]) => <option key={code} value={code} lang={code}>{name}</option>)}
+            {LOCALES.map(([code, name]) => <option key={code} value={code} lang={code}>{name}</option>)}
           </select>
         </nav>
       </header>
@@ -305,7 +443,7 @@ export default function LandingUI({
             <p className="muyuy-eyebrow">{t('CULTIVATED FIELD')}</p>
             <h2 id="starting-field-title" className="muyuy-field-title"><span>{t('From the hillside')}</span>{' '}<em>{t('to the first row.')}</em></h2>
             <p>{t('Follow the stone reservoir and irrigation channel to the native potato rows. Scroll to visit the neighboring plots.')}</p>
-            <p className="muyuy-field-reading"><Droplets size={15} aria-hidden="true" /> {t('Autumn · March · Watering')}</p>
+            <p className="muyuy-field-reading"><Droplets size={15} aria-hidden="true" /> {monthNames[sowingMonth - 1]} · {t('Sowing month')}</p>
             <p className="muyuy-small">{t('Illustrative field scenes. The monthly climate layer can be changed in the explorer.')}</p>
           </Reveal>
         </section>
@@ -314,7 +452,7 @@ export default function LandingUI({
           <Reveal className={glass + ' muyuy-copy'}>
             <p className="muyuy-eyebrow">{t('The problem')}</p>
             <h2 id="problem-title" className="muyuy-field-title tracking-tighter"><span>{t('The land is familiar.')}</span>{' '}<em>{t('The seasons are changing.')}</em></h2>
-            <p className="muyuy-field-reading"><Snowflake size={15} aria-hidden="true" /> {t('Winter · June')}</p>
+            <p className="muyuy-field-reading"><Snowflake size={15} aria-hidden="true" /> {monthNames[frostPeak.mes - 1]} · {Math.round(frostPeak.prob_helada * 100)}% {t('frost probability')}</p>
             <p className="muyuy-small">{t('The winter scene illustrates a separate late blight management activity.')}</p>
             <p>{t('Meet Pedrito, an illustrative farmer in the highlands of Huánuco. Sudden June frosts threaten his crops. Rain arrives irregularly. The soil is exhausted. And in the field, there is no internet signal.')}</p>
             <p>{t('Choosing the next crop means balancing all of this with the knowledge he has built over years on the land.')}</p>
@@ -324,16 +462,23 @@ export default function LandingUI({
 
         <section id="how-it-works" tabIndex={-1} aria-labelledby="how-title" className="muyuy-section muyuy-plot-section">
           <div className="muyuy-copy">
-            <Reveal><p className="muyuy-eyebrow">{t('How it works')}</p><h2 id="how-title" className="muyuy-field-title tracking-tighter"><span>{t('From orbit')}</span>{' '}<em>{t('to the field.')}</em></h2><p className="muyuy-field-reading"><Droplets size={15} aria-hidden="true" /> {t('Dry season · August')}</p></Reveal>
+            <Reveal><p className="muyuy-eyebrow">{t('How it works')}</p><h2 id="how-title" className="muyuy-field-title tracking-tighter"><span>{t('From orbit')}</span>{' '}<em>{t('to the field.')}</em></h2><p className="muyuy-field-reading"><Droplets size={15} aria-hidden="true" /> {monthNames[driest.mes - 1]} · {driest.balance_hidrico_mm} mm {t('water balance')}</p></Reveal>
             <div className="muyuy-workflow">
               {[
-                ['1. 40 Years of NASA Earth Data', 'Turn historical climate records into a monthly view of frost and water availability.', Globe2],
-                ['2. Smart Crop Rotations', 'Compare three alternatives with confidence levels and visible trade-offs.', Sprout],
-                ['3. 100% Offline & Phone-to-Phone Sharing', 'Keep regional packages on the phone and share them where connectivity ends.', Radio],
-              ].map(([title, description, Icon], index) => (
+                ['1. 40 Years of NASA Earth Data', 'Turn historical climate records into a monthly view of frost and water availability.', Globe2, null],
+                ['2. Smart Crop Rotations', 'Compare three alternatives with confidence levels and visible trade-offs.', Sprout, rotationLine],
+                ['3. 100% Offline & Phone-to-Phone Sharing', 'Keep regional packages on the phone and share them where connectivity ends.', Radio, null],
+              ].map(([title, description, Icon, extra], index) => (
                 <React.Fragment key={title}>
                   {index > 0 && <ChevronRight className="muyuy-flow-arrow" size={16} aria-hidden="true" />}
-                  <Reveal delay={index * .06} className={glass + ' muyuy-step'}><Icon size={20} aria-hidden="true" /><div><h3>{t(title)}</h3><p>{t(description)}</p></div></Reveal>
+                  <Reveal delay={index * .06} className={glass + ' muyuy-step'}>
+                    <Icon size={20} aria-hidden="true" />
+                    <div>
+                      <h3>{t(title)}</h3>
+                      <p>{t(description)}</p>
+                      {extra && <p className={'muyuy-step-data ' + mono}>{t('Top rotation')}: {extra}</p>}
+                    </div>
+                  </Reveal>
                 </React.Fragment>
               ))}
             </div>
@@ -346,25 +491,71 @@ export default function LandingUI({
               <p className="muyuy-eyebrow">{t('INTERACTIVE 3D EXPLORER')}</p>
               <h2 id="explorer-title" className="tracking-tighter">{t('Move through')}<br /><em>{t('the seasons.')}</em></h2>
               <p>{t('Choose a month and a layer to inspect the crops and water supply.')}</p>
-              <div className="muyuy-month-label"><label htmlFor="muyuy-month">{t('Month')}</label><output htmlFor="muyuy-month" className={mono}>{monthNames[month - 1]}</output></div>
-              <input id="muyuy-month" type="range" min="1" max="12" step="1" value={month}
-                aria-valuetext={monthNames[month - 1]} onChange={(event) => setManualMonth(event.target.valueAsNumber)} />
-              <div className={'muyuy-month-ticks ' + mono} aria-hidden="true">{monthNames.map((name) => <span key={name}>{name[0]}</span>)}</div>
-              <fieldset className="muyuy-layer-field">
-                <legend>{t('Terrain layer')}</legend>
-                <div className="muyuy-layer-options">{LAYERS.map(({ value, label, Icon }) => <button type="button" key={value}
-                  aria-pressed={layer === value} className="active:scale-[0.98]" onClick={() => setManualLayer(value)}>
-                  <Icon size={14} aria-hidden="true" />{t(label)}
-                </button>)}</div>
-              </fieldset>
+
+              {zones.length > 1 && (
+                <fieldset className="muyuy-zone-field">
+                  <legend>{t('Pilot zone')}</legend>
+                  <div className="muyuy-zone-options">
+                    {zones.map((candidate) => (
+                      <button type="button" key={candidate.id} aria-pressed={candidate.id === activeZone?.id}
+                        className="active:scale-[0.98]"
+                        onClick={() => { setZoneId(candidate.id); setManualMonth(null); setManualLayer(null); }}>
+                        <strong>{t(REGIONS[candidate.region] ?? candidate.id)}</strong>
+                        <span className={mono}>{candidate.elevacion_m} m</span>
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+
+              <div className="muyuy-month-label"><span>{t('Month')}</span><output className={mono}>{monthNames[month - 1]}</output></div>
+
+              {/*
+                Calendario real del paquete: una barra por mes con la
+                probabilidad de helada. Se hace clic para mover el terreno a
+                ese mes, así el 3D y el dato cuentan la misma historia.
+              */}
+              <div className="muyuy-climate" role="group" aria-label={t('Climate calendar')}>
+                {calendar.map((entry) => {
+                  const selected = entry.mes === month;
+                  const frost = Math.round((entry.prob_helada ?? 0) * 100);
+                  const tip = `${monthNames[entry.mes - 1]} · ${frost}% ${t('frost probability')} · ${entry.balance_hidrico_mm} mm ${t('water balance')}`;
+                  return (
+                    <button type="button" key={entry.mes} className="muyuy-climate-month"
+                      data-active={selected} aria-pressed={selected} aria-label={tip} title={tip}
+                      onClick={() => setManualMonth(entry.mes)}>
+                      <span className="muyuy-climate-bar" style={{ '--frost': Math.max(4, frost) + '%' }} aria-hidden="true" />
+                      <span className="muyuy-climate-name" aria-hidden="true">{monthNames[entry.mes - 1].slice(0, 3)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="muyuy-small muyuy-climate-note">{t('Frost probability by month, straight from the sealed regional package.')}</p>
+              <p className="muyuy-small">{t('Drought risk is derived: unmet water demand (−balance / ET₀) for the selected month.')}</p>
+
               <button type="button" className="muyuy-follow" aria-pressed={manualLayer === null && manualMonth === null} onClick={() => { setManualLayer(null); setManualMonth(null); }}>
                 {manualLayer === null && manualMonth === null && <Check size={14} aria-hidden="true" />} {t('Follow the story')}
               </button>
               <dl className={'muyuy-readings ' + mono} aria-live="polite" aria-atomic="true">
                 <div><dt>{t('Frost probability')}</dt><dd>{frostValid ? Math.round(probability * 100) + '%' : t('Unavailable')}</dd></div>
                 <div><dt>{t('Water balance')}</dt><dd>{Number.isFinite(water) ? (water > 0 ? '+' : '') + water + ' mm' : t('Unavailable')}</dd></div>
+                <div><dt>{t('Rainfall')}</dt><dd>{Number.isFinite(rain) ? rain + ' mm' : t('Unavailable')}</dd></div>
+                <div><dt>{t('Drought risk')}</dt><dd>{Number.isFinite(drought) ? Math.round(drought * 100) + '%' : t('Unavailable')}</dd></div>
               </dl>
-              <p className="muyuy-small">{exampleData ? t('Example calendar · Illustrative values for this interactive prototype.') : 'Regional calendar · Values supplied by the project data package.'}</p>
+              <p className="muyuy-small">
+                {exampleData
+                  ? t('Example calendar · Illustrative values for this interactive prototype.')
+                  : t('Regional calendar · Values supplied by the project data package.')}
+              </p>
+              {provenance && (
+                <p className="muyuy-provenance">
+                  {t('Verified regional package')} · {t('Source')} NASA POWER 1985–2024
+                  <br />
+                  {provenance.zona} · {provenance.altitud} m · v{provenance.version} ·{' '}
+                  <code className={mono}>{String(provenance.hash).slice(0, 8)}</code>{' '}
+                  <a href={provenance.url} target="_blank" rel="noopener noreferrer">API ↗</a>
+                </p>
+              )}
             </Reveal>
             {video && <Reveal className={glass + ' muyuy-video-card'}>
               <div id="video-demo" tabIndex={-1} className="muyuy-video" aria-label="30-second video demo">
@@ -377,103 +568,115 @@ export default function LandingUI({
         <AppDemo locale={locale} reduced={reduced} />
 
         <section id="field-test" tabIndex={-1} aria-labelledby="field-title" className="muyuy-section">
-          <div className="muyuy-wide">
-            <Reveal className={glass}>
-              <p className="muyuy-eyebrow">FIELD TEST · HUÁNUCO</p><h2 id="field-title" className="tracking-tighter">Grounded in<br /><em>local experience.</em></h2>
-              <div className="muyuy-field-content">
-                <div className="muyuy-field-media">
-                <figure>{fieldVideo ? <iframe className="muyuy-field-video" src={fieldVideo} title={t('Huánuco field video')}
-                    loading="lazy" allow="fullscreen; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
-                  : fieldPhoto ? <><img src={fieldPhoto} alt={fieldPhotoAlt} loading="lazy" width="900" height="600" />{fieldPhotoCredit && <figcaption>{fieldPhotoCredit}</figcaption>}</>
-                  : <>
-                    <video className="muyuy-field-video" src={fieldPreview + '.mp4'} poster={fieldPreview + '.jpg'} controls playsInline preload="none"
-                      aria-label={t('Huánuco app walkthrough')} />
-                    <figcaption>{t('Example video made from app screenshots')}</figcaption>
-                  </>}</figure>
-                <div className="muyuy-field-note">{fieldQuote ? <blockquote><p>“{fieldQuote}”</p><cite>Anonymous field participant · Huánuco</cite></blockquote>
-                  : <><h3>{t('A look at the Huánuco demo')}</h3><p>{t('Set up a farm, then check frost, rainfall and water balance by month.')}</p><a className="muyuy-button muyuy-field-demo-link" href="#app-demo" onClick={(event) => scrollTo(event, 'app-demo')}>{t('Open the web demo')} <ArrowUpRight size={15} aria-hidden="true" /></a></>}</div>
-                </div>
-                <figure>
-                  <div className="muyuy-field-collage">
-                    {fieldPhotos.map(([id, width, height, label]) => {
-                      const src = import.meta.env.BASE_URL + 'field-photos/' + id + '.webp';
-                      return (
-                        <a key={id} href={src} target="_blank" rel="noreferrer">
-                          <img src={src} width={width} height={height} alt={t(label)} loading="lazy" decoding="async" />
-                        </a>
-                      );
-                    })}
-                  </div>
-                  <figcaption>{t('Reference photos · Farming life')}</figcaption>
-                </figure>
-              </div>
-            </Reveal>
-            <div className="muyuy-pillars">{[
-              ['Offline-first', 'Information available where the network ends.'],
-              ['Global scalability', 'A regional approach designed to adapt to other places.'],
-              ['Visible uncertainty', 'Confidence is part of the conversation.'],
-              ['Evidence-based', 'Climate records alongside local farming knowledge.'],
-            ].map(([title, description], index) => <Reveal key={title} delay={index * .04} className={glass}><h3>{t(title)}</h3><p>{t(description)}</p></Reveal>)}</div>
-          </div>
+          <Reveal className="muyuy-wide">
+            <FieldValidation t={t} glass={glass} locale={locale} videoUrl={fieldVideo} />
+          </Reveal>
+        </section>
+
+        <section id="why-it-matters" tabIndex={-1} aria-labelledby="impact-title" className="muyuy-section">
+          <Reveal className="muyuy-wide">
+            <ImpactSection t={t} glass={glass} />
+          </Reveal>
         </section>
 
         <section id="download" tabIndex={-1} aria-labelledby="download-title" className="muyuy-section">
           <Reveal className={glass + ' muyuy-download'}>
-            <div><p className="muyuy-eyebrow">DOWNLOAD THE MOBILE APP</p><h2 id="download-title" className="tracking-tighter">The next season.<br /><em>In your pocket.</em></h2><p>Take the Muyuy prototype into the field.</p></div>
+            <div><p className="muyuy-eyebrow">{t('Download the mobile app')}</p><h2 id="download-title" className="tracking-tighter">{t('The next season.')}<br /><em>{t('In your pocket.')}</em></h2><p>{t('Take the Muyuy prototype into the field.')}</p></div>
             <div className="muyuy-download-actions">
-              {downloadReady ? <a className="muyuy-button primary active:scale-[0.98]" href={apk} download><Download size={18} aria-hidden="true" /> Download Muyuy APK (v1.0)</a>
-                : <><button type="button" disabled className="muyuy-button primary"><Download size={18} aria-hidden="true" /> Download Muyuy APK (v1.0)</button><p className="muyuy-small">The signed APK and verified checksum are pending.</p></>}
-              <div className="muyuy-checksum"><span className="muyuy-eyebrow">SHA-256 CHECKSUM</span><code className={mono}>{checksum || PENDING_HASH}</code>
-                <button type="button" className="muyuy-button active:scale-[0.98]" onClick={() => copyText(checksum || PENDING_HASH, 'SHA-256 checksum copied to clipboard')}><Copy size={14} aria-hidden="true" /> Copy checksum</button>
-                {!verifiedHash && <p className="muyuy-small">Placeholder only · Replace with the signed release hash before installation.</p>}
+              {downloadReady ? <a className="muyuy-button primary active:scale-[0.98]" href={apk} download><Download size={18} aria-hidden="true" /> {t('Download Muyuy APK (v1.0)')}</a>
+                : <><button type="button" disabled className="muyuy-button primary"><Download size={18} aria-hidden="true" /> {t('Download Muyuy APK (v1.0)')}</button><p className="muyuy-small">{t('The signed APK and verified checksum are pending.')}</p></>}
+              <div className="muyuy-checksum"><span className="muyuy-eyebrow">{t('SHA-256 CHECKSUM')}</span><code className={mono}>{checksum || PENDING_HASH}</code>
+                <button type="button" className="muyuy-button active:scale-[0.98]" onClick={() => copyText(checksum || PENDING_HASH, 'SHA-256 checksum copied to clipboard')}><Copy size={14} aria-hidden="true" /> {t('Copy checksum')}</button>
+                {!verifiedHash && <p className="muyuy-small">{t('Placeholder only · Replace with the signed release hash before installation.')}</p>}
               </div>
               <Drawer.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
-                <Drawer.Trigger asChild><button type="button" className="muyuy-guide"><ShieldCheck size={17} aria-hidden="true" /> Installation Guide &amp; NASA Data Specs <ChevronRight size={15} aria-hidden="true" /></button></Drawer.Trigger>
+                <Drawer.Trigger asChild><button type="button" className="muyuy-guide"><ShieldCheck size={17} aria-hidden="true" /> {t('Installation Guide & NASA Data Specs')} <ChevronRight size={15} aria-hidden="true" /></button></Drawer.Trigger>
                 <Drawer.Portal>
                   <Drawer.Overlay className="muyuy-drawer-overlay" />
                   <Drawer.Content className="muyuy-drawer pointer-events-auto">
                     <div className="muyuy-drawer-handle" aria-hidden="true" />
-                    <div className="muyuy-drawer-heading"><Drawer.Title>From download to field.</Drawer.Title><Drawer.Close asChild><button type="button" aria-label="Close installation guide"><X size={20} /></button></Drawer.Close></div>
-                    <Drawer.Description>Install the prototype and understand the climate inputs behind the calendar.</Drawer.Description>
+                    <div className="muyuy-drawer-heading"><Drawer.Title>{t('From download to field.')}</Drawer.Title><Drawer.Close asChild><button type="button" aria-label={t('Close installation guide')}><X size={20} /></button></Drawer.Close></div>
+                    <Drawer.Description>{t('Install the prototype and understand the climate inputs behind the calendar.')}</Drawer.Description>
                     <div className="muyuy-drawer-scroll">
-                      <h3>Install on Android</h3>
+                      <h3>{t('Install on Android')}</h3>
                       <ol>
-                        <li>Download the signed APK from this project’s release link when it becomes available.</li>
-                        <li>Calculate the downloaded file’s SHA-256 and compare all 64 characters with the published checksum. On Windows, use <code>Get-FileHash .\Muyuy.apk -Algorithm SHA256</code>. On macOS, use <code>shasum -a 256 Muyuy.apk</code>.</li>
-                        <li>On Android, open the APK. If prompted, allow “Install unknown apps” for the browser or file manager used to open it.</li>
-                        <li>Complete installation, then turn that permission off again. Open Muyuy and obtain a regional package before testing offline access.</li>
+                        <li>{t("Download the signed APK from this project's release link when it becomes available.")}</li>
+                        <li>{t("Calculate the downloaded file's SHA-256 and compare all 64 characters with the published checksum. On Windows, use")} <code>Get-FileHash .\Muyuy.apk -Algorithm SHA256</code>. {t('On macOS, use')} <code>shasum -a 256 Muyuy.apk</code>.</li>
+                        <li>{t('On Android, open the APK. If prompted, allow “Install unknown apps” for the browser or file manager used to open it.')}</li>
+                        <li>{t('Complete installation, then turn that permission off again. Open Muyuy and obtain a regional package before testing offline access.')}</li>
                       </ol>
-                      <p className="muyuy-small">{APK_NOTICE}</p>
-                      <h3>NASA POWER data specifications</h3>
-                      <p>The project targets daily records from 1985–2024. Confirm the exact parameter IDs and derived indicators against the regional package before release.</p>
+                      <p className="muyuy-small">{t(APK_NOTICE)}</p>
+                      <h3>{t('NASA POWER data specifications')}</h3>
+                      <p>{t('The project targets daily records from 1985–2024. Confirm the exact parameter IDs and derived indicators against the regional package before release.')}</p>
                       <dl className="muyuy-specs">
-                        <div><dt>Temperature</dt><dd>Daily minima, means and maxima, in °C. Minimum temperature contributes to monthly frost exposure estimates.</dd></div>
-                        <div><dt>Precipitation</dt><dd>Daily rainfall, in mm/day, aggregated into monthly totals.</dd></div>
-                        <div><dt>Relative humidity</dt><dd>Daily relative humidity, in %, adds context for crop conditions.</dd></div>
-                        <div><dt>Evapotranspiration &amp; water balance</dt><dd>Monthly water balance compares rainfall with evapotranspiration. The package must identify the ET source or calculation method.</dd></div>
+                        <div><dt>{t('Temperature')}</dt><dd>{t('Daily minima, means and maxima, in °C. Minimum temperature contributes to monthly frost exposure estimates.')}</dd></div>
+                        <div><dt>{t('Precipitation')}</dt><dd>{t('Daily rainfall, in mm/day, aggregated into monthly totals.')}</dd></div>
+                        <div><dt>{t('Relative humidity')}</dt><dd>{t('Daily relative humidity, in %, adds context for crop conditions.')}</dd></div>
+                        <div><dt>{t('Evapotranspiration & water balance')}</dt><dd>{t('Monthly water balance compares rainfall with evapotranspiration. The package must identify the ET source or calculation method.')}</dd></div>
                       </dl>
-                      <a href="https://power.larc.nasa.gov/docs/services/api/temporal/daily/" target="_blank" rel="noreferrer">NASA POWER Daily API documentation ↗</a>
+                      <a href="https://power.larc.nasa.gov/docs/services/api/temporal/daily/" target="_blank" rel="noreferrer">{t('NASA POWER Daily API documentation ↗')}</a>
                     </div>
                   </Drawer.Content>
                 </Drawer.Portal>
               </Drawer.Root>
-              <p className="muyuy-notice">{APK_NOTICE}</p>
+              <p className="muyuy-notice">{t(APK_NOTICE)}</p>
             </div>
           </Reveal>
         </section>
 
         <section id="team" tabIndex={-1} aria-labelledby="team-title" className="muyuy-section muyuy-team-section">
           <div className="muyuy-wide">
-            <Reveal><p className="muyuy-eyebrow">THE TEAM</p><h2 id="team-title" className="tracking-tighter">Many perspectives.<br /><em>One shared field.</em></h2></Reveal>
-            <div className="muyuy-team-grid">{team.map(([role, description], index) => <Reveal key={role} delay={index * .05} className={glass}><h3>{role}</h3><p>{description}</p></Reveal>)}</div>
+            <Reveal>
+              <p className="muyuy-eyebrow">{t('The team')}</p>
+              <h2 id="team-title" className="tracking-tighter">{t('Many perspectives.')}<br /><em>{t('One shared field.')}</em></h2>
+              <p className="muyuy-team-intro">{t('Five people, one goal: turn forty years of NASA climate records into a decision a farmer can make with no signal.')}</p>
+            </Reveal>
+            <TeamGrid members={TEAM} locale={locale} t={t} glass={glass} />
             <footer className={glass + ' muyuy-footer'}>
-              <div><a className="muyuy-brand" href="#hero" onClick={(event) => scrollTo(event, 'hero')}><img src={brandLogo} alt="Muyuy" width="1370" height="436" /></a><p>AI explains, it doesn&apos;t decide.</p><p className="muyuy-small">NASA Space Apps Challenge 2026 · Huánuco, Peru</p></div>
-              <div className="muyuy-footer-links">
-                {github ? <><a href={github} target="_blank" rel="noreferrer">GitHub <ArrowUpRight size={14} /></a><button type="button" onClick={() => copyText(github, 'Repository link copied to clipboard')}><Copy size={14} /> Copy repository link</button></>
-                  : <span className="muyuy-small">GitHub link pending</span>}
-                <a href="https://github.com/mrdoob/three.js/blob/dev/LICENSE">Three.js · MIT</a>
-                <a href="https://lucide.dev/license">Lucide icons · ISC</a>
-                <p className="muyuy-small">Procedural terrain · AI-assisted development. Field media credits accompany approved photographs.</p>
+              <div className="muyuy-footer-main">
+                <div className="muyuy-footer-brand">
+                  <a className="muyuy-brand" href="#hero" onClick={(event) => scrollTo(event, 'hero')}><img src={brandLogo} alt="Muyuy" width="1370" height="436" /></a>
+                  <p>{t("AI explains, it doesn't decide.")}</p>
+                  <p className="muyuy-small">{t('Offline-first agro-climatic prototype · NASA Earth data · Deterministic rotation engine')}</p>
+                </div>
+
+                <nav className="muyuy-footer-col" aria-labelledby="footer-project">
+                  <h3 id="footer-project">{t('Project')}</h3>
+                  <a href="#explorer" onClick={(event) => scrollTo(event, 'explorer')}>{t('Explore')}</a>
+                  <a href="#app-demo" onClick={(event) => scrollTo(event, 'app-demo')}>{t('Open the web demo')}</a>
+                  <a href={`${apiBase}/q/swagger-ui`} target="_blank" rel="noopener noreferrer">{t('API documentation')} ↗</a>
+                  <a href={`${apiBase}/q/health/ready`} target="_blank" rel="noopener noreferrer">{t('API status')} ↗</a>
+                  {github
+                    ? <a href={github} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+                    : <span className="muyuy-small">{t('GitHub link pending')}</span>}
+                </nav>
+
+                <div className="muyuy-footer-col">
+                  <h3>{t('Data & credits')}</h3>
+                  <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA POWER ↗</a>
+                  <a href="https://www.fao.org/land-water/databases-and-software/crop-information/en/" target="_blank" rel="noopener noreferrer">FAO ECOCROP ↗</a>
+                  <a href="https://github.com/mrdoob/three.js/blob/dev/LICENSE" target="_blank" rel="noopener noreferrer">Three.js · MIT</a>
+                  <a href="https://lucide.dev/license" target="_blank" rel="noopener noreferrer">Lucide · ISC</a>
+                </div>
+
+                <div className="muyuy-footer-col">
+                  <h3>{t('Regional package')}</h3>
+                  {provenance ? (
+                    <>
+                      <p className="muyuy-small">{provenance.zona}</p>
+                      <p className="muyuy-small">{t('Validated locally')} · v{provenance.version}</p>
+                      <p className="muyuy-small"><code className={mono}>{String(provenance.hash).slice(0, 12)}…</code></p>
+                      <a href={provenance.url} target="_blank" rel="noopener noreferrer">{t('Source')} ↗</a>
+                    </>
+                  ) : (
+                    <p className="muyuy-small">{t('Source: project data package')}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="muyuy-footer-bottom">
+                <p className="muyuy-small">{t('Built for NASA Space Apps Challenge 2026')} · MIT</p>
+                <p className="muyuy-small">{t('Procedural terrain · AI-assisted development. Field media credits accompany approved photographs.')}</p>
               </div>
             </footer>
           </div>
@@ -482,11 +685,21 @@ export default function LandingUI({
     </div>
     </MotionEnabled.Provider>
     </MotionConfig>
+    </IslandBoundary>
   );
 }
 
+const CRASH_CSS = `
+  .muyuy-crash { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 24px; text-align: center; background: #09090b; color: #f4f4f1; font: 15px/1.6 "Inter", system-ui, sans-serif; }
+  .muyuy-crash img { width: clamp(140px, 22vw, 230px); height: auto; }
+  .muyuy-crash h1 { font-size: clamp(34px, 6vw, 56px); letter-spacing: -.05em; margin: 0; }
+  .muyuy-crash p { margin: 0; max-width: 46ch; color: #c3c5bf; }
+  .muyuy-crash-note { font-size: 13px; color: #9fa699; }
+  .muyuy-crash button { margin-top: 8px; padding: 11px 18px; border-radius: 8px; border: 1px solid #d2dfb6; background: #d2dfb6; color: #161c12; font-weight: 600; cursor: pointer; }
+  .muyuy-crash-stack { max-width: min(100%, 780px); margin-top: 18px; padding: 14px; border: 1px solid #ffffff1f; border-radius: 8px; background: #0f1210; color: #f0a5a5; font: 11px/1.6 ui-monospace, monospace; text-align: left; overflow: auto; white-space: pre-wrap; }
+`;
 const STYLES = `
-  .muyuy-landing { position: relative; isolation: isolate; color: #f4f4f1; font: 15px/1.65 "DM Sans", system-ui, sans-serif; }
+  .muyuy-landing { position: relative; isolation: isolate; color: #f4f4f1; font: 15px/1.65 var(--font-sans, "Inter"), system-ui, sans-serif; }
   .muyuy-landing *, .muyuy-drawer * { box-sizing: border-box; }
   .muyuy-landing .pointer-events-none { pointer-events: none; }
   .muyuy-landing .pointer-events-auto { pointer-events: auto; }
@@ -598,8 +811,24 @@ const STYLES = `
   .muyuy-step p { font-size: 13px; margin-top: 5px; }
   .muyuy-flow-arrow { display: block; margin: 5px 23px; transform: rotate(90deg); color: #bdc7b1; }
   .muyuy-month-label { display: flex; justify-content: space-between; margin-top: 25px; font-size: 12px; }
-  #muyuy-month { width: 100%; accent-color: #cadca6; margin: 17px 0 5px; cursor: pointer; }
-  .muyuy-month-ticks { display: flex; justify-content: space-between; color: #92988b; font-size: 9px; }
+  .muyuy-zone-field { border: 0; padding: 0; margin: 22px 0 0; }
+  .muyuy-zone-field legend { font-size: 11px; margin-bottom: 8px; }
+  .muyuy-zone-options { display: flex; flex-wrap: wrap; gap: 6px; }
+  .muyuy-zone-options button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 11px; border: 1px solid #ffffff20; border-radius: 8px; background: transparent; color: #c9ccc4; font-size: 11px; transition: transform .18s cubic-bezier(.32,.72,0,1); }
+  .muyuy-zone-options button strong { font-size: 12px; font-weight: 600; }
+  .muyuy-zone-options button span { font-size: 10px; color: #92988b; }
+  .muyuy-zone-options button[aria-pressed=true] { background: #cadca6; border-color: #cadca6; color: #182012; }
+  .muyuy-zone-options button[aria-pressed=true] span { color: #3f4d2f; }
+  .muyuy-climate { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: end; gap: 3px; margin-top: 12px; }
+  .muyuy-climate-month { display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; height: 78px; padding: 0; border: 0; background: none; }
+  .muyuy-climate-bar { display: block; width: 100%; height: var(--frost, 4%); min-height: 3px; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, #a9c8db, #4c7d94); opacity: .5; transition: opacity .18s, background .18s; }
+  .muyuy-climate-month:hover .muyuy-climate-bar { opacity: .85; }
+  .muyuy-climate-name { font: 9px/1 var(--font-mono, monospace); color: #868d80; }
+  .muyuy-climate-month[data-active=true] .muyuy-climate-bar { background: #cadca6; opacity: 1; }
+  .muyuy-climate-month[data-active=true] .muyuy-climate-name { color: #cadca6; }
+  .muyuy-climate-note { margin-top: 9px !important; }
+  .muyuy-step-data { margin-top: 8px !important; font-size: 10.5px !important; color: #b9c4ac !important; }
+
   .muyuy-layer-field { border: 0; padding: 0; margin: 22px 0 0; }
   .muyuy-layer-field legend { font-size: 11px; margin-bottom: 8px; }
   .muyuy-layer-options { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -608,6 +837,9 @@ const STYLES = `
   .muyuy-follow { display: flex; align-items: center; gap: 6px; padding: 8px 0; margin-top: 6px; border: 0; background: none; color: #c9d6b4; font-size: 11px !important; text-decoration: underline; text-underline-offset: 4px; }
   .muyuy-readings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; padding-top: 18px; margin: 17px 0; border-top: 1px solid #ffffff1a; }
   .muyuy-readings dt { font: 10px system-ui; color: #adb3a5; } .muyuy-readings dd { margin: 4px 0 0; font-size: clamp(17px, 4.5vw, 23px); overflow-wrap: anywhere; }
+  .muyuy-provenance { margin-top: 10px; font: 10.5px/1.7 var(--font-mono, monospace); color: #8e958a; }
+  .muyuy-provenance code { color: #b9c4ac; }
+  .muyuy-provenance a { color: #cadca6; text-decoration: underline; text-underline-offset: 3px; }
   .muyuy-small { font-size: 11px !important; color: #9fa699 !important; line-height: 1.65; }
   .muyuy-video-card { padding: 9px; margin-top: 15px; }
   .muyuy-video { aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; scroll-margin-top: 100px; }
@@ -628,8 +860,6 @@ const STYLES = `
   .muyuy-field-video + figcaption { margin-top: 10px; }
   .muyuy-field-demo-link { margin-top: 15px; }
   .muyuy-field-content blockquote { margin: 0; } .muyuy-field-content cite { display: block; margin-top: 16px; font-size: 12px; color: #b3b8aa; }
-  .muyuy-pillars { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 12px; }
-  .muyuy-pillars .muyuy-glass { padding: 20px; } .muyuy-pillars p { font-size: 12px; margin-top: 8px; }
   .muyuy-download { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 45px; align-items: start; }
   .muyuy-download-actions { min-width: 0; } .muyuy-download-actions > .muyuy-button { width: 100%; }
   .muyuy-checksum { margin-top: 25px; padding: 17px; border: 1px solid #ffffff1a; border-radius: 10px; }
@@ -637,16 +867,28 @@ const STYLES = `
   .muyuy-checksum .muyuy-small { margin-top: 10px; }
   .muyuy-guide { margin-top: 18px; display: flex; align-items: center; gap: 7px; padding: 0; background: none; border: 0; color: #d0dbbb; font-size: 12px !important; text-align: left; }
   .muyuy-notice { font-size: 11px; margin-top: 19px !important; color: #adb2a5 !important; }
-  .muyuy-team-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin: 30px 0; }
-  .muyuy-team-grid p { margin-top: 9px; font-size: 13px; }
   .muyuy-team-section { min-height: 90svh; }
-  .muyuy-footer { display: flex; justify-content: space-between; align-items: start; gap: 30px; }
+  .muyuy-footer { display: grid; gap: 26px; }
+  .muyuy-footer-main { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: clamp(18px, 3vw, 40px); align-items: start; }
+  .muyuy-footer-brand { max-width: 34ch; }
+  .muyuy-footer-brand img { width: clamp(110px, 14vw, 150px); height: auto; }
+  .muyuy-footer-brand p { margin-top: 12px; font-size: 13px; color: #cdd2c6; }
+  .muyuy-footer-col { display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+  .muyuy-footer-col h3 { font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #bfcdab; }
+  .muyuy-footer-col a { font-size: 12px; color: #cdd2c6; transition: color .18s; overflow-wrap: anywhere; }
+  .muyuy-footer-col a:hover { color: #cadca6; }
+  .muyuy-footer-col .muyuy-small { margin: 0 !important; }
+  .muyuy-footer-col code { font-size: 10.5px; color: #b9c4ac; };
+  .muyuy-footer-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; padding-top: 18px; border-top: 1px solid #ffffff14; }
+  .muyuy-footer-bottom .muyuy-small { max-width: 60ch; }
+  .muyuy-team-intro { max-width: 62ch; color: #c3c5bf; }
+  .muyuy-terrain-loading { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
   .muyuy-footer p { margin-top: 10px; } .muyuy-footer-links { max-width: 330px; display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; }
   .muyuy-footer-links a, .muyuy-footer-links button { display: inline-flex; align-items: center; gap: 5px; }
   .muyuy-footer-links button { background: transparent; border: 0; color: #cadca6; padding: 0; font-size: 11px; }
   .muyuy-toast { pointer-events: auto; }
   .muyuy-drawer-overlay { position: fixed; inset: 0; z-index: 100; background: #0009; pointer-events: auto; }
-  .muyuy-drawer { position: fixed; z-index: 101; bottom: 0; left: 0; right: 0; margin-inline: auto; width: min(100%,760px); max-height: 88dvh; display: flex; flex-direction: column; background: #111113; border: 1px solid #ffffff1a; border-bottom: 0; border-radius: 22px 22px 0 0; padding: 12px 26px 0; color: #ededeb; font: 14px/1.65 "DM Sans",system-ui,sans-serif; pointer-events: auto; }
+  .muyuy-drawer { position: fixed; z-index: 101; bottom: 0; left: 0; right: 0; margin-inline: auto; width: min(100%,760px); max-height: 88dvh; display: flex; flex-direction: column; background: #111113; border: 1px solid #ffffff1a; border-bottom: 0; border-radius: 22px 22px 0 0; padding: 12px 26px 0; color: #ededeb; font: 14px/1.65 var(--font-sans, "Inter"),system-ui,sans-serif; pointer-events: auto; }
   .muyuy-drawer-handle { flex: none; width: 42px; height: 4px; border-radius: 8px; background: #505054; margin: 0 auto 22px; }
   .muyuy-drawer-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
   .muyuy-drawer-heading h2 { font-size: 23px; margin: 0; letter-spacing: -.04em; }
@@ -675,9 +917,7 @@ const STYLES = `
     .muyuy-plot-section h2 { font-size: clamp(29px, 8.5vw, 42px); margin-bottom: 9px; }
     .muyuy-landing h1 { font-size: clamp(56px,19.5vw,128px); margin: 14px 0 !important; }
     .muyuy-landing .muyuy-hero h1 { font-size: clamp(56px,19.5vw,128px); }
-    .muyuy-field-content, .muyuy-download, .muyuy-team-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
-    .muyuy-pillars { grid-template-columns: 1fr 1fr; }
-    .muyuy-footer { flex-direction: column; }
+    .muyuy-footer-main { grid-template-columns: minmax(0, 1fr); }
     .muyuy-team-section { padding-bottom: 70px; }
     .muyuy-glass { background: #09090bca; }
     .muyuy-vignette { background: linear-gradient(180deg,#09090b80,transparent 75%); }
@@ -686,7 +926,6 @@ const STYLES = `
     .muyuy-navigation nav { width: 100%; justify-content: space-between; }
     .muyuy-gesture :is(a, button) { min-height: 60px; gap: 8px; }
     .muyuy-gesture-icon { width: 32px; height: 32px; }
-    .muyuy-pillars { grid-template-columns: 1fr; }
     .muyuy-glass { padding: 18px; }
   }
   @media (max-height: 500px) and (orientation: landscape) {
@@ -699,4 +938,3 @@ const STYLES = `
   }
   .muyuy-landing[data-motion=off] :is(.muyuy-atmosphere-frost,.muyuy-atmosphere-water) { transition: none; }
 `;
-

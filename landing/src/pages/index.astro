@@ -1,5 +1,8 @@
 ---
+import Layout from '../layouts/Layout.astro';
 import LandingUI from '../components/LandingUI.jsx';
+import { DEFAULT_LOCALE } from '../i18n/copy';
+import paquetes from '../data/paquetes.json';
 
 // Update these values when the approved release assets are available.
 // PUBLIC_* environment variables can also supply them at build time.
@@ -39,140 +42,142 @@ function videoEmbedUrl(value: string): string | undefined {
   }
 }
 
+// ── Datos reales ───────────────────────────────────────────────────────────
+// Snapshot de los paquetes regionales servidos por la API (scripts/sync-data.mjs).
+// Nada de valores inventados: calendario, altitud, procedencia y rotaciones
+// salen del paquete sellado (NASA POWER 1985–2024).
+const ZONES = paquetes.zonas.map((zona) => {
+  const paquete = paquetes.paquetes[zona.id];
+  return {
+    id: zona.id,
+    nombre: zona.nombre,
+    region: zona.region,
+    elevacion_m: zona.elevacion_m,
+    cultivos: paquete.cultivos,
+    inicioSiembra: paquete.inicio_siembra_mes,
+    fuenteClima: paquete.fuente_clima,
+    calendar: paquete.calendario,
+    rotaciones: paquete.rotaciones,
+    nombres: paquete.nombres,
+    version: paquete.meta.version,
+    hash: String(paquete.meta.hash).replace(/^sha256:/, ''),
+    apiUrl: `${paquetes.api}/api/paquete/${zona.id}`,
+  };
+});
 const title = 'Muyuy — Offline Agro-Climatic Intelligence powered by NASA Earth Data';
 const description = 'Muyuy is an offline-first agro-climatic prototype for smallholder farmers. Explore seasonal climate risks and crop rotations using NASA Earth data, starting in Huánuco, Peru.';
-const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
-const assetBase = import.meta.env.BASE_URL;
+const base = import.meta.env.BASE_URL;
 ---
 
-<!doctype html>
-<html lang="en" class="dark bg-[#09090B]">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#09090B" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="description" content={description} />
-    <meta name="generator" content={Astro.generator} />
-    <title>{title}</title>
+<Layout title={title} description={description} lang={DEFAULT_LOCALE}>
+  <link slot="head" rel="preload" as="image" href={base + 'muyuy-logo.png'} />
 
-    {canonical && <link rel="canonical" href={canonical} />}
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Muyuy" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:locale" content="en_US" />
-    {canonical && <meta property="og:url" content={canonical} />}
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
+  <LandingUI
+    client:only="react"
+    zones={ZONES}
+    videoEmbedUrl={videoEmbedUrl(release.videoUrl)}
+    fieldVideoEmbedUrl={videoEmbedUrl(release.fieldVideoUrl)}
+    apkUrl={release.apkUrl}
+    apkSha256={release.apkSha256}
+    githubUrl={release.githubUrl}
+  >
+    {/*
+      Contenido real, renderizado en el HTML estático (sin JavaScript).
+      Cumple dos funciones: los buscadores y los lectores de pantalla leen algo
+      útil, y en una conexión lenta el visitante ve el proyecto antes de que
+      descargue el bundle de React + Three.js. Al hidratar, la isla lo reemplaza.
+    */}
+    <div slot="fallback" class="ssr-shell">
+      <img class="ssr-logo" src={base + 'muyuy-logo.png'} alt="Muyuy" width="1370" height="436" />
+      <h1>Muyuy</h1>
+      <p class="ssr-tagline">NASA data to the last field — even without signal.</p>
+      <p class="ssr-lead">
+        Muyuy helps smallholder farmers compare crop rotations, see seasonal climate risks, and
+        carry that information offline. Pilot region: Huánuco, Peru.
+      </p>
+      <ul class="ssr-facts">
+        <li>40 years of NASA POWER records (1985–2024)</li>
+        <li>Works fully offline after one download</li>
+        <li>Regional package of about 2 KB gzipped</li>
+      </ul>
+      <p class="ssr-meta">NASA Space Apps Challenge 2026 · Opening the interactive 3D terrain…</p>
+    </div>
+  </LandingUI>
 
-    <link rel="icon" type="image/png" href={assetBase + 'muyuy-icon.png'} />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body class="min-h-screen bg-[#09090B] font-sans text-zinc-100 antialiased">
-    <LandingUI
-      client:only="react"
-      elevation={3200}
-      videoEmbedUrl={videoEmbedUrl(release.videoUrl)}
-      fieldVideoEmbedUrl={videoEmbedUrl(release.fieldVideoUrl)}
-      apkUrl={release.apkUrl}
-      apkSha256={release.apkSha256}
-      githubUrl={release.githubUrl}
-    >
-      <div slot="fallback" class="loading-shell" role="status" aria-live="polite">
-        <img class="loading-brand" src={assetBase + 'muyuy-logo.png'} alt="Muyuy" width="1370" height="436" />
-        <p>Preparing your view of the Andes…</p>
-      </div>
-    </LandingUI>
+  <noscript>
+    <section class="noscript-message">
+      <h1>Muyuy</h1>
+      <p>NASA data to the last field — even without signal.</p>
+      <p>
+        Enable JavaScript to explore the interactive terrain, climate calendar and prototype
+        installation guide.
+      </p>
+    </section>
+  </noscript>
+</Layout>
 
-    <noscript>
-      <section class="noscript-message">
-        <h1>Muyuy</h1>
-        <p>NASA data to the last field — even without signal.</p>
-        <p>Enable JavaScript to explore the interactive terrain, climate calendar and prototype installation guide.</p>
-      </section>
-    </noscript>
-  </body>
-</html>
-
-<style is:global>
-  @import "tailwindcss";
-
-  @theme {
-    --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
-  }
-
-  :root {
-    color-scheme: dark;
-    background-color: #09090b;
-    font-family: var(--font-sans);
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-  }
-
-  html {
-    min-height: 100%;
-    background-color: #09090b;
-    scroll-behavior: smooth;
-    scroll-padding-top: 100px;
-  }
-
-  body {
-    min-height: 100svh;
-    margin: 0;
-    background-color: #09090b;
-    color: #f4f4f5;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  ::selection {
-    background: #cadca6;
-    color: #151b11;
-  }
-
-  html body .muyuy-landing,
-  html body .muyuy-drawer {
-    font-family: var(--font-sans);
-  }
-
-  html body .muyuy-landing h2 {
-    font-family: "Instrument Serif", Georgia, serif;
-  }
-
-  html body .muyuy-landing .font-mono,
-  html body .muyuy-drawer code {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .loading-shell {
+<style>
+  .ssr-shell {
     min-height: 100svh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 20px;
-    padding: 32px;
+    gap: 14px;
+    padding: 40px 24px;
     text-align: center;
-    background: #09090b;
+    background: radial-gradient(ellipse at 50% 40%, #1b2a20 0%, #090c0b 70%);
   }
 
-  .loading-brand {
-    width: clamp(160px, 28vw, 300px);
+  .ssr-logo {
+    width: clamp(150px, 24vw, 260px);
     height: auto;
   }
 
-  .loading-shell p {
-    margin: 0;
-    font-size: 13px;
-    color: #a1a1aa;
+  .ssr-shell h1 {
+    font: 600 clamp(38px, 6vw, 64px)/1 "Inter", system-ui, sans-serif;
+    letter-spacing: -.06em;
+    margin: 6px 0 0;
+    color: #f4f4f1;
+  }
+
+  .ssr-tagline {
+    max-width: 44ch;
+    font-size: clamp(15px, 2vw, 20px);
+    line-height: 1.45;
+    color: #cadca6;
+  }
+
+  .ssr-lead {
+    max-width: 58ch;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #b9bdb2;
+  }
+
+  .ssr-facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    list-style: none;
+    padding: 0;
+    margin: 6px 0 0;
+  }
+
+  .ssr-facts li {
+    padding: 5px 11px;
+    border: 1px solid #ffffff1f;
+    border-radius: 999px;
+    font: 11px/1.6 ui-monospace, monospace;
+    color: #a9b0a3;
+  }
+
+  .ssr-meta {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: #7f8679;
   }
 
   .noscript-message {
@@ -190,11 +195,5 @@ const assetBase = import.meta.env.BASE_URL;
 
   .noscript-message p + p {
     margin-top: 14px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    html {
-      scroll-behavior: auto;
-    }
   }
 </style>

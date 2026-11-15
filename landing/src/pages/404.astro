@@ -1,0 +1,107 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Layout
+  title="Page not found — Muyuy"
+  description="This page does not exist. Muyuy is an offline-first agro-climatic prototype built on NASA Earth data for Huánuco, Peru."
+  noindex
+>
+  <main class="not-found">
+    <img class="not-found-logo" src={base + 'muyuy-logo.png'} alt="Muyuy" width="1370" height="436" />
+    <p class="not-found-code">404</p>
+    <h1>This field is empty.</h1>
+    <p class="not-found-text">
+      The page you were looking for does not exist. The climatological calendar and the interactive
+      terrain are still one click away.
+    </p>
+    <div class="not-found-actions">
+      <a class="not-found-button primary" href={base}>Back to the landing</a>
+      <a class="not-found-button" href={base + '#explorer'}>Open the 3D explorer</a>
+      <a class="not-found-button" href="https://muyuy-bk.rdev7.net.pe/q/swagger-ui" target="_blank" rel="noopener noreferrer">API documentation ↗</a>
+    </div>
+    <p class="not-found-meta">NASA Space Apps Challenge 2026 · Huánuco, Peru</p>
+  </main>
+</Layout>
+
+<style>
+  .not-found {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 40px 24px;
+    text-align: center;
+    background: radial-gradient(ellipse at 50% 35%, #1b2a20 0%, #090c0b 72%);
+  }
+
+  .not-found-logo {
+    width: clamp(130px, 20vw, 210px);
+    height: auto;
+  }
+
+  .not-found-code {
+    font: 600 12px/1 ui-monospace, monospace;
+    letter-spacing: .28em;
+    color: #cadca6;
+    margin-top: 8px;
+  }
+
+  .not-found h1 {
+    font: 400 clamp(34px, 6vw, 62px)/1.02 "Instrument Serif", Georgia, serif;
+    letter-spacing: -.04em;
+    margin: 0;
+    color: #f4f4f1;
+  }
+
+  .not-found-text {
+    max-width: 52ch;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #b9bdb2;
+  }
+
+  .not-found-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .not-found-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 11px 16px;
+    border: 1px solid #ffffff26;
+    border-radius: 8px;
+    background: #18181bcc;
+    color: #eee;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: filter .18s, background .18s;
+  }
+
+  .not-found-button:hover {
+    filter: brightness(1.12);
+  }
+
+  .not-found-button.primary {
+    background: #d2dfb6;
+    border-color: #d2dfb6;
+    color: #161c12;
+  }
+
+  .not-found-meta {
+    margin-top: 18px;
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: #7f8679;
+  }
+</style>

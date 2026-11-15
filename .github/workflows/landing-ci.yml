@@ -35,3 +35,17 @@ jobs:
 
       - name: Compilar
         run: pnpm build
+
+      # Verifica canonical/OG/Twitter, og-image 1200x630, robots.txt, sitemap.xml,
+      # contenido indexable sin JS y que no se publiquen placeholders.
+      # Hoy los checks de release son avisos; cuando exista el APK firmado,
+      # cambiar por `pnpm verify:strict` para que rompan el build.
+      - name: Verificar el build
+        run: pnpm verify
+
+      # Renderiza la isla en el servidor (página temporal) y la borra.
+      # `astro build` no ejecuta los componentes `client:only`, así que un
+      # ReferenceError dentro de LandingUI compilaría bien y dejaría la
+      # página en negro. Este paso lo atrapa.
+      - name: Verificar el render de la isla
+        run: pnpm verify:render

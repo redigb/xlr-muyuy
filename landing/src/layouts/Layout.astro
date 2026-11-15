@@ -1,21 +1,195 @@
 ---
-import '../styles/global.css';
+import type { Locale } from '../i18n/copy';
+import { DEFAULT_LOCALE } from '../i18n/copy';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Ruta dentro de /public. Debe ser 1200×630 px. */
+  image?: string;
+  /** Idioma del documento; también fija og:locale. */
+  lang?: Locale;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  image = '/og-image.png',
+  lang = DEFAULT_LOCALE,
+  noindex = false,
+} = Astro.props;
+
+/**
+ * Fallback seguro: si `site` no está en astro.config.mjs (por ejemplo en un
+ * fork local), NO rompemos el build. Simplemente omitimos las URLs absolutas
+ * y dejamos rutas relativas válidas.
+ */
+const origin = Astro.site?.origin ?? null;
+const base = import.meta.env.BASE_URL;
+const absolute = (path: string) => new URL(base + path.replace(/^\//, ''), origin ?? 'http://localhost').href;
+
+const canonical = origin ? new URL(Astro.url.pathname, origin).href : null;
+const ogImage = origin ? absolute(image) : base + image.replace(/^\//, '');
+
+const OG_LOCALE: Record<Locale, string> = {
+  en: 'en_US',
+  es: 'es_PE',
+  qu: 'qu_PE',
+  ay: 'ay_PE',
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Muyuy',
+  url: canonical ?? undefined,
+  description,
+  inLanguage: lang,
+  publisher: {
+    '@type': 'Organization',
+    name: 'Muyuy · NASA Space Apps Challenge 2026',
+  },
+};
 ---
 
 <!doctype html>
-<html lang="es">
+<html lang={lang} class="dark bg-[#09090B]">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Explora una parcela en 3D y compara escenarios de riego con la demo de AgroVista." />
-    <meta name="theme-color" content="#f8f7f0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#09090B" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {
+      noindex
+        ? <meta name="robots" content="noindex, nofollow" />
+        : <meta name="robots" content="index, follow" />
+    }
+    {canonical && <link rel="canonical" href={canonical} />}
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Muyuy" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content={OG_LOCALE[lang]} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta
+      property="og:image:alt"
+      content="Muyuy — NASA Earth data for crop rotation decisions, offline"
+    />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta
+      name="twitter:image:alt"
+      content="Muyuy — NASA Earth data for crop rotation decisions, offline"
+    />
+    {canonical && <meta name="twitter:url" content={canonical} />}
+
+    <link rel="icon" href={base + 'favicon.svg'} type="image/svg+xml" />
+    <link rel="alternate icon" href={base + 'muyuy-icon.png'} type="image/png" />
+    <link rel="manifest" href={base + 'manifest.webmanifest'} />
+    <link rel="apple-touch-icon" href={base + 'muyuy-icon.png'} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Serif+Text:ital@0;1&display=swap" rel="stylesheet" />
-    <title>AgroVista — Simulador agrícola 3D</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+    <slot name="head" />
   </head>
-  <body>
+  <body class="min-h-screen bg-[#09090B] font-sans text-zinc-100 antialiased">
     <slot />
   </body>
 </html>
+
+<style is:global>
+  @import "tailwindcss";
+
+  @theme {
+    --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  :root {
+    color-scheme: dark;
+    background-color: #09090b;
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  html {
+    min-height: 100%;
+    background-color: #09090b;
+    scroll-behavior: smooth;
+    scroll-padding-top: 100px;
+  }
+
+  body {
+    min-height: 100svh;
+    margin: 0;
+    background-color: #09090b;
+    color: #f4f4f5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: #cadca6;
+    color: #151b11;
+  }
+
+  html body .muyuy-landing,
+  html body .muyuy-drawer {
+    font-family: var(--font-sans);
+  }
+
+  html body .muyuy-landing h2 {
+    font-family: "Instrument Serif", Georgia, serif;
+  }
+
+  html body .muyuy-landing .font-mono,
+  html body .muyuy-drawer code {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .loading-shell {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 32px;
+    text-align: center;
+    background: #09090b;
+  }
+
+  .loading-brand {
+    width: clamp(160px, 28vw, 300px);
+    height: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+</style>
