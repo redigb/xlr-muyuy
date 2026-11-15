@@ -44,14 +44,22 @@ class MotorReglasTest {
     @Test
     void heladaLetalNoEsApto() {
         // maíz amiláceo: ktmp 0. Media 20 °C (óptima) pero t_min -2 → letal
-        assertFalse(motor.esApto(SECANO, c("maiz_amilaceo"), cal(-2, 42, 200)));
-        assertTrue(motor.esApto(SECANO, c("maiz_amilaceo"), cal(5, 35, 200)), "control: sin helada sí es apto");
+        assertFalse(motor.esApto(SECANO, c("maiz_amilaceo"), cal(-2, 42, 100)));
+        assertTrue(motor.esApto(SECANO, c("maiz_amilaceo"), cal(5, 35, 100)), "control: sin helada sí es apto");
     }
 
     @Test
     void lluviaInsuficienteNoEsAptoSalvoRiego() {
         assertFalse(motor.esApto(SECANO, c("maiz_amilaceo"), cal(5, 35, 5)));
         assertTrue(motor.esApto(RIEGO, c("maiz_amilaceo"), cal(5, 35, 5)));
+    }
+
+    @Test
+    void excesoDeLluviaNoEsAptoNiConRiego() {
+        // Quinua en clima de selva (~200 mm/mes): hongos y pudrición.
+        assertFalse(motor.esApto(SECANO, c("quinua"), cal(10, 24, 200)));
+        assertFalse(motor.esApto(RIEGO, c("quinua"), cal(10, 24, 200)));
+        assertTrue(motor.esApto(SECANO, c("quinua"), cal(10, 24, 60)), "control: lluvia normal sí es apto");
     }
 
     @Test

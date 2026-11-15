@@ -227,9 +227,9 @@ El **backend** precalcula las **rotaciones candidatas** con puntajes por factor,
 
 | Factor | Zona oficial | Coordenada |
 |---|---|---|
-| `clima` | `alta` (≥ 30 años NASA) | **`media`** (no validada localmente) |
+| `clima` | `alta` (≥ 30 años NASA) | `alta` (mismo dato NASA ≥ 30 años) |
 | `agua` | `alta` con lluvia y ET | `media` |
-| `suelo` | `media` | `baja` |
+| `suelo` | `media` | `media` |
 | `mercado` | `sin_datos` salvo precio MIDAGRI | `sin_datos` |
 
 7. **Explicación:** `Explicador` (Groq) en el `idioma` pedido, con caché por hash de entrada; plantilla si Groq falla.
@@ -269,7 +269,9 @@ public interface Explicador {
 | Cultivo inicial | Práctica común de la zona | Los 3 cultivos más aptos |
 | Mercado | MIDAGRI | `sin_datos` (ingresos = 0.5) |
 | Idioma | Español | Según el navegador (`es` / `en`) |
-| Aviso | — | 🟡 *"Zona no validada localmente: resultados con confianza media"* |
+| Aviso | — | 🟡 *"Calculado con 40 años de datos NASA. Aún sin validación de campo en esta zona"* |
+| Cerca de zona oficial (≤ 30 km) | — | Se entrega el **paquete validado** de esa zona |
+| Exceso de lluvia | Lluvia del ciclo > 2.2 × máximo del cultivo → no apto | Igual |
 
 ---
 

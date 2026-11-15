@@ -44,7 +44,8 @@ class CoordenadaApiTest {
         for (JsonNode r : doc.at("/nucleo/rotaciones")) {
             assertFalse(r.path("es_practica_comun").asBoolean(), "sin práctica común fuera de Huánuco");
             assertEquals(0.5, r.at("/puntajes/ingresos").asDouble(), 1e-9, "ingresos neutros");
-            assertNotEquals("alta", r.at("/confianza/clima").asText(), "confianza máxima media");
+            assertEquals("alta", r.at("/confianza/clima").asText(), "clima: 40 años de NASA");
+            assertEquals("media", r.at("/confianza/agua").asText(), "agua sin validación de campo");
             assertTrue(r.path("validar_con_experto").asText().matches("^(Check|Ask).*"), "texto en inglés");
         }
         int mes = doc.at("/nucleo/inicio_siembra_mes").asInt();
@@ -75,6 +76,18 @@ class CoordenadaApiTest {
         given().queryParam("lat", 20.1).queryParam("lon", 30.1).queryParam("riego", true).get("/api/paquete/coordenada")
                 .then().statusCode(200);
         assertEquals(antes + 1, FuenteClimaFalsa.LLAMADAS.get(), "pero sí su propia caché");
+    }
+
+    @Test
+    void cercaDeUnaZonaOficialDaSuPaqueteValidado() {
+        int antes = FuenteClimaFalsa.LLAMADAS.get();
+        given().queryParam("lat", -9.295).queryParam("lon", -75.997).queryParam("lang", "es")   // Tingo María
+                .get("/api/paquete/coordenada").then().statusCode(200)
+                .body("paquete.meta.origen", not(equalTo("coordenada")))
+                .body("paquete.meta.validada_localmente", equalTo(true))
+                .body("paquete.nucleo.zona.id", equalTo("huanuco-selva"))
+                .body("paquete.nucleo.rotaciones.secuencia.flatten()", not(hasItem("quinua")));
+        assertEquals(antes, FuenteClimaFalsa.LLAMADAS.get(), "no calcula clima: usa la zona oficial");
     }
 
     @Test

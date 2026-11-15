@@ -178,7 +178,11 @@ class AppState extends ChangeNotifier {
 
   // ------------------------------------------------------------ ciclo de vida
 
+  /// En el APK el splash se ve al menos esto: sin parpadeo si los datos cargan en milisegundos.
+  static const minSplash = Duration(milliseconds: 900);
+
   Future<void> initialize() async {
+    final reloj = Stopwatch()..start();
     try {
       final storedLang = await _repo.readLang();
       if (storedLang != null) _lang = AppLangInfo.fromCode(storedLang);
@@ -199,6 +203,8 @@ class AppState extends ChangeNotifier {
       await _reloadPendingCounts();
       _reportes = await _repo.readReportes();
     } finally {
+      final falta = minSplash - reloj.elapsed;
+      if (kReleaseMode && falta > Duration.zero) await Future<void>.delayed(falta);
       _initializing = false;
       notifyListeners();
     }
@@ -354,9 +360,14 @@ class AppState extends ChangeNotifier {
       return;
     }
 
-    final position = await _location.current();
+    final result = await _location.current();
+    final position = result.position;
     if (position == null) {
-      await _fallbackToHuanuco('location.fallback.denied');
+      await _fallbackToHuanuco(switch (result.issue) {
+        LocationIssue.serviceOff => 'location.fallback.gpsOff',
+        LocationIssue.denied => 'location.fallback.denied',
+        _ => 'location.fallback.noFix',
+      });
       return;
     }
 
@@ -379,7 +390,9 @@ class AppState extends ChangeNotifier {
       _resolveInitialCrop(null);
       _apiHealthy = true;
       _locationStatus = LocationStatus.done;
-      _notice = t('location.ok');
+      _notice = paquete.esCoordenada
+          ? t('location.ok')
+          : t('location.official', {'zona': _zona?.nombre ?? paquete.zona.nombre});
       notifyListeners();
     } catch (_) {
       await _fallbackToHuanuco('location.fallback.failed');
@@ -635,7 +648,8 @@ class AppState extends ChangeNotifier {
   // ---------------------------------------------------------------- privado
 
   static AppLang _deviceLang() {
-    if (!kIsWeb) return AppLang.es;
+    // APK: inglés por defecto (jurado internacional); el agricultor cambia a ES/QU en Inicio.
+    if (!kIsWeb) return AppLang.en;
     // En la web (jurado): idioma del navegador; español solo si lo pide.
     final code = PlatformDispatcher.instance.locale.languageCode;
     if (code == 'es') return AppLang.es;
@@ -678,6 +692,9 @@ class AppState extends ChangeNotifier {
       if (!_zonas.any((item) => item.id == paquete.clave)) {
         _zonas = [..._zonas, paquete.zona];
       }
+    } else if (origin == PackageOrigin.location) {
+      // Cerca de una zona oficial el servidor entrega el paquete validado de esa zona.
+      _zona = _findZona(paquete.clave) ?? paquete.zona;
     }
   }
 

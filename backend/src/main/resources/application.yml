@@ -22,6 +22,7 @@ muyuy:
     elevacion-url: https://api.open-meteo.com/v1/elevation      # sin clave; fuente no NASA (declararla)
     timeout-segundos: 25
     cache-dias: 30
+    radio-zona-km: 30                 # cerca de una zona oficial: se entrega su paquete validado
 
 quarkus:
   datasource:                         # PostgreSQL (dev: Laragon local)

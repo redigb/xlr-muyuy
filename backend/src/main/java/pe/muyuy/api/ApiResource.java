@@ -109,8 +109,10 @@ public class ApiResource {
     @Operation(summary = "On-demand package for any location",
             description = "Same calculation as the official zones for any point: NASA POWER 1985-2024 for the 0.5° grid "
                     + "cell, altitude-corrected with Open-Meteo elevation, sowing month computed from the season (after winter frosts in temperate climates, start of the rains elsewhere), "
-                    + "and candidate rotations explained in the requested language. Not field-validated: "
-                    + "meta.validada_localmente = false and confidence is at most 'media'. Only the ~50 km cell is used "
+                    + "and candidate rotations explained in the requested language. Within 30 km of an official zone the "
+                    + "validated package of that zone is returned instead. Otherwise not field-validated: "
+                    + "meta.validada_localmente = false; climate confidence is 'alta' (40 years of NASA data), "
+                    + "water and soil 'media'. Only the ~50 km cell is used "
                     + "and cached (30 days); the exact location is never stored. Can take 5-20 s the first time per cell. "
                     + "Limited per IP. On 504 the app falls back to the bundled Huánuco package.")
     @APIResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaqueteDoc.class)))

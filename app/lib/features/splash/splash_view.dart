@@ -7,8 +7,44 @@ import '../../theme/app_typography.dart';
 import '../../widgets/brand_logo.dart';
 import '../../widgets/organic_background.dart';
 
-class SplashView extends StatelessWidget {
+class SplashView extends StatefulWidget {
   const SplashView({super.key});
+
+  static const logoAsset = 'assets/images/logo_muyuy_white_trim.png';
+
+  /// true si main() retuvo el primer cuadro; el splash lo libera una sola vez.
+  static bool firstFrameDeferred = false;
+
+  static void releaseFirstFrame() {
+    if (!firstFrameDeferred) return;
+    firstFrameDeferred = false;
+    WidgetsBinding.instance.allowFirstFrame();
+  }
+
+  @override
+  State<SplashView> createState() => _SplashViewState();
+}
+
+class _SplashViewState extends State<SplashView> {
+  bool _precached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_precached) return;
+    _precached = true;
+    // Máximo 1 s de espera: nunca dejar la app trabada en el splash nativo.
+    Future.any([
+      precacheImage(const AssetImage(SplashView.logoAsset), context),
+      Future<void>.delayed(const Duration(seconds: 1)),
+    ]).whenComplete(SplashView.releaseFirstFrame);
+  }
+
+  @override
+  void dispose() {
+    SplashView.releaseFirstFrame();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +64,7 @@ class SplashView extends StatelessWidget {
               child: Column(
                 children: [
                   const Spacer(),
-                  const BrandLogo(white: true, height: 74, animateIn: true),
+                  const BrandLogo(white: true, height: 74),
                   const SizedBox(height: 18),
                   Text(
                     context.tr('splash.tagline'),
@@ -40,7 +76,7 @@ class SplashView extends StatelessWidget {
                       color: AppColors.white.withValues(alpha: 0.78),
                       height: 1.5,
                     ),
-                  ).animate().fadeIn(delay: 220.ms, duration: 520.ms),
+                  ),
                   const SizedBox(height: 28),
                   SizedBox(
                     width: 120,

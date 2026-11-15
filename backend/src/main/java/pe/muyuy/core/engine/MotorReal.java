@@ -61,8 +61,11 @@ public class MotorReal implements MotorRotaciones {
         double tol = reglas.toleranciaTempC();
         if (tMedia < c.tOptMin() - tol || tMedia > c.tOptMax() + tol) return false;
         if (ciclo.stream().anyMatch(m -> m.tMin() < c.ktmp())) return false;          // helada letal
-        if (zona.riego()) return true;
         double lluvia = ciclo.stream().mapToDouble(MesClima::lluviaMm).sum();
+        double maximo = c.lluviaOptMax() * c.cicloMeses() / 12.0;
+        if (reglas.factorLluviaMax() > 0 && maximo > 0
+                && lluvia > reglas.factorLluviaMax() * maximo) return false;           // exceso de lluvia: hongos
+        if (zona.riego()) return true;
         double necesidad = c.lluviaOptMin() * c.cicloMeses() / 12.0;
         return lluvia >= reglas.factorLluviaMin() * necesidad;
     }
@@ -217,13 +220,16 @@ public class MotorReal implements MotorRotaciones {
         return IntStream.range(0, meses).mapToObj(i -> cal.mes(mes + i)).toList();
     }
 
-    /** SPECS_v2 §4.3 paso 6. Coordenadas: nunca "alta" (no validadas localmente). */
+    /**
+     * SPECS_v2 §4.3 paso 6. El clima es el mismo dato NASA (≥ 30 años) en zonas oficiales y
+     * coordenadas: confianza alta. Agua y suelo de una coordenada no tienen validación de campo: media.
+     */
     private Confianza confianza(Calendario cal, boolean coordenada) {
-        if (coordenada) {
-            return new Confianza(NivelConfianza.media, NivelConfianza.media,
-                    NivelConfianza.baja, NivelConfianza.sin_datos);
-        }
         boolean anios = cal.anios() != null && cal.anios() >= reglas.aniosClimaAlta();
+        if (coordenada) {
+            return new Confianza(anios ? NivelConfianza.alta : NivelConfianza.media, NivelConfianza.media,
+                    NivelConfianza.media, NivelConfianza.sin_datos);
+        }
         return new Confianza(anios ? NivelConfianza.alta : NivelConfianza.media,
                 NivelConfianza.alta, NivelConfianza.media, NivelConfianza.sin_datos);
     }

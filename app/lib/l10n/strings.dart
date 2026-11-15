@@ -125,11 +125,14 @@ const Map<String, String> _es = {
       'Solo usamos una celda de ~50 km para calcular; no guardamos tu ubicación.',
   'location.reading': 'Leyendo 40 años de datos NASA de tu zona…',
   'location.ok': 'Paquete calculado para tu ubicación.',
-  'location.notValidated': 'Zona no validada localmente: resultados con confianza media.',
+  'location.official': 'Estás en {zona}: usamos su paquete validado.',
+  'location.notValidated': 'Calculado con 40 años de datos NASA. Aún sin validación de campo en esta zona.',
   'location.fallback.denied': 'Sin permiso de ubicación. Te mostramos Huánuco, Perú.',
   'location.fallback.failed':
       'No pudimos calcular tu zona ahora. Te mostramos Huánuco, Perú.',
   'location.fallback.offline': 'Sin señal. Te mostramos Huánuco, Perú.',
+  'location.fallback.gpsOff': 'La ubicación del celular está apagada. Actívala e inténtalo otra vez. Te mostramos Huánuco, Perú.',
+  'location.fallback.noFix': 'No pudimos obtener tu ubicación. Prueba al aire libre. Te mostramos Huánuco, Perú.',
 
   // Demo
   'demo.reset.done': 'Demo reiniciada.',
@@ -523,11 +526,14 @@ const Map<String, String> _en = {
       'We only use a ~50 km grid cell for the calculation; your location is not stored.',
   'location.reading': 'Reading 40 years of NASA data for your area…',
   'location.ok': 'Package calculated for your location.',
-  'location.notValidated': 'Area not validated locally: medium-confidence results.',
+  'location.official': 'You are in {zona}: using its validated package.',
+  'location.notValidated': 'Calculated with 40 years of NASA data. Not yet field-validated in this area.',
   'location.fallback.denied': 'No location permission. Showing Huánuco, Peru.',
   'location.fallback.failed':
       'We could not calculate your area right now. Showing Huánuco, Peru.',
   'location.fallback.offline': 'No signal. Showing Huánuco, Peru.',
+  'location.fallback.gpsOff': 'Phone location is off. Turn it on and try again. Showing Huánuco, Peru.',
+  'location.fallback.noFix': 'We could not get your location. Try outdoors. Showing Huánuco, Peru.',
   'demo.reset.done': 'Demo reset.',
   'err.network': 'Could not reach the server. Check your signal.',
   'err.server': 'The server answered {code}. Try again.',
