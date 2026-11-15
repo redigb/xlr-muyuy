@@ -51,6 +51,9 @@ class PaqueteApiTest {
                     .body("paquete.nucleo.rotaciones.size()", greaterThanOrEqualTo(3))
                     .body("paquete.nucleo.rotaciones.explicacion", everyItem(not(emptyOrNullString())))
                     .body("paquete.nucleo.cultivos.size()", greaterThanOrEqualTo(3))
+                    .body("paquete.meta.extras", contains("imagen"))
+                    .body("paquete.extras.imagen_satelital_b64", equalTo(
+                            java.util.Base64.getEncoder().encodeToString(pe.muyuy.core.imagen.FuenteImagenFalsa.JPEG)))
                     .extract().asString();
 
             // La app recalcula el hash con lo que recibió

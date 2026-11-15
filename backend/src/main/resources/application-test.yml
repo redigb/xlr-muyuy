@@ -3,6 +3,7 @@ muyuy:
   data-dir: ../data
   limites:
     dispositivos-por-hora: 100000     # las pruebas registran muchos dispositivos desde la misma IP
+    coordenadas-por-hora: 100000
 
 quarkus:
   datasource:

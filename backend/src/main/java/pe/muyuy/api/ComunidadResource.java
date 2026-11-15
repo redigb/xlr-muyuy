@@ -32,7 +32,10 @@ import java.time.Duration;
 public class ComunidadResource {
 
     @Schema(description = "Optional registration data. No personal data")
-    public record RegistroIn(@Schema(description = "true if the registration comes from the web demo for judges") Boolean demo) {}
+    public record RegistroIn(
+            @Schema(description = "true if the registration comes from the web demo for judges") Boolean demo,
+            @Schema(description = "Anonymous id the app generated on first use ('disp-<uuid>'); used offline in package "
+                    + "envelopes and COMPARTIO connections. Optional", examples = "disp-3f2c9a1e-8b7d-4c2a-9e1f-5a6b7c8d9e0f") String idLocal) {}
 
     private final ServicioComunidad comunidad;
     private final LimiteIp limiteRegistros;
@@ -57,7 +60,8 @@ public class ComunidadResource {
             return Response.status(429).entity(new ErrorApi("Too many registrations from this network. Try again later.")).build();
         }
         boolean demo = in != null && Boolean.TRUE.equals(in.demo());
-        return Response.status(Response.Status.CREATED).entity(comunidad.registrar(demo)).build();
+        return Response.status(Response.Status.CREATED)
+                .entity(comunidad.registrar(demo, in == null ? null : in.idLocal())).build();
     }
 
     @POST

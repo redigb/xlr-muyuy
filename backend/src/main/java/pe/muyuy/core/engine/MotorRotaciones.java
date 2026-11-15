@@ -15,4 +15,10 @@ public interface MotorRotaciones {
 
     /** ¿El clima de la zona permite el cultivo sembrado en el mes de siembra? */
     boolean esApto(Zona zona, Cultivo cultivo, Calendario calendario);
+
+    /** Mes de siembra de cada campaña: fijo en zonas oficiales, calculado en coordenadas (§4.6). */
+    int mesSiembra(Zona zona, Calendario calendario);
+
+    /** Cultivos iniciales que usa recomendar() (en coordenadas: los 3 más aptos). */
+    List<String> inicialesPara(Zona zona, Calendario calendario, List<Cultivo> catalogo);
 }

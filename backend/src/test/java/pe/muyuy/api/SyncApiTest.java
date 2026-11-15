@@ -166,4 +166,30 @@ class SyncApiTest {
         sync(token, List.of(), List.of(con)).statusCode(200);
         assertEquals(1, contar("select count(*) from conexiones where origen = ?", origen));
     }
+
+    @Test
+    void syncDevuelveElEstadoActualDeMisReportes() {
+        String token = registrar(true);       // demo: no contamina el consenso de otras pruebas
+        var o = obs(SIERRA, tipoCreibleAyer(), ayer);
+        sync(token, List.of(o), List.of()).statusCode(200)
+                .body("estados.id_local", hasItem(o.get("id_local").toString()));
+        // Un sync vacío (sin nada nuevo) también trae el estado: la app refresca ⏳ → ✅
+        sync(token, List.of(), List.of()).statusCode(200)
+                .body("estados.size()", equalTo(1))
+                .body("estados[0].estado", in(List.of("validada", "pendiente", "sospechosa")));
+    }
+
+    @Test
+    void registroGuardaElIdLocalDeLaApp() throws SQLException {
+        String idLocal = "disp-" + UUID.randomUUID();
+        given().contentType("application/json").body(Map.of("demo", true, "id_local", idLocal))
+                .post("/api/dispositivos").then().statusCode(201).body("token", not(emptyOrNullString()));
+        assertEquals(1, contar("select count(*) from dispositivos where id_local = ?", idLocal));
+        // Repetido o inválido: el registro igual funciona, sin pisar al primero
+        given().contentType("application/json").body(Map.of("demo", true, "id_local", idLocal))
+                .post("/api/dispositivos").then().statusCode(201);
+        given().contentType("application/json").body(Map.of("demo", true, "id_local", "x'; drop table--"))
+                .post("/api/dispositivos").then().statusCode(201);
+        assertEquals(1, contar("select count(*) from dispositivos where id_local = ?", idLocal));
+    }
 }

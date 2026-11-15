@@ -20,4 +20,8 @@ public record Rotacion(
     public Rotacion conExplicacion(String texto) {
         return new Rotacion(id, cultivoInicial, secuencia, puntajes, confianza, texto, validarConExperto, esPracticaComun);
     }
+
+    public Rotacion conValidar(String texto) {
+        return new Rotacion(id, cultivoInicial, secuencia, puntajes, confianza, explicacion, texto, esPracticaComun);
+    }
 }

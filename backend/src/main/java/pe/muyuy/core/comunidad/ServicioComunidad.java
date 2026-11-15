@@ -86,7 +86,9 @@ public class ServicioComunidad {
             @Schema(description = "Stored observations (includes already-existing resends)") int aceptadas,
             @Schema(description = "Observations rejected for invalid data or daily limit") int rechazadas,
             @Schema(description = "Valid connections received") int conexiones,
-            @Schema(description = "Status of each observation") List<Detalle> detalle) {}
+            @Schema(description = "Status of each observation") List<Detalle> detalle,
+            @Schema(description = "CURRENT status of this device's observations from the last 30 days (newest first, max 100). "
+                    + "Scores change when neighbors confirm: the app updates its ⏳ / ✅ list with this") List<Detalle> estados) {}
 
     private record Grupo(String zonaId, String tipo, LocalDate fecha) {}
     private record Fila(UUID id, UUID dispositivo, LocalDate fecha) {}
@@ -111,13 +113,31 @@ public class ServicioComunidad {
     // ---------------------------------------------------------------- dispositivos
 
     /** Token = "<id>.<secreto>". Solo se guarda su hash: si se filtra la base, los tokens no sirven. */
-    public Registro registrar(boolean demo) {
+    public Registro registrar(boolean demo) { return registrar(demo, null); }
+
+    /** idLocal = "disp-<uuid>" que la app usa offline; se guarda si es válido y no está tomado. */
+    public Registro registrar(boolean demo, String idLocal) {
         UUID id = UUID.randomUUID();
         byte[] secreto = new byte[32];
         azar.nextBytes(secreto);
         String token = id + "." + Base64.getUrlEncoder().withoutPadding().encodeToString(secreto);
-        ejecutar("insert into dispositivos (id, token_hash, demo) values (?, ?, ?)", id, Sello.sha256(token), demo);
+        String alias = idLocal != null && ID_LOCAL.matcher(idLocal).matches() && !idLocalTomado(idLocal) ? idLocal : null;
+        ejecutar("insert into dispositivos (id, token_hash, demo, id_local) values (?, ?, ?, ?)",
+                id, Sello.sha256(token), demo, alias);
         return new Registro(id, token);
+    }
+
+    private static final java.util.regex.Pattern ID_LOCAL =
+            java.util.regex.Pattern.compile("^disp-[0-9a-fA-F-]{36}$");
+
+    private boolean idLocalTomado(String idLocal) {
+        try (var c = ds.getConnection();
+             var ps = c.prepareStatement("select 1 from dispositivos where id_local = ?")) {
+            ps.setString(1, idLocal);
+            try (var rs = ps.executeQuery()) { return rs.next(); }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo revisar el id local", e);
+        }
     }
 
     public Optional<Dispositivo> autenticar(String token) {
@@ -175,10 +195,27 @@ public class ServicioComunidad {
             List<Detalle> detalle = new ArrayList<>(rechazadas);
             for (UUID idLocal : aceptadas) detalle.add(leerDetalle(c, idLocal));
             tocados.stream().map(Grupo::zonaId).distinct().forEach(paquetes::invalidar);   // alertas nuevas → paquete nuevo
-            return new SyncOut(aceptadas.size(), rechazadas.size(), conexionesOk, detalle);
+            return new SyncOut(aceptadas.size(), rechazadas.size(), conexionesOk, detalle, estados(c, d.id()));
         } catch (SQLException e) {
             throw new IllegalStateException("No se pudo sincronizar", e);
         }
+    }
+
+    /** Estado actual de las observaciones recientes del dispositivo (para ⏳ → ✅ en la app). */
+    private List<Detalle> estados(Connection c, UUID dispositivo) throws SQLException {
+        String sql = "select id_local, estado, puntaje, motivo_sospecha from observaciones "
+                   + "where dispositivo_id = ? and creado >= now() - interval '30 days' order by creado desc limit 100";
+        List<Detalle> out = new ArrayList<>();
+        try (var ps = c.prepareStatement(sql)) {
+            ps.setObject(1, dispositivo);
+            try (var rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    out.add(new Detalle(rs.getObject(1, UUID.class), true, rs.getString(2),
+                            (Integer) rs.getObject(3), rs.getString(4)));
+                }
+            }
+        }
+        return out;
     }
 
     /** null = válida; si no, el motivo del rechazo. */

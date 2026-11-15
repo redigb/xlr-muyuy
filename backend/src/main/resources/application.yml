@@ -4,9 +4,24 @@
 
 muyuy:
   data-dir: ../data                   # JSON de data/ (relativo a backend/)
+  imagen:                             # foto satelital en extras (zonas oficiales)
+    activa: ${MUYUY_IMAGEN_ACTIVA:true}
+    url: https://wvs.earthdata.nasa.gov/api/v1/snapshot
+    # Compuesto anual Landsat (NASA WELD), sin nubes. Las capas diarias MODIS/VIIRS salen
+    # tapadas de nubes en Huánuco. Fecha FIJA: misma foto = mismo hash = no sube la versión.
+    capa: Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual
+    fecha: "2000-12-01"
+    radio-grados: 0.3                 # ~66 km por lado, ~100 KB
+    pixeles: 600
   limites:
     dispositivos-por-hora: 30         # registros por IP (anti-bots)
     observaciones-por-dia: 50         # por dispositivo
+    coordenadas-por-hora: 20          # /api/paquete/coordenada por IP
+  coordenada:                         # paquete bajo demanda (SPECS_v2 §11.1)
+    pipeline-url: ${MUYUY_PIPELINE_URL:http://localhost:8000}   # pipeline-api (FastAPI, sin puerto público)
+    elevacion-url: https://api.open-meteo.com/v1/elevation      # sin clave; fuente no NASA (declararla)
+    timeout-segundos: 25
+    cache-dias: 30
 
 quarkus:
   datasource:                         # PostgreSQL (dev: Laragon local)

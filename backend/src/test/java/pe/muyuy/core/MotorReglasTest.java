@@ -61,12 +61,13 @@ class MotorReglasTest {
     }
 
     @Test
-    void papaAptaYMaizNoAptoEnSierraReal() {
+    void aptitudEnSierraRealCoincideConLoQueSeSiembra() {
+        // Calendario NASA POWER 1985-2024 real. Verdad: cultivos.json "zonas" (MIDAGRI).
         Zona sierra = zonas.porId("huanuco-sierra").orElseThrow();
         Calendario cal = calendarios.deZona(sierra.id()).orElseThrow();
         assertTrue(motor.esApto(sierra, c("papa"), cal));
-        assertFalse(motor.esApto(sierra, c("maiz_amilaceo"), cal));
-        assertFalse(motor.esApto(sierra, c("maiz_duro"), cal));
+        assertTrue(motor.esApto(sierra, c("maiz_amilaceo"), cal));   // se siembra hasta ~3300 m
+        assertFalse(motor.esApto(sierra, c("maiz_duro"), cal));      // cultivo de selva
     }
 
     // ---------- H1: reglas de las candidatas (todas las zonas)
