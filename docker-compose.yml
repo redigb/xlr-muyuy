@@ -14,13 +14,27 @@ services:
       interval: 5s
       retries: 10
 
+  pipeline-api:                          # SPECS_v2 §11.3: calendario NASA para cualquier punto
+    build: ./pipeline                     # Python liviano: la VM lo construye en cada deploy
+    image: muyuy-pipeline-api:local
+    restart: unless-stopped
+    volumes:
+      - pipeline_raw:/app/raw             # descargas de NASA POWER reutilizables (sin puerto público)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/salud')"]
+      interval: 10s
+      retries: 6
+
   backend:
     image: ${IMAGE:-ghcr.io/redigb/xlr-muyuy}:${IMAGE_TAG:-latest}   # la arma GitHub Actions (IMAGE = ghcr.io/<repo>)
     build: ./backend                                               # solo en local: docker compose up --build
     env_file: .env
+    environment:
+      MUYUY_PIPELINE_URL: http://pipeline-api:8000
     restart: unless-stopped
     depends_on:
       db: { condition: service_healthy }
+      pipeline-api: { condition: service_started }
     volumes:
       - ./data:/app/data:ro        # calendarios, cultivos y reglas (JSON)
 
@@ -38,5 +52,6 @@ services:
 
 volumes:
   pgdata:
+  pipeline_raw:
   caddy_data:
   caddy_config:

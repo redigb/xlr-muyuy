@@ -11,3 +11,8 @@
 .vscode/
 .DS_Store
 __pycache__/
+
+# pipeline: descargas crudas de NASA POWER (se regeneran)
+pipeline/raw/
+__pycache__/
+.pytest_cache/

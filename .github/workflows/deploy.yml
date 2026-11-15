@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:                       # monorepo: solo despliega si cambia el backend o su infra
       - "backend/**"
+      - "pipeline/**"
       - "data/**"
       - "docker-compose.yml"
       - "Caddyfile"
