@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowDown, CalendarDays, House, Layers3, Share2, Sprout } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { translate } from './muyuyCopy.js';
+import { translate } from '../i18n/copy.ts';
 
 const screens = [
   { id: 'home', Icon: House, label: 'Home', title: 'Take the calendar offline', description: 'Save the Huánuco package for offline use.' },

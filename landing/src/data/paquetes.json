@@ -1,0 +1,626 @@
+{
+  "fetchedAt": "2026-11-15T01:15:15.465Z",
+  "api": "https://muyuy-bk.rdev7.net.pe",
+  "catalog": {
+    "zonas": 3,
+    "cultivos": 30,
+    "reglas": 7
+  },
+  "zonas": [
+    {
+      "id": "huanuco-sierra",
+      "nombre": "Sierra de Huanuco, Peru",
+      "region": "sierra",
+      "lat": -9.9,
+      "lon": -75.99,
+      "elevacion_m": 3200,
+      "riego": false,
+      "cultivos_iniciales": [
+        "papa"
+      ]
+    },
+    {
+      "id": "huanuco-valle",
+      "nombre": "Valle del Huallaga, Huanuco, Peru",
+      "region": "valle",
+      "lat": -9.93,
+      "lon": -76.24,
+      "elevacion_m": 1900,
+      "riego": false,
+      "cultivos_iniciales": [
+        "papa",
+        "maiz_amilaceo"
+      ]
+    },
+    {
+      "id": "huanuco-selva",
+      "nombre": "Selva de Huanuco (Tingo Maria), Peru",
+      "region": "selva",
+      "lat": -9.3,
+      "lon": -76,
+      "elevacion_m": 650,
+      "riego": false,
+      "cultivos_iniciales": [
+        "maiz_duro"
+      ]
+    }
+  ],
+  "paquetes": {
+    "huanuco-sierra": {
+      "meta": {
+        "version": 5,
+        "hash": "sha256:e60e95d1c24379ac127eb1de4e83b5e579b32a5e89567e489f25667e981187bf",
+        "generado": "2026-11-15T00:57:30Z",
+        "validada_localmente": true
+      },
+      "zona": {
+        "id": "huanuco-sierra",
+        "nombre": "Sierra de Huanuco, Peru",
+        "lat": -9.9,
+        "lon": -75.99,
+        "elevacion_m": 3200,
+        "riego": false
+      },
+      "fuente_clima": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 3404 m → lugar 3200 m (+1.3 °C); ET0 Hargreaves (FAO-56)",
+      "inicio_siembra_mes": 10,
+      "calendario": [
+        {
+          "mes": 1,
+          "prob_helada": 0,
+          "lluvia_mm": 84.4,
+          "et_mm": 100.6,
+          "balance_hidrico_mm": -16.2,
+          "t_min": 7.7,
+          "t_max": 16.4
+        },
+        {
+          "mes": 2,
+          "prob_helada": 0,
+          "lluvia_mm": 83.5,
+          "et_mm": 90.5,
+          "balance_hidrico_mm": -7,
+          "t_min": 7.6,
+          "t_max": 16.3
+        },
+        {
+          "mes": 3,
+          "prob_helada": 0,
+          "lluvia_mm": 87.3,
+          "et_mm": 94.3,
+          "balance_hidrico_mm": -7,
+          "t_min": 7.6,
+          "t_max": 16.1
+        },
+        {
+          "mes": 4,
+          "prob_helada": 0,
+          "lluvia_mm": 45,
+          "et_mm": 85.1,
+          "balance_hidrico_mm": -40.1,
+          "t_min": 7.4,
+          "t_max": 16.2
+        },
+        {
+          "mes": 5,
+          "prob_helada": 0.12,
+          "lluvia_mm": 33,
+          "et_mm": 82.5,
+          "balance_hidrico_mm": -49.5,
+          "t_min": 6.7,
+          "t_max": 16.5
+        },
+        {
+          "mes": 6,
+          "prob_helada": 0.45,
+          "lluvia_mm": 20.7,
+          "et_mm": 76.1,
+          "balance_hidrico_mm": -55.4,
+          "t_min": 5.5,
+          "t_max": 16.1
+        },
+        {
+          "mes": 7,
+          "prob_helada": 0.82,
+          "lluvia_mm": 17.2,
+          "et_mm": 82.8,
+          "balance_hidrico_mm": -65.6,
+          "t_min": 4.9,
+          "t_max": 16.2
+        },
+        {
+          "mes": 8,
+          "prob_helada": 0.53,
+          "lluvia_mm": 16.5,
+          "et_mm": 93.6,
+          "balance_hidrico_mm": -77.1,
+          "t_min": 5.6,
+          "t_max": 17
+        },
+        {
+          "mes": 9,
+          "prob_helada": 0.05,
+          "lluvia_mm": 24.5,
+          "et_mm": 99.8,
+          "balance_hidrico_mm": -75.3,
+          "t_min": 6.9,
+          "t_max": 17.6
+        },
+        {
+          "mes": 10,
+          "prob_helada": 0,
+          "lluvia_mm": 48.3,
+          "et_mm": 109.2,
+          "balance_hidrico_mm": -60.9,
+          "t_min": 7.5,
+          "t_max": 17.8
+        },
+        {
+          "mes": 11,
+          "prob_helada": 0.03,
+          "lluvia_mm": 65.8,
+          "et_mm": 105.3,
+          "balance_hidrico_mm": -39.5,
+          "t_min": 7.6,
+          "t_max": 17.5
+        },
+        {
+          "mes": 12,
+          "prob_helada": 0,
+          "lluvia_mm": 88.2,
+          "et_mm": 103.5,
+          "balance_hidrico_mm": -15.4,
+          "t_min": 7.7,
+          "t_max": 16.8
+        }
+      ],
+      "rotaciones": [
+        {
+          "id": "papa-arveja-avena_forrajera",
+          "secuencia": [
+            "papa",
+            "arveja",
+            "avena_forrajera"
+          ],
+          "puntajes": {
+            "agua": 0.33,
+            "suelo": 1,
+            "ingresos": 0.67,
+            "riesgo": 0.74,
+            "total": 0.69
+          },
+          "explicacion": "Arveja fija nitrógeno y avena cubre el suelo, mejorando el puntaje de suelo (1.0) y reduciendo erosión. Después de la papa, siembre arveja antes de la primera helada y use avena como cubierta ligera en los meses secos.",
+          "es_practica_comun": false
+        },
+        {
+          "id": "papa-tarwi-avena_forrajera",
+          "secuencia": [
+            "papa",
+            "tarwi",
+            "avena_forrajera"
+          ],
+          "puntajes": {
+            "agua": 0.33,
+            "suelo": 1,
+            "ingresos": 0.63,
+            "riesgo": 0.79,
+            "total": 0.69
+          },
+          "explicacion": "Tarwi aporta nitrógeno y avena protege el suelo, manteniendo alto puntaje de suelo (1.0). Evite plantar tarwi en los meses de helada; siembre después de la papa y coseche antes de junio‑agosto.",
+          "es_practica_comun": false
+        },
+        {
+          "id": "papa-haba-avena_forrajera",
+          "secuencia": [
+            "papa",
+            "haba",
+            "avena_forrajera"
+          ],
+          "puntajes": {
+            "agua": 0.27,
+            "suelo": 1,
+            "ingresos": 0.63,
+            "riesgo": 0.74,
+            "total": 0.66
+          },
+          "explicacion": "La haba fija nitrógeno y la avena cubre, manteniendo suelo fértil (1.0). Plante la haba después de la papa y coseche antes de la temporada de heladas, usando avena como cubierta en los meses secos.",
+          "es_practica_comun": false
+        }
+      ],
+      "nombres": {
+        "arveja": "Arveja",
+        "avena_forrajera": "Avena forrajera",
+        "cebada": "Cebada",
+        "descanso": "Descanso (barbecho)",
+        "haba": "Haba",
+        "maiz_amilaceo": "Maiz amilaceo",
+        "oca": "Oca",
+        "olluco": "Olluco",
+        "papa": "Papa",
+        "quinua": "Quinua",
+        "tarwi": "Tarwi",
+        "trigo": "Trigo"
+      },
+      "cultivos": 12
+    },
+    "huanuco-valle": {
+      "meta": {
+        "version": 4,
+        "hash": "sha256:3b84808e40ce0baf48ddbfc72e6a8458950e9f8cd89445e081b73642777482a4",
+        "generado": "2026-11-15T00:57:49Z",
+        "validada_localmente": true
+      },
+      "zona": {
+        "id": "huanuco-valle",
+        "nombre": "Valle del Huallaga, Huanuco, Peru",
+        "lat": -9.93,
+        "lon": -76.24,
+        "elevacion_m": 1900,
+        "riego": false
+      },
+      "fuente_clima": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 3404 m → lugar 1900 m (+9.8 °C); ET0 Hargreaves (FAO-56)",
+      "inicio_siembra_mes": 10,
+      "calendario": [
+        {
+          "mes": 1,
+          "prob_helada": 0,
+          "lluvia_mm": 84.4,
+          "et_mm": 129.1,
+          "balance_hidrico_mm": -44.7,
+          "t_min": 16.1,
+          "t_max": 24.8
+        },
+        {
+          "mes": 2,
+          "prob_helada": 0,
+          "lluvia_mm": 83.5,
+          "et_mm": 116.2,
+          "balance_hidrico_mm": -32.7,
+          "t_min": 16.1,
+          "t_max": 24.7
+        },
+        {
+          "mes": 3,
+          "prob_helada": 0,
+          "lluvia_mm": 87.3,
+          "et_mm": 121.1,
+          "balance_hidrico_mm": -33.8,
+          "t_min": 16,
+          "t_max": 24.5
+        },
+        {
+          "mes": 4,
+          "prob_helada": 0,
+          "lluvia_mm": 45,
+          "et_mm": 109.3,
+          "balance_hidrico_mm": -64.3,
+          "t_min": 15.8,
+          "t_max": 24.7
+        },
+        {
+          "mes": 5,
+          "prob_helada": 0,
+          "lluvia_mm": 33,
+          "et_mm": 106.2,
+          "balance_hidrico_mm": -73.2,
+          "t_min": 15.1,
+          "t_max": 24.9
+        },
+        {
+          "mes": 6,
+          "prob_helada": 0,
+          "lluvia_mm": 20.7,
+          "et_mm": 98.6,
+          "balance_hidrico_mm": -77.9,
+          "t_min": 14,
+          "t_max": 24.6
+        },
+        {
+          "mes": 7,
+          "prob_helada": 0,
+          "lluvia_mm": 17.2,
+          "et_mm": 107.4,
+          "balance_hidrico_mm": -90.2,
+          "t_min": 13.4,
+          "t_max": 24.7
+        },
+        {
+          "mes": 8,
+          "prob_helada": 0,
+          "lluvia_mm": 16.5,
+          "et_mm": 120.7,
+          "balance_hidrico_mm": -104.2,
+          "t_min": 14.1,
+          "t_max": 25.5
+        },
+        {
+          "mes": 9,
+          "prob_helada": 0,
+          "lluvia_mm": 24.5,
+          "et_mm": 127.9,
+          "balance_hidrico_mm": -103.4,
+          "t_min": 15.4,
+          "t_max": 26
+        },
+        {
+          "mes": 10,
+          "prob_helada": 0,
+          "lluvia_mm": 48.3,
+          "et_mm": 139.5,
+          "balance_hidrico_mm": -91.1,
+          "t_min": 16,
+          "t_max": 26.3
+        },
+        {
+          "mes": 11,
+          "prob_helada": 0,
+          "lluvia_mm": 65.8,
+          "et_mm": 134.6,
+          "balance_hidrico_mm": -68.7,
+          "t_min": 16.1,
+          "t_max": 26
+        },
+        {
+          "mes": 12,
+          "prob_helada": 0,
+          "lluvia_mm": 88.2,
+          "et_mm": 132.6,
+          "balance_hidrico_mm": -44.4,
+          "t_min": 16.2,
+          "t_max": 25.3
+        }
+      ],
+      "rotaciones": [
+        {
+          "id": "papa-arveja-trigo",
+          "secuencia": [
+            "papa",
+            "arveja",
+            "trigo"
+          ],
+          "puntajes": {
+            "agua": 0.23,
+            "suelo": 1,
+            "ingresos": 0.63,
+            "riesgo": 0.7,
+            "total": 0.64
+          },
+          "explicacion": "El orden papa→arveja→trigo mejora el suelo porque la arveja fija nitrógeno y el trigo cubre el terreno, reduciendo erosión y manteniendo la humedad (agua 0.23, suelo 1.0). En el Valle del Huallaga siembre la papa en octubre y vigile que la arveja y el trigo reciban riego suplementario durante los meses secos.",
+          "es_practica_comun": false
+        },
+        {
+          "id": "papa-frijol-trigo",
+          "secuencia": [
+            "papa",
+            "frijol",
+            "trigo"
+          ],
+          "puntajes": {
+            "agua": 0.23,
+            "suelo": 1,
+            "ingresos": 0.6,
+            "riesgo": 0.7,
+            "total": 0.63
+          },
+          "explicacion": "Papa→frijol→trigo aporta nitrógeno al suelo y protege la superficie con el trigo, lo que favorece los ingresos (0.6) y la conservación del agua (0.23). Con lluvias anuales de 614 mm y sin riesgo de helada, asegure riegos ligeros en los periodos secos después de la siembra en octubre.",
+          "es_practica_comun": false
+        },
+        {
+          "id": "papa-haba-trigo",
+          "secuencia": [
+            "papa",
+            "haba",
+            "trigo"
+          ],
+          "puntajes": {
+            "agua": 0.17,
+            "suelo": 1,
+            "ingresos": 0.6,
+            "riesgo": 0.7,
+            "total": 0.62
+          },
+          "explicacion": "La haba fija nitrógeno después de la papa y el trigo cubre el suelo, aumentando la fertilidad (suelo 1.0) y reduciendo la pérdida de agua (0.17). En esta zona, mantenga la humedad del trigo con riegos parciales durante los meses secos posteriores a la siembra en octubre.",
+          "es_practica_comun": false
+        }
+      ],
+      "nombres": {
+        "arveja": "Arveja",
+        "descanso": "Descanso (barbecho)",
+        "frijol": "Frijol",
+        "haba": "Haba",
+        "maiz_amilaceo": "Maiz amilaceo",
+        "papa": "Papa",
+        "trigo": "Trigo"
+      },
+      "cultivos": 7
+    },
+    "huanuco-selva": {
+      "meta": {
+        "version": 4,
+        "hash": "sha256:55a0a55e0c59042e2e5553429b8d80a5c62db2915147c26c028084ef9d46bf27",
+        "generado": "2026-11-15T00:57:50Z",
+        "validada_localmente": true
+      },
+      "zona": {
+        "id": "huanuco-selva",
+        "nombre": "Selva de Huanuco (Tingo Maria), Peru",
+        "lat": -9.3,
+        "lon": -76,
+        "elevacion_m": 650,
+        "riego": false
+      },
+      "fuente_clima": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 2441 m → lugar 650 m (+11.6 °C); ET0 Hargreaves (FAO-56)",
+      "inicio_siembra_mes": 10,
+      "calendario": [
+        {
+          "mes": 1,
+          "prob_helada": 0,
+          "lluvia_mm": 140.2,
+          "et_mm": 135.6,
+          "balance_hidrico_mm": 4.7,
+          "t_min": 23.2,
+          "t_max": 30.3
+        },
+        {
+          "mes": 2,
+          "prob_helada": 0,
+          "lluvia_mm": 141.5,
+          "et_mm": 122,
+          "balance_hidrico_mm": 19.5,
+          "t_min": 23.1,
+          "t_max": 30.2
+        },
+        {
+          "mes": 3,
+          "prob_helada": 0,
+          "lluvia_mm": 143.2,
+          "et_mm": 128,
+          "balance_hidrico_mm": 15.2,
+          "t_min": 23.1,
+          "t_max": 30.1
+        },
+        {
+          "mes": 4,
+          "prob_helada": 0,
+          "lluvia_mm": 84.5,
+          "et_mm": 116.6,
+          "balance_hidrico_mm": -32.1,
+          "t_min": 22.9,
+          "t_max": 30.2
+        },
+        {
+          "mes": 5,
+          "prob_helada": 0,
+          "lluvia_mm": 68.6,
+          "et_mm": 114,
+          "balance_hidrico_mm": -45.4,
+          "t_min": 22.4,
+          "t_max": 30.5
+        },
+        {
+          "mes": 6,
+          "prob_helada": 0,
+          "lluvia_mm": 42.5,
+          "et_mm": 108.1,
+          "balance_hidrico_mm": -65.5,
+          "t_min": 21.4,
+          "t_max": 30.4
+        },
+        {
+          "mes": 7,
+          "prob_helada": 0,
+          "lluvia_mm": 34.6,
+          "et_mm": 120,
+          "balance_hidrico_mm": -85.4,
+          "t_min": 21,
+          "t_max": 30.8
+        },
+        {
+          "mes": 8,
+          "prob_helada": 0,
+          "lluvia_mm": 32.3,
+          "et_mm": 137.5,
+          "balance_hidrico_mm": -105.2,
+          "t_min": 21.8,
+          "t_max": 32
+        },
+        {
+          "mes": 9,
+          "prob_helada": 0,
+          "lluvia_mm": 49.9,
+          "et_mm": 146.3,
+          "balance_hidrico_mm": -96.4,
+          "t_min": 22.8,
+          "t_max": 32.7
+        },
+        {
+          "mes": 10,
+          "prob_helada": 0,
+          "lluvia_mm": 85.9,
+          "et_mm": 155.4,
+          "balance_hidrico_mm": -69.6,
+          "t_min": 23.3,
+          "t_max": 32.6
+        },
+        {
+          "mes": 11,
+          "prob_helada": 0,
+          "lluvia_mm": 118.1,
+          "et_mm": 143.9,
+          "balance_hidrico_mm": -25.8,
+          "t_min": 23.3,
+          "t_max": 31.7
+        },
+        {
+          "mes": 12,
+          "prob_helada": 0,
+          "lluvia_mm": 152.9,
+          "et_mm": 139.4,
+          "balance_hidrico_mm": 13.4,
+          "t_min": 23.3,
+          "t_max": 30.8
+        }
+      ],
+      "rotaciones": [
+        {
+          "id": "maiz_duro-yuca-mucuna",
+          "secuencia": [
+            "maiz_duro",
+            "yuca",
+            "mucuna"
+          ],
+          "puntajes": {
+            "agua": 0.37,
+            "suelo": 1,
+            "ingresos": 0.4,
+            "riesgo": 0.86,
+            "total": 0.66
+          },
+          "explicacion": "El maíz seguido de yuca y luego mucuna repone nitrógeno y cubre el suelo, mejorando la fertilidad y reduciendo plagas, lo que eleva los ingresos. En el clima de alta precipitación y meses secos, la mucuna debe sembrarse al inicio de la temporada seca para que cubra el suelo antes de la primera lluvia.",
+          "es_practica_comun": false
+        },
+        {
+          "id": "maiz_duro-frijol-yuca",
+          "secuencia": [
+            "maiz_duro",
+            "frijol",
+            "yuca"
+          ],
+          "puntajes": {
+            "agua": 0.37,
+            "suelo": 0.8,
+            "ingresos": 0.53,
+            "riesgo": 0.85,
+            "total": 0.64
+          },
+          "explicacion": "El maíz, luego frijol fijador de nitrógeno y después yuca, aumenta la disponibilidad de nutrientes y diversifica la cosecha, incrementando los ingresos. Con lluvias abundantes y sin riesgo de helada, el frijol debe plantarse justo después del maíz para aprovechar la humedad y evitar competencia por agua en los meses secos.",
+          "es_practica_comun": false
+        },
+        {
+          "id": "maiz_duro-mucuna-yuca",
+          "secuencia": [
+            "maiz_duro",
+            "mucuna",
+            "yuca"
+          ],
+          "puntajes": {
+            "agua": 0.37,
+            "suelo": 0.8,
+            "ingresos": 0.4,
+            "riesgo": 0.86,
+            "total": 0.61
+          },
+          "explicacion": "El maíz seguido de mucuna aporta nitrógeno y protege el suelo antes de la yuca, mejorando la salud del terreno y los rendimientos. En la selva de Huánuco, la mucuna se debe sembrar al inicio del periodo seco (mes 10) para que forme cobertura antes de que lleguen las lluvias intensas.",
+          "es_practica_comun": false
+        }
+      ],
+      "nombres": {
+        "descanso": "Descanso (barbecho)",
+        "frijol": "Frijol",
+        "maiz_duro": "Maiz amarillo duro",
+        "mucuna": "Mucuna (abono verde)",
+        "yuca": "Yuca"
+      },
+      "cultivos": 5
+    }
+  }
+}
