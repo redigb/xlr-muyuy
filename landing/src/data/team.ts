@@ -4,7 +4,9 @@ import type { Locale } from '../i18n/copy';
  * ─────────────────────────────────────────────────────────────────────────────
  *  EQUIPO / TEAM
  * ─────────────────────────────────────────────────────────────────────────────
- *  ⚠️  TODO(equipo): reemplaza los 5 registros de abajo con los datos reales.
+ *  Datos tomados del README (sección Team), del historial de git y de los
+ *  perfiles públicos de GitHub; nombres según el registro del equipo en
+ *  NASA Space Apps. Faltan ciudades y LinkedIn: cada integrante los completa aquí.
  *
  *  Para cada integrante:
  *    name      → nombre y apellido reales.
@@ -28,95 +30,106 @@ export type LocalizedText = Partial<Record<Locale, string>> & { en: string };
 export type TeamMember = {
   id: string;
   name: string;
-  location: string;
+  /** Opcional: si falta, la tarjeta no muestra la línea de ubicación. */
+  location?: string;
   role: LocalizedText;
   bio: LocalizedText;
   stack: string[];
   photo?: string;
   links: { github?: string; linkedin?: string };
+  /** Rol de liderazgo en el equipo: se muestra como badge en la tarjeta. */
+  lead?: 'lead' | 'co-lead';
+  /** Universidad del integrante; `logo` es una ruta en /public. */
+  university?: { name: string; logo?: string };
   /** true = datos de ejemplo; la tarjeta muestra un badge discreto. */
   placeholder?: boolean;
 };
 
 export const TEAM: TeamMember[] = [
   {
-    id: 'earth-data',
-    name: 'Nombre Apellido',
-    location: 'Huánuco, Perú',
+    id: 'backend',
+    name: 'Renzo Raúl Condezo Rivera',
+    location: 'Perú',
     role: {
-      en: 'Earth data & agronomy',
-      es: 'Datos de la Tierra y agronomía',
+      en: 'Backend, engine & deployment',
+      es: 'Backend, motor y despliegue',
     },
     bio: {
-      en: 'Turns NASA POWER daily records (1985–2024) into monthly frost and water-balance indicators, and pairs them with an Andean crop table following FAO ECOCROP.',
-      es: 'Convierte los registros diarios de NASA POWER (1985–2024) en indicadores mensuales de helada y balance hídrico, y los cruza con una tabla de cultivos andinos según FAO ECOCROP.',
+      en: 'Builds the deterministic rotation engine in Quarkus and the SHA-256 sealed regional package, and runs it in production: GitHub Actions, GHCR, Docker Compose and Caddy on Oracle Cloud.',
+      es: 'Construye el motor determinista de rotaciones en Quarkus y el paquete regional sellado con SHA-256, y lo opera en producción: GitHub Actions, GHCR, Docker Compose y Caddy en Oracle Cloud.',
     },
-    stack: ['NASA POWER', 'Python', 'FAO ECOCROP', 'Agronomy'],
-    links: { github: 'https://github.com/', linkedin: 'https://www.linkedin.com/' },
-    placeholder: true,
+    stack: ['Java 25', 'Quarkus', 'Docker'],
+    photo: 'https://github.com/redigb.png?size=144',
+    lead: 'lead',
+    links: { github: 'https://github.com/redigb' },
   },
   {
-    id: 'backend',
-    name: 'Nombre Apellido',
-    location: 'Lima, Perú',
+    id: 'earth-data',
+    name: 'Luis Ángel Flores Cruz',
+    location: 'Perú',
     role: {
-      en: 'Backend & rotation engine',
-      es: 'Backend y motor de rotaciones',
+      en: 'NASA API research',
+      es: 'Investigación de APIs de la NASA',
     },
     bio: {
-      en: 'Builds the deterministic rotation engine in Quarkus: candidate scoring, confidence levels and the SHA-256 sealed regional package the app downloads once.',
-      es: 'Construye el motor determinista de rotaciones en Quarkus: puntuación de candidatas, niveles de confianza y el paquete regional sellado con SHA-256 que la app descarga una vez.',
+      en: 'Mapped the NASA Earth data services behind Muyuy — POWER, SMAP, GIBS, EPIC, AppEEARS and FIRMS — with their endpoints, keys and limits.',
+      es: 'Relevó los servicios de datos de la NASA detrás de Muyuy —POWER, SMAP, GIBS, EPIC, AppEEARS y FIRMS— con sus endpoints, claves y límites.',
     },
-    stack: ['Java 25', 'Quarkus', 'PostgreSQL', 'Flyway'],
-    links: { github: 'https://github.com/', linkedin: 'https://www.linkedin.com/' },
-    placeholder: true,
+    stack: ['NASA POWER', 'SMAP', 'GIBS', 'FIRMS'],
+    photo: 'https://github.com/LuisFc11.png?size=144',
+    links: { github: 'https://github.com/LuisFc11' },
   },
   {
     id: 'mobile',
-    name: 'Nombre Apellido',
-    location: 'Huancayo, Perú',
+    name: 'Leo Rosario Lucas Caqui',
+    location: 'Lima, Perú',
     role: {
-      en: 'Mobile app & offline sync',
-      es: 'App móvil y sincronización sin conexión',
+      en: 'Mobile app (Flutter)',
+      es: 'App móvil (Flutter)',
     },
     bio: {
-      en: 'Owns the Flutter app: offline package storage and hash verification, phone-to-phone sharing, community sync and the on-device soil classifier.',
-      es: 'Responsable de la app Flutter: almacenamiento offline y verificación del hash, compartición teléfono a teléfono, sincronización comunitaria y el clasificador de suelo en el dispositivo.',
+      en: 'Builds the offline Flutter app: regional package storage, soil analysis and the on-device plant-disease model.',
+      es: 'Construye la app Flutter offline: almacenamiento del paquete regional, análisis de suelo y el modelo de enfermedades de plantas en el dispositivo.',
     },
-    stack: ['Flutter', 'Dart', 'TensorFlow Lite', 'SQLite'],
-    links: { github: 'https://github.com/', linkedin: 'https://www.linkedin.com/' },
-    placeholder: true,
+    stack: ['Flutter', 'Dart', 'TensorFlow Lite'],
+    photo: 'https://github.com/LeoLucasC.png?size=144',
+    lead: 'co-lead',
+    university: {
+      name: 'Universidad Privada de Trujillo',
+      logo: '/team/universidad-privada-de-trujillo.webp',
+    },
+    links: { github: 'https://github.com/LeoLucasC' },
   },
   {
     id: 'landing',
-    name: 'Nombre Apellido',
-    location: 'Arequipa, Perú',
+    name: 'Jhonn Yhoy Clemente Daza',
+    location: 'Perú',
     role: {
-      en: 'Landing & 3D visualization',
-      es: 'Landing y visualización 3D',
+      en: 'Landing & 3D terrain',
+      es: 'Landing y terreno 3D',
     },
     bio: {
-      en: 'Builds this site: Astro + React islands, the procedural Andean terrain in Three.js and the scroll narrative that explains the climate layers.',
-      es: 'Construye este sitio: Astro con islas de React, el terreno andino procedural en Three.js y la narrativa de scroll que explica las capas climáticas.',
+      en: 'Builds this site: Astro + React islands, the procedural Andean terrain in Three.js and the real NASA data shown on the page.',
+      es: 'Construye este sitio: Astro con islas de React, el terreno andino procedural en Three.js y los datos reales de la NASA que muestra la página.',
     },
     stack: ['Astro', 'React', 'Three.js', 'Tailwind'],
-    links: { github: 'https://github.com/', linkedin: 'https://www.linkedin.com/' },
-    placeholder: true,
+    photo: 'https://github.com/ClemDYhoy.png?size=144',
+    links: { github: 'https://github.com/ClemDYhoy' },
   },
   {
-    id: 'infra',
-    name: 'Nombre Apellido',
-    location: 'Lima, Perú',
+    id: 'field',
+    name: 'Xander Villogas Cagna',
+    location: 'Perú',
     role: {
-      en: 'Infrastructure & deployment',
-      es: 'Infraestructura y despliegue',
+      en: 'Field validation & outreach',
+      es: 'Validación en campo y difusión',
     },
     bio: {
-      en: 'Runs the pipeline from pull request to production: GitHub Actions, container images on GHCR, Docker Compose and Caddy with automatic TLS on Oracle Cloud.',
-      es: 'Opera el camino del pull request a producción: GitHub Actions, imágenes de contenedor en GHCR, Docker Compose y Caddy con TLS automático en Oracle Cloud.',
+      en: 'Takes the prototype to farmers in Huánuco: runs the airplane-mode test and gathers feedback on the climate calendar.',
+      es: 'Lleva el prototipo a los agricultores de Huánuco: hace la prueba en modo avión y recoge sus comentarios sobre el calendario climático.',
     },
-    stack: ['Docker', 'GitHub Actions', 'Caddy', 'Oracle Cloud'],
-    links: { github: 'https://github.com/', linkedin: 'https://www.linkedin.com/' },
-    placeholder: true,
+    stack: ['Field testing', 'User research'],
+    photo: 'https://github.com/xander-18.png?size=144',
+    links: { github: 'https://github.com/xander-18' },
   },
 ];

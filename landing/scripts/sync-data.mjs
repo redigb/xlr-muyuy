@@ -38,17 +38,29 @@ if (!Array.isArray(zonas) || !zonas.length) {
   process.exit(1);
 }
 
-const paquetes = {};
+/**
+ * Modo global: lugares fuera de Huánuco calculados por el mismo motor con
+ * /api/paquete/coordenada. Se generan aquí (la primera consulta de una celda
+ * tarda ~7 s en el servidor) para que el visitante no espere.
+ */
+const GLOBALES = [
+  { id: 'kenya-highlands', nombre: 'Nairobi, Kenya', lat: -1.29, lon: 36.82 },
+  { id: 'punjab', nombre: 'Punjab, India', lat: 30.9, lon: 75.85 },
+  { id: 'sahel', nombre: 'Niamey, Niger', lat: 13.51, lon: 2.11 },
+  { id: 'iowa', nombre: 'Iowa, USA', lat: 41.88, lon: -93.1 },
+];
 
-for (const zona of zonas) {
-  const { paquete } = await get(`/api/paquete/${zona.id}`);
-  const { meta, nucleo } = paquete;
+/** Bioma del terreno 3D a partir del clima real (no hay `region` fuera de Huánuco). */
+function biomaDe(nucleo) {
+  const helada = Math.max(...nucleo.calendario.map((m) => m.prob_helada));
+  const lluvia = nucleo.calendario.reduce((total, m) => total + m.lluvia_mm, 0);
+  if (helada >= 0.3 || nucleo.zona.elevacion_m >= 2500) return 'sierra';
+  return lluvia >= 1200 ? 'selva' : 'valle';
+}
 
-  if (!nucleo?.calendario?.length) {
-    console.error(`  ❌ ${zona.id} llegó sin calendario`);
-    process.exit(1);
-  }
-
+/** Lo que la portada muestra de un paquete: igual para zonas y lugares globales. */
+function recortar({ meta, nucleo }) {
+  if (!nucleo?.calendario?.length) throw new Error('paquete sin calendario');
   // Solo las 3 mejores rotaciones: es lo que se compara en la portada.
   const rotaciones = [...nucleo.rotaciones]
     .sort((a, b) => b.puntajes.total - a.puntajes.total)
@@ -61,12 +73,13 @@ for (const zona of zonas) {
       es_practica_comun,
     }));
 
-  paquetes[zona.id] = {
+  return {
     meta: {
       version: meta.version,
       hash: meta.hash,
       generado: meta.generado,
       validada_localmente: meta.validada_localmente,
+      origen: meta.origen,
     },
     zona: nucleo.zona,
     fuente_clima: nucleo.fuente_clima,
@@ -85,12 +98,40 @@ for (const zona of zonas) {
     nombres: Object.fromEntries(nucleo.cultivos.map((c) => [c.id, c.nombre])),
     cultivos: nucleo.cultivos.length,
   };
+}
+
+const paquetes = {};
+
+for (const zona of zonas) {
+  const { paquete } = await get(`/api/paquete/${zona.id}`);
+  const { nucleo } = paquete;
+
+  if (!nucleo?.calendario?.length) {
+    console.error(`  ❌ ${zona.id} llegó sin calendario`);
+    process.exit(1);
+  }
+
+  paquetes[zona.id] = recortar(paquete);
 
   const frost = Math.max(...nucleo.calendario.map((m) => m.prob_helada));
   const dry = Math.min(...nucleo.calendario.map((m) => m.balance_hidrico_mm));
   console.log(
     `  ✅ ${zona.id.padEnd(16)} ${String(zona.elevacion_m).padStart(4)} m · helada máx ${String(Math.round(frost * 100)).padStart(3)}% · balance mín ${dry} mm · siembra mes ${nucleo.inicio_siembra_mes}`
   );
+}
+
+const globales = [];
+for (const lugar of GLOBALES) {
+  const t0 = Date.now();
+  const { paquete } = await get(`/api/paquete/coordenada?lat=${lugar.lat}&lon=${lugar.lon}&lang=en`);
+  const recorte = recortar(paquete);
+  globales.push({
+    ...lugar,
+    region: biomaDe(paquete.nucleo),
+    elevacion_m: paquete.nucleo.zona.elevacion_m,
+    paquete: recorte,
+  });
+  console.log(`  🌍 ${lugar.id.padEnd(16)} ${String(paquete.nucleo.zona.elevacion_m).padStart(4)} m · ${biomaDe(paquete.nucleo).padEnd(6)} · siembra mes ${recorte.inicio_siembra_mes} · ${Date.now() - t0} ms`);
 }
 
 const snapshot = {
@@ -113,6 +154,7 @@ const snapshot = {
     cultivos_iniciales,
   })),
   paquetes,
+  globales,
 };
 
 writeFileSync(OUT, JSON.stringify(snapshot, null, 2) + '\n', 'utf8');

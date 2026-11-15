@@ -5,21 +5,11 @@ import '../../state/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/brand_logo.dart';
-import '../../widgets/organic_background.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
 
   static const logoAsset = 'assets/images/logo_muyuy_white_trim.png';
-
-  /// true si main() retuvo el primer cuadro; el splash lo libera una sola vez.
-  static bool firstFrameDeferred = false;
-
-  static void releaseFirstFrame() {
-    if (!firstFrameDeferred) return;
-    firstFrameDeferred = false;
-    WidgetsBinding.instance.allowFirstFrame();
-  }
 
   @override
   State<SplashView> createState() => _SplashViewState();
@@ -33,17 +23,7 @@ class _SplashViewState extends State<SplashView> {
     super.didChangeDependencies();
     if (_precached) return;
     _precached = true;
-    // Máximo 1 s de espera: nunca dejar la app trabada en el splash nativo.
-    Future.any([
-      precacheImage(const AssetImage(SplashView.logoAsset), context),
-      Future<void>.delayed(const Duration(seconds: 1)),
-    ]).whenComplete(SplashView.releaseFirstFrame);
-  }
-
-  @override
-  void dispose() {
-    SplashView.releaseFirstFrame();
-    super.dispose();
+    precacheImage(const AssetImage(SplashView.logoAsset), context);
   }
 
   @override
@@ -52,12 +32,8 @@ class _SplashViewState extends State<SplashView> {
       backgroundColor: AppColors.verdePrincipal,
       body: Stack(
         children: [
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(gradient: AppColors.gradientHero),
-            ),
-          ),
-          const Positioned.fill(child: OrganicBackground()),
+          // Fondo plano, mismo verde que el splash del sistema: en MIUI ese splash
+          // sale recortándose encima de Flutter y con gradiente se veía una franja.
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28),

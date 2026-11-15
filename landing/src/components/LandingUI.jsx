@@ -2,13 +2,15 @@ import React, { createContext, lazy, Suspense, useCallback, useContext, useEffec
 import { motion, MotionConfig } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import { Drawer } from 'vaul';
-import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronRight, Copy, Download, Droplets, Globe2, Layers3, Play, Radio, ShieldCheck, Snowflake, Sprout, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Check, ChevronRight, Copy, Download, Droplets, Globe2, Layers3, LoaderCircle, LocateFixed, Play, Radio, ShieldCheck, Snowflake, Sprout, X, ZoomOut } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import AppDemo from './AppDemo.jsx';
 import TeamGrid from './TeamGrid.jsx';
 import ImpactSection from './ImpactSection.jsx';
 import FieldValidation from './FieldValidation.jsx';
+import LiveStatus from './LiveStatus.jsx';
+import { currentPosition, fetchLiveZone } from '../data/liveZone.js';
 import { TEAM } from '../data/team.ts';
 import { DEFAULT_LOCALE, LOCALES, months, translate } from '../i18n/copy.ts';
 
@@ -16,12 +18,29 @@ import { DEFAULT_LOCALE, LOCALES, months, translate } from '../i18n/copy.ts';
 // después del primer pintado. El gradiente atmosférico cubre la espera.
 // El .catch es la red de seguridad: si el chunk no llega (red, cache, deploy a
 // medias), la pagina se queda sin 3D pero sigue funcionando.
-const MuyuyTerrain = lazy(() =>
-  import('./MuyuyTerrain.jsx').catch((error) => {
+// La descarga arranca al evaluar este módulo, no al primer render: así no
+// espera a que React monte la isla (el HTML además la precarga, ver
+// astro.config.mjs → preloadTerrain).
+const terrainModule = typeof window === 'undefined'
+  ? null
+  : import('./MuyuyTerrain.jsx').catch((error) => {
     console.error('[Muyuy] no se pudo cargar el terreno 3D', error);
     return { default: () => null };
-  })
-);
+  });
+const MuyuyTerrain = lazy(() => terrainModule ?? import('./MuyuyTerrain.jsx'));
+
+// Loader de index.astro (#muyuy-loader): vive fuera de la isla, se ve desde el
+// primer byte y se retira cuando el terreno pintó su primer frame.
+const LOADER_TIMEOUT_MS = 9000;
+function loaderStage(stage) {
+  const loader = typeof document !== 'undefined' && document.getElementById('muyuy-loader');
+  if (!loader || loader.dataset.stage === 'ready') return;
+  loader.dataset.stage = stage;
+  if (stage !== 'ready') return;
+  loader.setAttribute('aria-busy', 'false');
+  loader.addEventListener('transitionend', () => loader.remove(), { once: true });
+  setTimeout(() => loader.remove(), 1200);
+}
 
 const EASE = [.32, .72, 0, 1];
 const MotionEnabled = createContext(true);
@@ -158,6 +177,10 @@ const REGIONS = { sierra: 'Highlands', valle: 'Valley', selva: 'Jungle' };
 export default function LandingUI({
   /** Zonas reales del paquete regional (scripts/sync-data.mjs). */
   zones = [],
+  /** Modo global: lugares de otros continentes calculados por el mismo motor. */
+  globalZones = [],
+  /** Versiones y fecha del snapshot, para compararlas con la API en vivo. */
+  snapshot,
   calendar: fallbackCalendar = EXAMPLE_CALENDAR,
   elevation: fallbackElevation = 3200,
   apkUrl,
@@ -169,7 +192,11 @@ export default function LandingUI({
 }) {
   const wrapper = useRef(null);
   const [zoneId, setZoneId] = useState(zones[0]?.id ?? null);
-  const activeZone = zones.find((candidate) => candidate.id === zoneId) ?? zones[0] ?? null;
+  // "Use my location": paquete calculado en vivo para la posición del visitante.
+  const [myZone, setMyZone] = useState(null);
+  const [locating, setLocating] = useState('idle');
+  const allZones = myZone ? [...zones, ...globalZones, myZone] : [...zones, ...globalZones];
+  const activeZone = allZones.find((candidate) => candidate.id === zoneId) ?? zones[0] ?? null;
   const calendar = activeZone?.calendar ?? fallbackCalendar;
   const elevation = activeZone?.elevacion_m ?? fallbackElevation;
   const exampleData = calendar === EXAMPLE_CALENDAR;
@@ -184,6 +211,22 @@ export default function LandingUI({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [motionEnabled, setMotionEnabled] = useState(true);
   const [locale, setLocale] = useState(DEFAULT_LOCALE);
+  const [terrainReady, setTerrainReady] = useState(false);
+  const markTerrainReady = useCallback(() => setTerrainReady(true), []);
+  useEffect(() => {
+    loaderStage('terrain');
+    let alive = true;
+    terrainModule?.then(() => { if (alive) loaderStage('render'); });
+    // Red de seguridad: un equipo sin WebGL o un chunk que no llega nunca
+    // dejan la página detrás del loader.
+    const timer = setTimeout(() => { if (alive) setTerrainReady(true); }, LOADER_TIMEOUT_MS);
+    return () => { alive = false; clearTimeout(timer); };
+  }, []);
+  useEffect(() => {
+    if (!terrainReady) return;
+    loaderStage('ready');
+    ScrollTrigger.refresh();
+  }, [terrainReady]);
   const t = (key) => translate(key, locale);
   const monthNames = months[locale];
   useEffect(() => {
@@ -266,6 +309,32 @@ export default function LandingUI({
   const rotationLine = topRotation
     ? topRotation.secuencia.map((id) => activeZone.nombres?.[id] ?? id).join(' → ') + ' · ' + topRotation.puntajes.total.toFixed(2)
     : null;
+  const topExplanation = topRotation?.explicacion ?? null;
+  const pickZone = (id) => { setZoneId(id); setManualMonth(null); setManualLayer(null); };
+  const busyLocating = locating === 'locating' || locating === 'computing';
+  const useMyLocation = async () => {
+    if (busyLocating) return;
+    try {
+      setLocating('locating');
+      const { latitude, longitude } = await currentPosition();
+      setLocating('computing');
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      const zone = await fetchLiveZone(apiBase, latitude, longitude, controller.signal).finally(() => clearTimeout(timer));
+      setMyZone(zone);
+      pickZone(zone.id);
+      setLocating('idle');
+    } catch (error) {
+      setLocating(error?.message === 'out-of-range' ? 'range' : error?.code === 1 ? 'denied' : 'error');
+    }
+  };
+  const locatingText = {
+    locating: t('Waiting for location permission…'),
+    computing: t('Computing 40 years of NASA POWER for your area… (up to ~10 s)'),
+    denied: t('Location permission denied. Try a preset place.'),
+    range: t('The engine covers latitudes between 60° S and 60° N.'),
+    error: t('The live API did not answer. Try a preset place.'),
+  }[locating];
   const github = safeUrl(githubUrl);
   const checksum = typeof apkSha256 === 'string' ? apkSha256.trim() : PENDING_HASH;
   const verifiedHash = /^[a-f0-9]{64}$/i.test(checksum);
@@ -339,10 +408,6 @@ export default function LandingUI({
     if (!destination) return;
     event.preventDefault();
     if (id === 'cultivated-field') {
-      if (!wideIslandView && fieldJourney === null) {
-        widenIslandView();
-        return;
-      }
       enterFields();
     } else {
       destination.scrollIntoView({ behavior: reduced ? 'instant' : 'smooth', block: 'start' });
@@ -351,29 +416,24 @@ export default function LandingUI({
     history.replaceState(null, '', '#' + id);
   };
 
-  const guideStage = fieldJourney === null
-    ? (wideIslandView ? 'approach' : 'overview')
-    : (wideFieldView ? 'continue' : 'pullback');
+  // La guía solo pide bajar: el scroll ya no tiene pasos de zoom en el 3D.
+  const guideStage = fieldJourney === null ? 'approach' : 'continue';
   const nextSection = ['problem', 'how-it-works', 'explorer'][Math.round(fieldJourney ?? 0)];
   const guide = {
-    overview: { title: 'Zoom out first', instruction: 'Scroll up over the island for a wider view.', Icon: ZoomIn, Direction: ArrowUp },
     approach: { title: 'Get closer', instruction: 'Scroll down over the island.', Icon: ZoomOut, Direction: ArrowDown },
-    pullback: { title: 'Zoom out and continue', instruction: 'Scroll up over the crops, then scroll down to continue.', Icon: ZoomIn, Direction: ArrowUp },
     continue: { title: 'Keep exploring', instruction: 'Scroll down to see the next part of the story.', Icon: ArrowDown },
   }[guideStage];
   const GuideIcon = guide.Icon;
   const GuideDirection = guide.Direction;
   const guideDestination = guideStage === 'approach' ? 'cultivated-field' : nextSection;
-  const GuideAction = guideStage === 'pullback' || guideStage === 'overview' ? 'button' : 'a';
-  const guideActionProps = GuideAction === 'button'
-    ? { type: 'button', onClick: guideStage === 'overview' ? widenIslandView : zoomOut }
-    : { href: '#' + guideDestination, onClick: (event) => scrollTo(event, guideDestination) };
+  const GuideAction = 'a';
+  const guideActionProps = { href: '#' + guideDestination, onClick: (event) => scrollTo(event, guideDestination) };
 
   return (
     <IslandBoundary>
     <MotionConfig reducedMotion={motionEnabled ? 'never' : 'always'}>
     <MotionEnabled.Provider value={motionEnabled}>
-    <div ref={wrapper} className="muyuy-landing pointer-events-none" data-motion={motionEnabled ? 'on' : 'off'} data-wide-field={wideFieldView} data-layer={layer} data-summer={month === 12 || month <= 2} data-winter={month >= 6 && month <= 8}>
+    <div ref={wrapper} className="muyuy-landing pointer-events-none" data-motion={motionEnabled ? 'on' : 'off'} data-ready={terrainReady} data-wide-field={wideFieldView} data-layer={layer} data-summer={month === 12 || month <= 2} data-winter={month >= 6 && month <= 8}>
       <style>{STYLES}</style>
       <div className="muyuy-atmosphere" aria-hidden="true">
         <div className="muyuy-atmosphere-frost" />
@@ -386,7 +446,7 @@ export default function LandingUI({
         <MuyuyTerrain fixed editorialLayout motionEnabled={motionEnabled} climate={climate} month={month} data={terrainData}
           fieldJourney={fieldJourney} onEnterFields={enterFields} wideFieldView={wideFieldView} onZoomOut={zoomOut}
           wideIslandView={wideIslandView} onWidenIslandView={widenIslandView}
-          scrollProgress={progress} showControls={false}
+          scrollProgress={progress} showControls={false} onReady={markTerrainReady}
           className="pointer-events-auto" style={{ background: 'transparent' }} />
       </Suspense>
       <div className="muyuy-vignette" aria-hidden="true" />
@@ -430,7 +490,7 @@ export default function LandingUI({
             <Reveal delay={.79}><p className="muyuy-location"><span className="muyuy-dot" /> {t('Uses NASA Earth data')} · {t('Huánuco, Peru')} <span className={mono}>({Number.isFinite(elevation) ? elevation.toLocaleString('en-US') : '—'}m)</span></p></Reveal>
             <Reveal delay={.9}>
             <div className="muyuy-actions pointer-events-auto">
-              <a className="muyuy-button primary" href="#cultivated-field" onClick={(event) => scrollTo(event, 'cultivated-field')}>{t(wideIslandView ? 'Enter the fields' : 'See the whole island')} <ArrowDown size={15} aria-hidden="true" /></a>
+              <a className="muyuy-button primary" href="#cultivated-field" onClick={(event) => scrollTo(event, 'cultivated-field')}>{t('Enter the fields')} <ArrowDown size={15} aria-hidden="true" /></a>
               <a className="muyuy-button active:scale-[0.98]" href="#download" onClick={(event) => scrollTo(event, 'download')}>{t('Download APK')} <Download size={16} aria-hidden="true" /></a>
               <a className="muyuy-button active:scale-[0.98]" href="#app-demo" onClick={(event) => scrollTo(event, 'app-demo')}><Play size={15} aria-hidden="true" /> {t('Open the web demo')}</a>
             </div>
@@ -494,17 +554,43 @@ export default function LandingUI({
 
               {zones.length > 1 && (
                 <fieldset className="muyuy-zone-field">
-                  <legend>{t('Pilot zone')}</legend>
+                  <legend>{t('Pilot zone')} · Huánuco</legend>
                   <div className="muyuy-zone-options">
                     {zones.map((candidate) => (
                       <button type="button" key={candidate.id} aria-pressed={candidate.id === activeZone?.id}
-                        className="active:scale-[0.98]"
-                        onClick={() => { setZoneId(candidate.id); setManualMonth(null); setManualLayer(null); }}>
+                        className="active:scale-[0.98]" onClick={() => pickZone(candidate.id)}>
                         <strong>{t(REGIONS[candidate.region] ?? candidate.id)}</strong>
                         <span className={mono}>{candidate.elevacion_m} m</span>
                       </button>
                     ))}
                   </div>
+                </fieldset>
+              )}
+
+              {globalZones.length > 0 && (
+                <fieldset className="muyuy-zone-field muyuy-zone-global">
+                  <legend><Globe2 size={12} aria-hidden="true" /> {t('Global mode · same engine, other continents')}</legend>
+                  <div className="muyuy-zone-options">
+                    {globalZones.map((candidate) => (
+                      <button type="button" key={candidate.id} aria-pressed={candidate.id === activeZone?.id}
+                        className="active:scale-[0.98]" onClick={() => pickZone(candidate.id)}>
+                        <strong>{candidate.nombre}</strong>
+                        <span className={mono}>{candidate.elevacion_m} m</span>
+                      </button>
+                    ))}
+                    <button type="button" className="muyuy-zone-locate active:scale-[0.98]"
+                      aria-pressed={activeZone?.id === 'my-location'} aria-busy={busyLocating}
+                      onClick={myZone && !busyLocating ? () => pickZone(myZone.id) : useMyLocation}>
+                      <strong>
+                        {busyLocating
+                          ? <LoaderCircle size={12} className="muyuy-spin" aria-hidden="true" />
+                          : <LocateFixed size={12} aria-hidden="true" />}
+                        {myZone ? t('My location') : t('Use my location')}
+                      </strong>
+                      <span className={mono}>{myZone ? myZone.elevacion_m + ' m' : t('live API')}</span>
+                    </button>
+                  </div>
+                  {locatingText && <p className="muyuy-small muyuy-zone-status" role="status">{locatingText}</p>}
                 </fieldset>
               )}
 
@@ -542,6 +628,13 @@ export default function LandingUI({
                 <div><dt>{t('Rainfall')}</dt><dd>{Number.isFinite(rain) ? rain + ' mm' : t('Unavailable')}</dd></div>
                 <div><dt>{t('Drought risk')}</dt><dd>{Number.isFinite(drought) ? Math.round(drought * 100) + '%' : t('Unavailable')}</dd></div>
               </dl>
+              {topRotation && (
+                <div className="muyuy-rotation">
+                  <p className="muyuy-eyebrow">{t('Top rotation from the engine')}</p>
+                  <p className={'muyuy-rotation-line ' + mono}>{rotationLine}</p>
+                  {topExplanation && <p className="muyuy-small">{topExplanation}</p>}
+                </div>
+              )}
               <p className="muyuy-small">
                 {exampleData
                   ? t('Example calendar · Illustrative values for this interactive prototype.')
@@ -549,7 +642,12 @@ export default function LandingUI({
               </p>
               {provenance && (
                 <p className="muyuy-provenance">
-                  {t('Verified regional package')} · {t('Source')} NASA POWER 1985–2024
+                  {activeZone?.validada
+                    ? t('Verified regional package')
+                    : activeZone?.live
+                      ? t('Computed live for your area · not validated locally')
+                      : t('On-demand package · not validated locally')}
+                  {' · '}{t('Source')} NASA POWER 1985–2024
                   <br />
                   {provenance.zona} · {provenance.altitud} m · v{provenance.version} ·{' '}
                   <code className={mono}>{String(provenance.hash).slice(0, 8)}</code>{' '}
@@ -576,6 +674,7 @@ export default function LandingUI({
         <section id="why-it-matters" tabIndex={-1} aria-labelledby="impact-title" className="muyuy-section">
           <Reveal className="muyuy-wide">
             <ImpactSection t={t} glass={glass} />
+            <LiveStatus t={t} glass={glass} apiBase={apiBase} zones={zones} snapshot={snapshot} />
           </Reveal>
         </section>
 
@@ -607,12 +706,12 @@ export default function LandingUI({
                       </ol>
                       <p className="muyuy-small">{t(APK_NOTICE)}</p>
                       <h3>{t('NASA POWER data specifications')}</h3>
-                      <p>{t('The project targets daily records from 1985–2024. Confirm the exact parameter IDs and derived indicators against the regional package before release.')}</p>
+                      <p>{t('Daily records from 1985–2024, corrected for altitude. Each regional package states its exact source:')}{provenance?.fuente && <><br /><code>{provenance.fuente}</code></>}</p>
                       <dl className="muyuy-specs">
                         <div><dt>{t('Temperature')}</dt><dd>{t('Daily minima, means and maxima, in °C. Minimum temperature contributes to monthly frost exposure estimates.')}</dd></div>
                         <div><dt>{t('Precipitation')}</dt><dd>{t('Daily rainfall, in mm/day, aggregated into monthly totals.')}</dd></div>
                         <div><dt>{t('Relative humidity')}</dt><dd>{t('Daily relative humidity, in %, adds context for crop conditions.')}</dd></div>
-                        <div><dt>{t('Evapotranspiration & water balance')}</dt><dd>{t('Monthly water balance compares rainfall with evapotranspiration. The package must identify the ET source or calculation method.')}</dd></div>
+                        <div><dt>{t('Evapotranspiration & water balance')}</dt><dd>{t('Monthly water balance compares rainfall with reference evapotranspiration (ET₀, Hargreaves · FAO-56).')}</dd></div>
                       </dl>
                       <a href="https://power.larc.nasa.gov/docs/services/api/temporal/daily/" target="_blank" rel="noreferrer">{t('NASA POWER Daily API documentation ↗')}</a>
                     </div>
@@ -664,7 +763,7 @@ export default function LandingUI({
                   {provenance ? (
                     <>
                       <p className="muyuy-small">{provenance.zona}</p>
-                      <p className="muyuy-small">{t('Validated locally')} · v{provenance.version}</p>
+                      <p className="muyuy-small">{activeZone?.validada ? t('Validated locally') : t('On-demand package')} · v{provenance.version}</p>
                       <p className="muyuy-small"><code className={mono}>{String(provenance.hash).slice(0, 12)}…</code></p>
                       <a href={provenance.url} target="_blank" rel="noopener noreferrer">{t('Source')} ↗</a>
                     </>
@@ -746,7 +845,8 @@ const STYLES = `
   .muyuy-eyebrow { color: #bfcdab; font-size: 10px; font-weight: 600; letter-spacing: .15em; margin-bottom: 17px !important; }
   .muyuy-landing h1 { font-size: clamp(88px,11vw,180px); line-height: .9; white-space: nowrap; letter-spacing: -.08em; font-weight: 600; margin: 26px 0 !important; }
   .muyuy-landing h1 span:last-child { color: #cadca6; }
-  .muyuy-landing[data-motion=on] .muyuy-letter { display: inline-block; opacity: 0; animation: muyuy-type 1ms var(--letter-delay) both; }
+  .muyuy-landing[data-motion=on] .muyuy-letter { display: inline-block; opacity: 0; }
+  .muyuy-landing[data-motion=on][data-ready=true] .muyuy-letter { animation: muyuy-type 1ms var(--letter-delay) both; }
   @keyframes muyuy-type { to { opacity: 1; } }
   .muyuy-landing[data-motion=on] .muyuy-reveal[data-entered=true] > :is(h2, h3, p):not(:only-child) {
     animation: muyuy-text-in 1.12s cubic-bezier(.32,.72,0,1) both;
@@ -812,6 +912,16 @@ const STYLES = `
   .muyuy-flow-arrow { display: block; margin: 5px 23px; transform: rotate(90deg); color: #bdc7b1; }
   .muyuy-month-label { display: flex; justify-content: space-between; margin-top: 25px; font-size: 12px; }
   .muyuy-zone-field { border: 0; padding: 0; margin: 22px 0 0; }
+  .muyuy-zone-global { margin-top: 14px; }
+  .muyuy-zone-global legend { display: inline-flex; align-items: center; gap: 5px; }
+  .muyuy-zone-locate { border-style: dashed !important; }
+  .muyuy-zone-locate strong { display: inline-flex; align-items: center; gap: 4px; }
+  .muyuy-zone-status { margin-top: 8px !important; }
+  .muyuy-spin { animation: muyuy-spin 1s linear infinite; }
+  @keyframes muyuy-spin { to { transform: rotate(360deg); } }
+  .muyuy-rotation { margin-top: 16px; padding: 12px 14px; border: 1px solid #ffffff17; border-radius: 10px; background: #0b0f0c80; }
+  .muyuy-rotation-line { margin-top: 6px !important; font-size: 12.5px; color: #dcecc0; }
+  .muyuy-rotation .muyuy-small { margin-top: 6px !important; }
   .muyuy-zone-field legend { font-size: 11px; margin-bottom: 8px; }
   .muyuy-zone-options { display: flex; flex-wrap: wrap; gap: 6px; }
   .muyuy-zone-options button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 11px; border: 1px solid #ffffff20; border-radius: 8px; background: transparent; color: #c9ccc4; font-size: 11px; transition: transform .18s cubic-bezier(.32,.72,0,1); }
@@ -867,7 +977,7 @@ const STYLES = `
   .muyuy-checksum .muyuy-small { margin-top: 10px; }
   .muyuy-guide { margin-top: 18px; display: flex; align-items: center; gap: 7px; padding: 0; background: none; border: 0; color: #d0dbbb; font-size: 12px !important; text-align: left; }
   .muyuy-notice { font-size: 11px; margin-top: 19px !important; color: #adb2a5 !important; }
-  .muyuy-team-section { min-height: 90svh; }
+  .muyuy-team-section { min-height: 90svh; padding-bottom: 56px; }
   .muyuy-footer { display: grid; gap: 26px; }
   .muyuy-footer-main { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: clamp(18px, 3vw, 40px); align-items: start; }
   .muyuy-footer-brand { max-width: 34ch; }
@@ -878,7 +988,7 @@ const STYLES = `
   .muyuy-footer-col a { font-size: 12px; color: #cdd2c6; transition: color .18s; overflow-wrap: anywhere; }
   .muyuy-footer-col a:hover { color: #cadca6; }
   .muyuy-footer-col .muyuy-small { margin: 0 !important; }
-  .muyuy-footer-col code { font-size: 10.5px; color: #b9c4ac; };
+  .muyuy-footer-col code { font-size: 10.5px; color: #b9c4ac; }
   .muyuy-footer-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 24px; padding-top: 18px; border-top: 1px solid #ffffff14; }
   .muyuy-footer-bottom .muyuy-small { max-width: 60ch; }
   .muyuy-team-intro { max-width: 62ch; color: #c3c5bf; }

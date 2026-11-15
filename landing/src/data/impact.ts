@@ -11,6 +11,8 @@
  *  no se traducen acá: así el mismo texto existe en es/ qu/ ay.
  */
 
+import paquetes from './paquetes.json';
+
 export type ImpactStat = {
   /** Cifra corta y legible: "40", "≈2 KB", "100%". */
   value: string;
@@ -27,18 +29,19 @@ export const IMPACT_STATS: ImpactStat[] = [
     source: 'Source: NASA POWER 1985–2024',
   },
   {
-    value: '3',
+    value: String(paquetes.catalog.zonas),
     label: 'Pilot zones in Huánuco',
     source: 'Source: project data package',
   },
   {
-    value: '30',
-    label: 'Crops scored by the engine',
+    value: String(paquetes.catalog.cultivos),
+    label: 'Crops in the global catalog',
     source: 'Source: NASA POWER + FAO ECOCROP',
   },
   {
-    value: '≈3 KB',
-    label: 'Regional package, gzipped',
+    // Medido: núcleo del paquete (sin imagen satelital) 1.9–2.5 KB gzip.
+    value: '≈2.5 KB',
+    label: 'Regional data core, gzipped',
     source: 'Source: project data package',
   },
 ];

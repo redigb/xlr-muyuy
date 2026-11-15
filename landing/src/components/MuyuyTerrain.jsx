@@ -1290,36 +1290,13 @@ function Diorama({ progress, mode, climate, month, data, reduced, zoom, editoria
     const pointerDown = (event) => {
       if (onIslandInteract && hitsIsland(event, canvas.getBoundingClientRect())) onIslandInteract();
     };
-    const wheel = (event) => {
-      if (event.ctrlKey || event.metaKey || !event.deltaY) return;
-      if (onEnterFields && !touring && wideIslandView && event.deltaY < 0) return;
-      const bounds = canvas.getBoundingClientRect();
-      if (!hitsIsland(event, bounds)) return;
-      onIslandInteract?.();
-      if (onEnterFields) {
-        if (touring) {
-          if (wideFieldView && event.deltaY > 0) return;
-          event.preventDefault();
-          if (event.deltaY < 0) onZoomOut?.();
-        } else if (progress.current < .12) {
-          if (event.deltaY < 0 && !onWidenIslandView) return;
-          event.preventDefault();
-          if (event.deltaY < 0) onWidenIslandView();
-          else if (!onWidenIslandView || wideIslandView) onEnterFields();
-        }
-        return;
-      }
-      event.preventDefault();
-      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? bounds.height : 1);
-      zoom.current = clamp(zoom.current * Math.exp(delta * -.0018), .72, 1.48);
-    };
+    // La rueda NUNCA se captura en el canvas: el scroll siempre mueve la
+    // página, aunque el cursor esté sobre la isla. El 3D solo sigue al scroll.
     canvas.addEventListener('pointerdown', pointerDown);
-    canvas.addEventListener('wheel', wheel, { passive: false });
     return () => {
       canvas.removeEventListener('pointerdown', pointerDown);
-      canvas.removeEventListener('wheel', wheel);
     };
-  }, [camera, gl, editorialLayout, zoom, touring, onEnterFields, onZoomOut, progress, wideFieldView, wideIslandView, onWidenIslandView, onIslandInteract]);
+  }, [camera, gl, editorialLayout, onIslandInteract]);
   const palette = useMemo(() => {
     const values = new Float32Array(top.attributes.position.count * 3);
     const color = new THREE.Color();
@@ -1487,9 +1464,24 @@ function Diorama({ progress, mode, climate, month, data, reduced, zoom, editoria
   );
 }
 
+/**
+ * Avisa una sola vez cuando el canvas ya pintó sus primeros frames: los
+ * shaders están compilados y la isla es visible. El loader espera esta señal.
+ */
+function FirstFrames({ onReady, frames = 3 }) {
+  const count = useRef(0);
+  useFrame(() => {
+    if (count.current > frames) return;
+    count.current += 1;
+    if (count.current === frames) onReady?.();
+  });
+  return null;
+}
+
 class TerrainBoundary extends Component {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.props.onFail?.(); }
   render() {
     if (this.state.failed) return <p role="status" style={{ padding: 24 }}>3D rendering is unavailable on this device.</p>;
     return this.props.children;
@@ -1524,6 +1516,7 @@ export default function MuyuyTerrain({
   wideIslandView = false,
   onWidenIslandView,
   onIslandInteract,
+  onReady,
   className = '',
   style,
 }) {
@@ -1556,11 +1549,12 @@ export default function MuyuyTerrain({
         }
         @media (prefers-reduced-motion: reduce) { .muyuy-terrain button { transition: none; } }
       `}</style>
-      <TerrainBoundary>
+      <TerrainBoundary onFail={onReady}>
         <div className={onEnterFields ? 'muyuy-viewport muyuy-field-viewport' : 'muyuy-viewport'} style={editorialLayout ? undefined : { width: '100%', height: '100%' }}>
         <Canvas shadows className="muyuy-canvas" camera={{ position: [10, 8.5, 12], fov: 39, near: .1, far: 80 }} dpr={[1, 1.5]}
           gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }} style={{ touchAction: 'pan-y' }}>
           <Diorama progress={progress} mode={activeMode} climate={climate} month={month} data={data} reduced={reduced} zoom={zoom} editorialLayout={editorialLayout} fieldJourney={fieldJourney} onEnterFields={onEnterFields} wideFieldView={wideFieldView} onZoomOut={onZoomOut} wideIslandView={wideIslandView} onWidenIslandView={onWidenIslandView} onIslandInteract={onIslandInteract} />
+          <FirstFrames onReady={onReady} />
         </Canvas>
         </div>
       </TerrainBoundary>

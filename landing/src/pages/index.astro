@@ -46,24 +46,38 @@ function videoEmbedUrl(value: string): string | undefined {
 // Snapshot de los paquetes regionales servidos por la API (scripts/sync-data.mjs).
 // Nada de valores inventados: calendario, altitud, procedencia y rotaciones
 // salen del paquete sellado (NASA POWER 1985–2024).
-const ZONES = paquetes.zonas.map((zona) => {
-  const paquete = paquetes.paquetes[zona.id];
-  return {
-    id: zona.id,
-    nombre: zona.nombre,
-    region: zona.region,
-    elevacion_m: zona.elevacion_m,
-    cultivos: paquete.cultivos,
-    inicioSiembra: paquete.inicio_siembra_mes,
-    fuenteClima: paquete.fuente_clima,
-    calendar: paquete.calendario,
-    rotaciones: paquete.rotaciones,
-    nombres: paquete.nombres,
-    version: paquete.meta.version,
-    hash: String(paquete.meta.hash).replace(/^sha256:/, ''),
-    apiUrl: `${paquetes.api}/api/paquete/${zona.id}`,
-  };
+type Recorte = (typeof paquetes.paquetes)[keyof typeof paquetes.paquetes];
+const zoneFrom = (paquete: Recorte) => ({
+  cultivos: paquete.cultivos,
+  inicioSiembra: paquete.inicio_siembra_mes,
+  fuenteClima: paquete.fuente_clima,
+  calendar: paquete.calendario,
+  rotaciones: paquete.rotaciones,
+  nombres: paquete.nombres,
+  version: paquete.meta.version,
+  hash: String(paquete.meta.hash).replace(/^sha256:/, ''),
+  validada: Boolean(paquete.meta.validada_localmente),
 });
+
+const ZONES = paquetes.zonas.map((zona) => ({
+  id: zona.id,
+  nombre: zona.nombre,
+  region: zona.region,
+  elevacion_m: zona.elevacion_m,
+  ...zoneFrom(paquetes.paquetes[zona.id as keyof typeof paquetes.paquetes]),
+  apiUrl: `${paquetes.api}/api/paquete/${zona.id}`,
+}));
+
+// Modo global: el mismo motor en otros continentes (paquetes bajo demanda).
+const GLOBAL_ZONES = paquetes.globales.map((lugar) => ({
+  id: lugar.id,
+  nombre: lugar.nombre,
+  region: lugar.region,
+  elevacion_m: lugar.elevacion_m,
+  global: true,
+  ...zoneFrom(lugar.paquete as Recorte),
+  apiUrl: `${paquetes.api}/api/paquete/coordenada?lat=${lugar.lat}&lon=${lugar.lon}&lang=en`,
+}));
 const title = 'Muyuy — Offline Agro-Climatic Intelligence powered by NASA Earth Data';
 const description = 'Muyuy is an offline-first agro-climatic prototype for smallholder farmers. Explore seasonal climate risks and crop rotations using NASA Earth data, starting in Huánuco, Peru.';
 const base = import.meta.env.BASE_URL;
@@ -116,6 +130,9 @@ const base = import.meta.env.BASE_URL;
   <LandingUI
     client:only="react"
     zones={ZONES}
+    globalZones={GLOBAL_ZONES}
+    apiBase={paquetes.api}
+    snapshot={{ fetchedAt: paquetes.fetchedAt, catalog: paquetes.catalog, versions: Object.fromEntries(ZONES.map((z) => [z.id, { version: z.version, hash: z.hash }])) }}
     videoEmbedUrl={videoEmbedUrl(release.videoUrl)}
     fieldVideoEmbedUrl={videoEmbedUrl(release.fieldVideoUrl)}
     apkUrl={release.apkUrl}

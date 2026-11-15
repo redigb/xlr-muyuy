@@ -76,15 +76,30 @@ export default function TeamGrid({ members, locale, t, glass }) {
               <Avatar member={member} />
               <div className="muyuy-member-id">
                 <h3>{member.name}</h3>
-                <p className="muyuy-member-location">
-                  <MapPin size={12} aria-hidden="true" />
-                  {member.location}
-                </p>
+                {(member.location || member.lead) && (
+                  <p className="muyuy-member-location">
+                    {member.location && <><MapPin size={12} aria-hidden="true" />{member.location}</>}
+                    {member.lead && (
+                      <span className="muyuy-member-badge muyuy-member-lead" data-lead={member.lead}>
+                        {t(member.lead === 'lead' ? 'Team lead' : 'Co-lead')}
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
               {member.placeholder && <span className="muyuy-member-badge">PENDING</span>}
             </div>
 
             <p className="muyuy-member-role">{pick(member.role, locale)}</p>
+            {member.university && (
+              <p className="muyuy-member-university">
+                {member.university.logo && (
+                  <img src={member.university.logo.startsWith('/') ? base + member.university.logo.slice(1) : member.university.logo}
+                    alt="" width="28" height="28" loading="lazy" decoding="async" />
+                )}
+                <span>{member.university.name}</span>
+              </p>
+            )}
             <p className="muyuy-member-bio">{pick(member.bio, locale)}</p>
 
             {member.stack.length > 0 && (
@@ -115,15 +130,19 @@ export default function TeamGrid({ members, locale, t, glass }) {
 
 const css = `
   .muyuy-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-  .muyuy-team-grid { list-style: none; padding: 0; margin: 26px 0 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .muyuy-team-grid { list-style: none; padding: 0; margin: 26px 0 28px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
   .muyuy-member { display: flex; flex-direction: column; gap: 8px; padding: 16px !important; min-width: 0; }
-  .muyuy-member-head { display: flex; align-items: center; gap: 9px; }
+  .muyuy-member-head { display: flex; align-items: center; gap: 9px; min-height: 50px; }
   .muyuy-member-avatar { flex: none; width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 1px solid #cadca640; }
   .muyuy-member-initials { display: grid; place-items: center; font: 600 12px/1 var(--font-mono, monospace); letter-spacing: .04em; color: #182012; background: #cadca6; }
   .muyuy-member-id { min-width: 0; flex: 1; }
   .muyuy-member-id h3 { font-size: 13px; line-height: 1.2; overflow-wrap: anywhere; }
   .muyuy-member-location { display: flex; align-items: center; gap: 3px; margin-top: 2px !important; font-size: 10px !important; color: #9fa699 !important; }
   .muyuy-member-badge { flex: none; align-self: flex-start; padding: 1px 5px; border: 1px solid #f0c96a55; border-radius: 4px; color: #f0c96a; font: 600 8px/1.6 var(--font-mono, monospace); letter-spacing: .08em; }
+  .muyuy-member-lead { margin-left: 6px; align-self: center; border-color: #cadca666; color: #d7e8b4; background: #cadca614; text-transform: uppercase; }
+  .muyuy-member-lead[data-lead=lead] { color: #182012; background: #cadca6; border-color: #cadca6; }
+  .muyuy-member-university { display: flex; align-items: center; gap: 7px; margin: 0 !important; font-size: 10.5px !important; line-height: 1.3; color: #c3cab9 !important; }
+  .muyuy-member-university img { flex: none; width: 28px; height: 28px; padding: 2px; border-radius: 6px; background: #fff; object-fit: contain; }
   .muyuy-member-role { font-size: 11px !important; font-weight: 600 !important; color: #d3e0ba !important; line-height: 1.35; }
   .muyuy-member-bio { font-size: 11.5px !important; line-height: 1.5; color: #b0b7aa !important; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .muyuy-member-stack { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; padding: 0; margin: auto 0 0; }

@@ -1,10 +1,10 @@
 {
-  "fetchedAt": "2026-11-15T01:15:15.465Z",
+  "fetchedAt": "2026-11-15T16:45:02.794Z",
   "api": "https://muyuy-bk.rdev7.net.pe",
   "catalog": {
     "zonas": 3,
     "cultivos": 30,
-    "reglas": 7
+    "reglas": 8
   },
   "zonas": [
     {
@@ -48,10 +48,11 @@
   "paquetes": {
     "huanuco-sierra": {
       "meta": {
-        "version": 5,
-        "hash": "sha256:e60e95d1c24379ac127eb1de4e83b5e579b32a5e89567e489f25667e981187bf",
-        "generado": "2026-11-15T00:57:30Z",
-        "validada_localmente": true
+        "version": 7,
+        "hash": "sha256:0e63a75ac47cdd117ef6e80395f7fa9f2eb4331d14aad0a9d868ad8390886bcd",
+        "generado": "2026-11-15T16:40:48Z",
+        "validada_localmente": true,
+        "origen": "zona_oficial"
       },
       "zona": {
         "id": "huanuco-sierra",
@@ -188,7 +189,7 @@
             "riesgo": 0.74,
             "total": 0.69
           },
-          "explicacion": "Arveja fija nitrógeno y avena cubre el suelo, mejorando el puntaje de suelo (1.0) y reduciendo erosión. Después de la papa, siembre arveja antes de la primera helada y use avena como cubierta ligera en los meses secos.",
+          "explicacion": "La arveja fija nitrógeno y la avena protege el suelo, mejorando el puntaje de suelo (1.0) y reduciendo riesgos de erosión. Planta la arveja después del fin de heladas y la avena antes de la temporada seca para aprovechar la lluvia.",
           "es_practica_comun": false
         },
         {
@@ -205,7 +206,7 @@
             "riesgo": 0.79,
             "total": 0.69
           },
-          "explicacion": "Tarwi aporta nitrógeno y avena protege el suelo, manteniendo alto puntaje de suelo (1.0). Evite plantar tarwi en los meses de helada; siembre después de la papa y coseche antes de junio‑agosto.",
+          "explicacion": "El tarwi aporta nitrógeno y la avena cubre el suelo, manteniendo buen nivel de suelo (1.0). Siembra el tarwi cuando el riesgo de helada haya pasado y la avena al inicio del periodo seco para conservar humedad.",
           "es_practica_comun": false
         },
         {
@@ -222,7 +223,7 @@
             "riesgo": 0.74,
             "total": 0.66
           },
-          "explicacion": "La haba fija nitrógeno y la avena cubre, manteniendo suelo fértil (1.0). Plante la haba después de la papa y coseche antes de la temporada de heladas, usando avena como cubierta en los meses secos.",
+          "explicacion": "La haba fija nitrógeno y la avena protege el suelo, logrando alta puntuación de suelo (1.0). Planta la haba después de la temporada de heladas y la avena al inicio del ciclo para usar la lluvia disponible.",
           "es_practica_comun": false
         }
       ],
@@ -244,10 +245,11 @@
     },
     "huanuco-valle": {
       "meta": {
-        "version": 4,
-        "hash": "sha256:3b84808e40ce0baf48ddbfc72e6a8458950e9f8cd89445e081b73642777482a4",
-        "generado": "2026-11-15T00:57:49Z",
-        "validada_localmente": true
+        "version": 5,
+        "hash": "sha256:5f7c06b81468f89d8c5e361229a1d99b2f0cd3cdf84d254026c3656af4ac06a7",
+        "generado": "2026-11-15T16:44:51Z",
+        "validada_localmente": true,
+        "origen": "zona_oficial"
       },
       "zona": {
         "id": "huanuco-valle",
@@ -384,7 +386,7 @@
             "riesgo": 0.7,
             "total": 0.64
           },
-          "explicacion": "El orden papa→arveja→trigo mejora el suelo porque la arveja fija nitrógeno y el trigo cubre el terreno, reduciendo erosión y manteniendo la humedad (agua 0.23, suelo 1.0). En el Valle del Huallaga siembre la papa en octubre y vigile que la arveja y el trigo reciban riego suplementario durante los meses secos.",
+          "explicacion": "La papa seguida de arveja aporta nitrógeno y el trigo cubre el suelo, mejorando fertilidad (suelo 1.0) y reduciendo riesgo (0.7). Con la siembra en octubre, asegúrese de que la lluvia llegue antes de que el trigo entre en desarrollo para evitar estrés hídrico.",
           "es_practica_comun": false
         },
         {
@@ -401,7 +403,7 @@
             "riesgo": 0.7,
             "total": 0.63
           },
-          "explicacion": "Papa→frijol→trigo aporta nitrógeno al suelo y protege la superficie con el trigo, lo que favorece los ingresos (0.6) y la conservación del agua (0.23). Con lluvias anuales de 614 mm y sin riesgo de helada, asegure riegos ligeros en los periodos secos después de la siembra en octubre.",
+          "explicacion": "Después de la papa, el frijol fija nitrógeno y el trigo protege el suelo, manteniendo alta fertilidad (suelo 1.0). En esta zona sin heladas, plantee el trigo justo después de la temporada de lluvias para que reciba suficiente agua.",
           "es_practica_comun": false
         },
         {
@@ -418,7 +420,7 @@
             "riesgo": 0.7,
             "total": 0.62
           },
-          "explicacion": "La haba fija nitrógeno después de la papa y el trigo cubre el suelo, aumentando la fertilidad (suelo 1.0) y reduciendo la pérdida de agua (0.17). En esta zona, mantenga la humedad del trigo con riegos parciales durante los meses secos posteriores a la siembra en octubre.",
+          "explicacion": "La haba enriquece el suelo y el trigo lo cubre, manteniendo buen nivel de nutrientes (suelo 1.0). Como la lluvia es limitada, siembre el trigo cuando aún queden lluvias de octubre‑noviembre para evitar sequía.",
           "es_practica_comun": false
         }
       ],
@@ -435,10 +437,11 @@
     },
     "huanuco-selva": {
       "meta": {
-        "version": 4,
-        "hash": "sha256:55a0a55e0c59042e2e5553429b8d80a5c62db2915147c26c028084ef9d46bf27",
-        "generado": "2026-11-15T00:57:50Z",
-        "validada_localmente": true
+        "version": 5,
+        "hash": "sha256:c0590b26eb4ed921f203d3b5b29dec0e369aff274e8fe75adccdd0795027464c",
+        "generado": "2026-11-15T16:00:01Z",
+        "validada_localmente": true,
+        "origen": "zona_oficial"
       },
       "zona": {
         "id": "huanuco-selva",
@@ -575,7 +578,7 @@
             "riesgo": 0.86,
             "total": 0.66
           },
-          "explicacion": "El maíz seguido de yuca y luego mucuna repone nitrógeno y cubre el suelo, mejorando la fertilidad y reduciendo plagas, lo que eleva los ingresos. En el clima de alta precipitación y meses secos, la mucuna debe sembrarse al inicio de la temporada seca para que cubra el suelo antes de la primera lluvia.",
+          "explicacion": "El maíz seguido de yuca y luego mucuna mejora la fertilidad (suelo 1.0) y mantiene ingresos modestos (0.4). Con lluvias concentradas, plantee la yuca en el mes 10 y deje la mucuna cubrir el suelo durante la estación seca para protegerlo.",
           "es_practica_comun": false
         },
         {
@@ -592,7 +595,7 @@
             "riesgo": 0.85,
             "total": 0.64
           },
-          "explicacion": "El maíz, luego frijol fijador de nitrógeno y después yuca, aumenta la disponibilidad de nutrientes y diversifica la cosecha, incrementando los ingresos. Con lluvias abundantes y sin riesgo de helada, el frijol debe plantarse justo después del maíz para aprovechar la humedad y evitar competencia por agua en los meses secos.",
+          "explicacion": "El frijol fija nitrógeno, mejorando el suelo (0.8) y aumentando ingresos (0.53) antes de la yuca. Plante el frijol justo después del maíz en octubre y use la yuca en la temporada de lluvias para evitar estrés hídrico.",
           "es_practica_comun": false
         },
         {
@@ -609,7 +612,7 @@
             "riesgo": 0.86,
             "total": 0.61
           },
-          "explicacion": "El maíz seguido de mucuna aporta nitrógeno y protege el suelo antes de la yuca, mejorando la salud del terreno y los rendimientos. En la selva de Huánuco, la mucuna se debe sembrar al inicio del periodo seco (mes 10) para que forme cobertura antes de que lleguen las lluvias intensas.",
+          "explicacion": "La mucuna actúa como abono verde, protege el suelo (0.8) y prepara la yuca, manteniendo ingresos (0.4). Aproveche la lluvia de octubre para el maíz, deje la mucuna cubrir el terreno en los meses secos y siembre la yuca cuando vuelva la lluvia.",
           "es_practica_comun": false
         }
       ],
@@ -622,5 +625,833 @@
       },
       "cultivos": 5
     }
-  }
+  },
+  "globales": [
+    {
+      "id": "kenya-highlands",
+      "nombre": "Nairobi, Kenya",
+      "lat": -1.29,
+      "lon": 36.82,
+      "region": "valle",
+      "elevacion_m": 1554,
+      "paquete": {
+        "meta": {
+          "version": 1,
+          "hash": "sha256:32358a608f02bde6b3b05423b4488c22911b22c4b536dacf733d99f15eafdb1b",
+          "generado": "2026-11-15T16:41:04Z",
+          "validada_localmente": false,
+          "origen": "coordenada"
+        },
+        "zona": {
+          "id": "celda_-1.5_37.0",
+          "nombre": "Area near -1.5°, 37.0°",
+          "lat": -1.5,
+          "lon": 37,
+          "elevacion_m": 1554,
+          "riego": false
+        },
+        "fuente_clima": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 1642 m → lugar 1554 m (+0.6 °C); ET0 Hargreaves (FAO-56)",
+        "inicio_siembra_mes": 4,
+        "calendario": [
+          {
+            "mes": 1,
+            "prob_helada": 0,
+            "lluvia_mm": 43.6,
+            "et_mm": 153.3,
+            "balance_hidrico_mm": -109.8,
+            "t_min": 14.8,
+            "t_max": 28.2
+          },
+          {
+            "mes": 2,
+            "prob_helada": 0,
+            "lluvia_mm": 30.1,
+            "et_mm": 153.8,
+            "balance_hidrico_mm": -123.7,
+            "t_min": 15.1,
+            "t_max": 29.8
+          },
+          {
+            "mes": 3,
+            "prob_helada": 0,
+            "lluvia_mm": 65.2,
+            "et_mm": 166.3,
+            "balance_hidrico_mm": -101.1,
+            "t_min": 15.9,
+            "t_max": 29.8
+          },
+          {
+            "mes": 4,
+            "prob_helada": 0,
+            "lluvia_mm": 112.5,
+            "et_mm": 139.5,
+            "balance_hidrico_mm": -27,
+            "t_min": 16,
+            "t_max": 27.8
+          },
+          {
+            "mes": 5,
+            "prob_helada": 0,
+            "lluvia_mm": 75.4,
+            "et_mm": 131.1,
+            "balance_hidrico_mm": -55.7,
+            "t_min": 14.7,
+            "t_max": 26.5
+          },
+          {
+            "mes": 6,
+            "prob_helada": 0,
+            "lluvia_mm": 22.7,
+            "et_mm": 125.8,
+            "balance_hidrico_mm": -103.1,
+            "t_min": 13.5,
+            "t_max": 26.5
+          },
+          {
+            "mes": 7,
+            "prob_helada": 0,
+            "lluvia_mm": 16.5,
+            "et_mm": 136.3,
+            "balance_hidrico_mm": -119.8,
+            "t_min": 12.9,
+            "t_max": 26.8
+          },
+          {
+            "mes": 8,
+            "prob_helada": 0,
+            "lluvia_mm": 19.2,
+            "et_mm": 149.3,
+            "balance_hidrico_mm": -130.1,
+            "t_min": 13.2,
+            "t_max": 27.7
+          },
+          {
+            "mes": 9,
+            "prob_helada": 0,
+            "lluvia_mm": 18.3,
+            "et_mm": 160.6,
+            "balance_hidrico_mm": -142.3,
+            "t_min": 14,
+            "t_max": 29.2
+          },
+          {
+            "mes": 10,
+            "prob_helada": 0,
+            "lluvia_mm": 46.1,
+            "et_mm": 166.4,
+            "balance_hidrico_mm": -120.3,
+            "t_min": 14.9,
+            "t_max": 29.5
+          },
+          {
+            "mes": 11,
+            "prob_helada": 0,
+            "lluvia_mm": 88.1,
+            "et_mm": 139.1,
+            "balance_hidrico_mm": -51,
+            "t_min": 15.7,
+            "t_max": 27.4
+          },
+          {
+            "mes": 12,
+            "prob_helada": 0,
+            "lluvia_mm": 64.1,
+            "et_mm": 139.7,
+            "balance_hidrico_mm": -75.6,
+            "t_min": 15.4,
+            "t_max": 27
+          }
+        ],
+        "rotaciones": [
+          {
+            "id": "papa-avena_forrajera-caupi",
+            "secuencia": [
+              "papa",
+              "avena_forrajera",
+              "caupi"
+            ],
+            "puntajes": {
+              "agua": 0.47,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.8,
+              "total": 0.69
+            },
+            "explicacion": "Potato uses moderate water, oat covers soil with low water, bean adds nitrogen, improving soil and profit. Plant in month 4, rely on rain and keep soil moist for potato tubers.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "papa-caupi-avena_forrajera",
+            "secuencia": [
+              "papa",
+              "caupi",
+              "avena_forrajera"
+            ],
+            "puntajes": {
+              "agua": 0.47,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.8,
+              "total": 0.69
+            },
+            "explicacion": "Potato uses moderate water, bean restores nitrogen, oat covers soil with low water, enhancing soil and income. sow in month 4, depend on rain and protect potatoes from dry stress.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "papa-cebada-caupi",
+            "secuencia": [
+              "papa",
+              "cebada",
+              "caupi"
+            ],
+            "puntajes": {
+              "agua": 0.47,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.8,
+              "total": 0.69
+            },
+            "explicacion": "Potato needs moderate water, barley covers soil with low water, bean adds nitrogen, supporting soil and earnings. Plant in month 4, rely on rain and monitor moisture for barley.",
+            "es_practica_comun": false
+          }
+        ],
+        "nombres": {
+          "avena_forrajera": "Avena forrajera",
+          "camote": "Camote",
+          "caupi": "Caupí (frijol de ojo negro)",
+          "cebada": "Cebada",
+          "cebolla": "Cebolla",
+          "colza": "Colza (canola)",
+          "garbanzo": "Garbanzo",
+          "girasol": "Girasol",
+          "lenteja": "Lenteja",
+          "maiz": "Maíz grano",
+          "mani": "Maní",
+          "papa": "Papa",
+          "quinua": "Quinua",
+          "trigo": "Trigo",
+          "yuca": "Yuca"
+        },
+        "cultivos": 15
+      }
+    },
+    {
+      "id": "punjab",
+      "nombre": "Punjab, India",
+      "lat": 30.9,
+      "lon": 75.85,
+      "region": "valle",
+      "elevacion_m": 244,
+      "paquete": {
+        "meta": {
+          "version": 1,
+          "hash": "sha256:f51c8c502824ea441f80ba42a6ce65b6d225d782301aeab2fa73efa08dd28b15",
+          "generado": "2026-11-15T16:44:56Z",
+          "validada_localmente": false,
+          "origen": "coordenada"
+        },
+        "zona": {
+          "id": "celda_31.0_76.0",
+          "nombre": "Area near 31.0°, 76.0°",
+          "lat": 31,
+          "lon": 76,
+          "elevacion_m": 244,
+          "riego": false
+        },
+        "fuente_clima": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 316 m → lugar 244 m (+0.5 °C); ET0 Hargreaves (FAO-56)",
+        "inicio_siembra_mes": 7,
+        "calendario": [
+          {
+            "mes": 1,
+            "prob_helada": 0.03,
+            "lluvia_mm": 29.4,
+            "et_mm": 70.5,
+            "balance_hidrico_mm": -41.2,
+            "t_min": 8.6,
+            "t_max": 21.4
+          },
+          {
+            "mes": 2,
+            "prob_helada": 0,
+            "lluvia_mm": 33,
+            "et_mm": 88.7,
+            "balance_hidrico_mm": -55.8,
+            "t_min": 11.1,
+            "t_max": 24.8
+          },
+          {
+            "mes": 3,
+            "prob_helada": 0,
+            "lluvia_mm": 31.3,
+            "et_mm": 144.4,
+            "balance_hidrico_mm": -113.1,
+            "t_min": 15.9,
+            "t_max": 30.7
+          },
+          {
+            "mes": 4,
+            "prob_helada": 0,
+            "lluvia_mm": 20.8,
+            "et_mm": 192.6,
+            "balance_hidrico_mm": -171.8,
+            "t_min": 21.4,
+            "t_max": 37.1
+          },
+          {
+            "mes": 5,
+            "prob_helada": 0,
+            "lluvia_mm": 29.6,
+            "et_mm": 236.4,
+            "balance_hidrico_mm": -206.7,
+            "t_min": 26.5,
+            "t_max": 41.8
+          },
+          {
+            "mes": 6,
+            "prob_helada": 0,
+            "lluvia_mm": 94.3,
+            "et_mm": 224.2,
+            "balance_hidrico_mm": -129.9,
+            "t_min": 29,
+            "t_max": 42.2
+          },
+          {
+            "mes": 7,
+            "prob_helada": 0,
+            "lluvia_mm": 217.2,
+            "et_mm": 184.2,
+            "balance_hidrico_mm": 32.9,
+            "t_min": 28.3,
+            "t_max": 37.9
+          },
+          {
+            "mes": 8,
+            "prob_helada": 0,
+            "lluvia_mm": 206.5,
+            "et_mm": 154.9,
+            "balance_hidrico_mm": 51.7,
+            "t_min": 26.6,
+            "t_max": 35.2
+          },
+          {
+            "mes": 9,
+            "prob_helada": 0,
+            "lluvia_mm": 117,
+            "et_mm": 138.5,
+            "balance_hidrico_mm": -21.5,
+            "t_min": 24.2,
+            "t_max": 34.5
+          },
+          {
+            "mes": 10,
+            "prob_helada": 0,
+            "lluvia_mm": 12.5,
+            "et_mm": 124.3,
+            "balance_hidrico_mm": -111.8,
+            "t_min": 19.6,
+            "t_max": 32.8
+          },
+          {
+            "mes": 11,
+            "prob_helada": 0,
+            "lluvia_mm": 5.7,
+            "et_mm": 87.5,
+            "balance_hidrico_mm": -81.8,
+            "t_min": 14.9,
+            "t_max": 28.3
+          },
+          {
+            "mes": 12,
+            "prob_helada": 0.03,
+            "lluvia_mm": 12.3,
+            "et_mm": 69.9,
+            "balance_hidrico_mm": -57.6,
+            "t_min": 10.6,
+            "t_max": 23.5
+          }
+        ],
+        "rotaciones": [
+          {
+            "id": "sorgo-girasol-mani",
+            "secuencia": [
+              "sorgo",
+              "girasol",
+              "mani"
+            ],
+            "puntajes": {
+              "agua": 0.7,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.9,
+              "total": 0.78
+            },
+            "explicacion": "Sorghum covers the soil and uses little water, sunflower adds biomass, and peanuts later fix nitrogen. sow in month 7 and rely on the rainy season, noting that sorghum tolerates the early dry months well.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "sorgo-camote-mani",
+            "secuencia": [
+              "sorgo",
+              "camote",
+              "mani"
+            ],
+            "puntajes": {
+              "agua": 0.67,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.89,
+              "total": 0.77
+            },
+            "explicacion": "Camote after sorghum keeps the soil covered and holds moisture, then peanuts restore nitrogen. Plant in month 7 and watch that water may become scarce after month 9, affecting camote.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "sorgo-mani-camote",
+            "secuencia": [
+              "sorgo",
+              "mani",
+              "camote"
+            ],
+            "puntajes": {
+              "agua": 0.67,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.89,
+              "total": 0.77
+            },
+            "explicacion": "Peanuts after sorghum add nitrogen, and camote then covers the ground to conserve moisture. sow in month 7 and be aware that the later dry months may limit camote without sufficient rain.",
+            "es_practica_comun": false
+          }
+        ],
+        "nombres": {
+          "arroz": "Arroz",
+          "camote": "Camote",
+          "girasol": "Girasol",
+          "maiz": "Maíz grano",
+          "mani": "Maní",
+          "mucuna": "Mucuna (abono verde)",
+          "sorgo": "Sorgo",
+          "soya": "Soya",
+          "tomate": "Tomate",
+          "yuca": "Yuca"
+        },
+        "cultivos": 10
+      }
+    },
+    {
+      "id": "sahel",
+      "nombre": "Niamey, Niger",
+      "lat": 13.51,
+      "lon": 2.11,
+      "region": "valle",
+      "elevacion_m": 232,
+      "paquete": {
+        "meta": {
+          "version": 2,
+          "hash": "sha256:ec113e251bac621d776b215b39b49c76fb92a9cba3949b869e1991b46652d67a",
+          "generado": "2026-11-15T16:45:00Z",
+          "validada_localmente": false,
+          "origen": "coordenada"
+        },
+        "zona": {
+          "id": "celda_13.5_2.0",
+          "nombre": "Area near 13.5°, 2.0°",
+          "lat": 13.5,
+          "lon": 2,
+          "elevacion_m": 232,
+          "riego": false
+        },
+        "fuente_clima": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 242 m → lugar 232 m (+0.1 °C); ET0 Hargreaves (FAO-56)",
+        "inicio_siembra_mes": 7,
+        "calendario": [
+          {
+            "mes": 1,
+            "prob_helada": 0,
+            "lluvia_mm": 0,
+            "et_mm": 149.7,
+            "balance_hidrico_mm": -149.7,
+            "t_min": 15.9,
+            "t_max": 32.3
+          },
+          {
+            "mes": 2,
+            "prob_helada": 0,
+            "lluvia_mm": 0.4,
+            "et_mm": 162,
+            "balance_hidrico_mm": -161.6,
+            "t_min": 18.4,
+            "t_max": 35.4
+          },
+          {
+            "mes": 3,
+            "prob_helada": 0,
+            "lluvia_mm": 1.4,
+            "et_mm": 206,
+            "balance_hidrico_mm": -204.6,
+            "t_min": 22.5,
+            "t_max": 38.9
+          },
+          {
+            "mes": 4,
+            "prob_helada": 0,
+            "lluvia_mm": 6.3,
+            "et_mm": 210,
+            "balance_hidrico_mm": -203.6,
+            "t_min": 26.4,
+            "t_max": 41.1
+          },
+          {
+            "mes": 5,
+            "prob_helada": 0,
+            "lluvia_mm": 26.8,
+            "et_mm": 201.6,
+            "balance_hidrico_mm": -174.8,
+            "t_min": 28.1,
+            "t_max": 40.3
+          },
+          {
+            "mes": 6,
+            "prob_helada": 0,
+            "lluvia_mm": 73.5,
+            "et_mm": 174.4,
+            "balance_hidrico_mm": -100.9,
+            "t_min": 26.8,
+            "t_max": 37.5
+          },
+          {
+            "mes": 7,
+            "prob_helada": 0,
+            "lluvia_mm": 135.6,
+            "et_mm": 160.1,
+            "balance_hidrico_mm": -24.6,
+            "t_min": 24.9,
+            "t_max": 34.3
+          },
+          {
+            "mes": 8,
+            "prob_helada": 0,
+            "lluvia_mm": 184.9,
+            "et_mm": 141.2,
+            "balance_hidrico_mm": 43.7,
+            "t_min": 23.7,
+            "t_max": 31.7
+          },
+          {
+            "mes": 9,
+            "prob_helada": 0,
+            "lluvia_mm": 89.3,
+            "et_mm": 144.6,
+            "balance_hidrico_mm": -55.3,
+            "t_min": 23.5,
+            "t_max": 32.9
+          },
+          {
+            "mes": 10,
+            "prob_helada": 0,
+            "lluvia_mm": 15.5,
+            "et_mm": 166.9,
+            "balance_hidrico_mm": -151.4,
+            "t_min": 23.1,
+            "t_max": 36.1
+          },
+          {
+            "mes": 11,
+            "prob_helada": 0,
+            "lluvia_mm": 0.1,
+            "et_mm": 157.6,
+            "balance_hidrico_mm": -157.5,
+            "t_min": 19.4,
+            "t_max": 35.6
+          },
+          {
+            "mes": 12,
+            "prob_helada": 0,
+            "lluvia_mm": 0,
+            "et_mm": 145.5,
+            "balance_hidrico_mm": -145.5,
+            "t_min": 16.5,
+            "t_max": 32.8
+          }
+        ],
+        "rotaciones": [
+          {
+            "id": "sorgo-girasol-caupi",
+            "secuencia": [
+              "sorgo",
+              "girasol",
+              "caupi"
+            ],
+            "puntajes": {
+              "agua": 0.63,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.85,
+              "total": 0.75
+            },
+            "explicacion": "Sorgo protects the soil, sunflower adds biomass, and caupí fixes nitrogen, building a strong soil base. plant in July, depend on rain and add mulch to hold moisture during long dry months.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "sorgo-camote-caupi",
+            "secuencia": [
+              "sorgo",
+              "camote",
+              "caupi"
+            ],
+            "puntajes": {
+              "agua": 0.6,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.85,
+              "total": 0.74
+            },
+            "explicacion": "Camote covers the soil after sorgo, then caupí restores nitrogen, preventing erosion. sow in month 7 with rain‑fed conditions and use mulch to keep camote moist in the dry season.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "sorgo-caupi-camote",
+            "secuencia": [
+              "sorgo",
+              "caupi",
+              "camote"
+            ],
+            "puntajes": {
+              "agua": 0.6,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.85,
+              "total": 0.74
+            },
+            "explicacion": "Caupí adds nitrogen after sorgo, and camote later provides ground cover, improving soil health. plant in July, rely on rainfall and protect camote with mulch during the extended dry period.",
+            "es_practica_comun": false
+          }
+        ],
+        "nombres": {
+          "arroz": "Arroz",
+          "camote": "Camote",
+          "caupi": "Caupí (frijol de ojo negro)",
+          "frijol": "Frijol",
+          "girasol": "Girasol",
+          "maiz": "Maíz grano",
+          "mani": "Maní",
+          "mijo": "Mijo perla",
+          "mucuna": "Mucuna (abono verde)",
+          "sorgo": "Sorgo",
+          "soya": "Soya",
+          "tomate": "Tomate"
+        },
+        "cultivos": 12
+      }
+    },
+    {
+      "id": "iowa",
+      "nombre": "Iowa, USA",
+      "lat": 41.88,
+      "lon": -93.1,
+      "region": "sierra",
+      "elevacion_m": 314,
+      "paquete": {
+        "meta": {
+          "version": 1,
+          "hash": "sha256:440ea07af5376f17dc0825ce54ae99d792d7e7d6d1669c6042fc7a50e265702f",
+          "generado": "2026-11-15T16:45:02Z",
+          "validada_localmente": false,
+          "origen": "coordenada"
+        },
+        "zona": {
+          "id": "celda_42.0_-93.0",
+          "nombre": "Area near 42.0°, -93.0°",
+          "lat": 42,
+          "lon": -93,
+          "elevacion_m": 314,
+          "riego": false
+        },
+        "fuente_clima": "NASA POWER (AG) diario 1985-2024, corregido por altitud: celda NASA 301 m → lugar 314 m (-0.1 °C); ET0 Hargreaves (FAO-56)",
+        "inicio_siembra_mes": 6,
+        "calendario": [
+          {
+            "mes": 1,
+            "prob_helada": 1,
+            "lluvia_mm": 25.2,
+            "et_mm": 13.3,
+            "balance_hidrico_mm": 11.9,
+            "t_min": -11.5,
+            "t_max": -2.2
+          },
+          {
+            "mes": 2,
+            "prob_helada": 1,
+            "lluvia_mm": 26.4,
+            "et_mm": 22.5,
+            "balance_hidrico_mm": 4,
+            "t_min": -9.3,
+            "t_max": 1
+          },
+          {
+            "mes": 3,
+            "prob_helada": 1,
+            "lluvia_mm": 53,
+            "et_mm": 55.2,
+            "balance_hidrico_mm": -2.3,
+            "t_min": -2.9,
+            "t_max": 8.7
+          },
+          {
+            "mes": 4,
+            "prob_helada": 1,
+            "lluvia_mm": 84.9,
+            "et_mm": 93.4,
+            "balance_hidrico_mm": -8.5,
+            "t_min": 2.9,
+            "t_max": 15.7
+          },
+          {
+            "mes": 5,
+            "prob_helada": 0.55,
+            "lluvia_mm": 113.7,
+            "et_mm": 132.6,
+            "balance_hidrico_mm": -18.9,
+            "t_min": 9.7,
+            "t_max": 21.7
+          },
+          {
+            "mes": 6,
+            "prob_helada": 0,
+            "lluvia_mm": 128.4,
+            "et_mm": 152.2,
+            "balance_hidrico_mm": -23.7,
+            "t_min": 15.5,
+            "t_max": 26.8
+          },
+          {
+            "mes": 7,
+            "prob_helada": 0,
+            "lluvia_mm": 107.7,
+            "et_mm": 159.3,
+            "balance_hidrico_mm": -51.6,
+            "t_min": 17.9,
+            "t_max": 28.8
+          },
+          {
+            "mes": 8,
+            "prob_helada": 0,
+            "lluvia_mm": 109.6,
+            "et_mm": 141,
+            "balance_hidrico_mm": -31.4,
+            "t_min": 16.6,
+            "t_max": 28.1
+          },
+          {
+            "mes": 9,
+            "prob_helada": 0.33,
+            "lluvia_mm": 84.1,
+            "et_mm": 103.4,
+            "balance_hidrico_mm": -19.3,
+            "t_min": 11.9,
+            "t_max": 24.4
+          },
+          {
+            "mes": 10,
+            "prob_helada": 1,
+            "lluvia_mm": 68.3,
+            "et_mm": 60.6,
+            "balance_hidrico_mm": 7.8,
+            "t_min": 4.6,
+            "t_max": 16.6
+          },
+          {
+            "mes": 11,
+            "prob_helada": 1,
+            "lluvia_mm": 47.7,
+            "et_mm": 27.7,
+            "balance_hidrico_mm": 19.9,
+            "t_min": -2.2,
+            "t_max": 7.6
+          },
+          {
+            "mes": 12,
+            "prob_helada": 1,
+            "lluvia_mm": 34.5,
+            "et_mm": 14.1,
+            "balance_hidrico_mm": 20.4,
+            "t_min": -8.4,
+            "t_max": 0.1
+          }
+        ],
+        "rotaciones": [
+          {
+            "id": "papa-caupi-mijo",
+            "secuencia": [
+              "papa",
+              "caupi",
+              "mijo"
+            ],
+            "puntajes": {
+              "agua": 0.57,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.65,
+              "total": 0.68
+            },
+            "explicacion": "papa -> caupi -> mijo in Area near 42.0°, -93.0°. Water 57%, soil 100%, income 50%, safety 65%.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "papa-mijo-caupi",
+            "secuencia": [
+              "papa",
+              "mijo",
+              "caupi"
+            ],
+            "puntajes": {
+              "agua": 0.57,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.65,
+              "total": 0.68
+            },
+            "explicacion": "papa -> mijo -> caupi in Area near 42.0°, -93.0°. Water 57%, soil 100%, income 50%, safety 65%.",
+            "es_practica_comun": false
+          },
+          {
+            "id": "papa-avena_forrajera-caupi",
+            "secuencia": [
+              "papa",
+              "avena_forrajera",
+              "caupi"
+            ],
+            "puntajes": {
+              "agua": 0.53,
+              "suelo": 1,
+              "ingresos": 0.5,
+              "riesgo": 0.63,
+              "total": 0.67
+            },
+            "explicacion": "papa -> avena_forrajera -> caupi in Area near 42.0°, -93.0°. Water 53%, soil 100%, income 50%, safety 63%.",
+            "es_practica_comun": false
+          }
+        ],
+        "nombres": {
+          "arroz": "Arroz",
+          "avena_forrajera": "Avena forrajera",
+          "camote": "Camote",
+          "caupi": "Caupí (frijol de ojo negro)",
+          "cebada": "Cebada",
+          "cebolla": "Cebolla",
+          "colza": "Colza (canola)",
+          "garbanzo": "Garbanzo",
+          "girasol": "Girasol",
+          "lenteja": "Lenteja",
+          "maiz": "Maíz grano",
+          "mani": "Maní",
+          "mijo": "Mijo perla",
+          "olluco": "Olluco",
+          "papa": "Papa",
+          "quinua": "Quinua",
+          "sorgo": "Sorgo"
+        },
+        "cultivos": 17
+      }
+    }
+  ]
 }
